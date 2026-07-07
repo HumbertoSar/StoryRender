@@ -12,12 +12,23 @@ Fase atual: MVP, ainda sem código. Este arquivo governa **processo** (como cons
 Se uma fatia exigir uma decisão que nenhum desses três cobre: **parar e perguntar**, não inventar escopo.
 
 ## Stack
-Ainda não confirmado — decidir na primeira fatia (setup) e preencher esta seção com os comandos reais. Ponto de partida provável, dado o padrão dos seus outros projetos: frontend React (o tldraw cogitado como motor de canvas é biblioteca React), backend Python ou Node, Docker, deploy em Fly.io.
+Decidido na fatia de setup: frontend React + Vite + TypeScript (`frontend/`), canvas custom em CSS/SVG (sem tldraw — o layout do brief é restrito o bastante pra não precisar de motor de canvas infinito). Backend Node + Express + TypeScript (`backend/`), persistência em Postgres (schema do roteiro como `jsonb`, seção 6 do MVP doc). Postgres local via Docker Compose. Agente usa a Claude API (Messages API) diretamente do backend.
 
 ```
-Build:  [preencher]
-Test:   [preencher]
-Lint:   [preencher]
+# Postgres local
+Setup:  docker compose up -d
+
+# Backend (em backend/)
+Build:  npm run build
+Test:   npm run test
+Lint:   npm run lint
+Dev:    npm run dev        # tsx watch, porta 3001
+Health: curl localhost:3001/health
+
+# Frontend (em frontend/)
+Build:  npm run build
+Dev:    npm run dev         # vite, porta 5173
+Lint:   npm run lint
 ```
 
 ## Regra central: fatias pequenas

@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: storyrender
+      POSTGRES_PASSWORD: storyrender
+      POSTGRES_DB: storyrender
+    ports:
+      - "5432:5432"
+    volumes:
+      - storyrender_pgdata:/var/lib/postgresql/data
+
+volumes:
+  storyrender_pgdata:
