@@ -107,17 +107,20 @@
 }
 
 .sr-badge--vazio {
+  background: none;
   border: 1px dotted rgba(240, 233, 216, 0.3);
   color: rgba(240, 233, 216, 0.4);
 }
 
 .sr-badge--rascunho,
 .sr-badge--esboço {
+  background: none;
   border: 1px dashed #b09056;
   color: var(--sr-brass);
 }
 
 .sr-badge--testado {
+  background: none;
   border: 1px solid var(--sr-brass);
   color: var(--sr-brass);
 }
@@ -195,7 +198,8 @@
   background: none;
   border: none;
   border-bottom: 1px dashed transparent;
-  resize: vertical;
+  resize: none;
+  overflow: hidden;
   padding: 0 0 3px;
   width: 100%;
   box-sizing: border-box;
@@ -264,7 +268,6 @@
   text-transform: uppercase;
   padding: 2px 6px;
   border-radius: 2px;
-  background: none;
   cursor: pointer;
 }
 

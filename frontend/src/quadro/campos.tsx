@@ -1,5 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { STATUS_OPCOES, type SugestaoCampo } from "./tipos";
+
+function useAutoAltura(valor: string) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [valor]);
+
+  return ref;
+}
 
 export function EditableField({
   label,
@@ -15,6 +28,7 @@ export function EditableField({
   sugestao?: SugestaoCampo;
 }) {
   const [local, setLocal] = useState(value);
+  const textareaRef = useAutoAltura(local);
 
   useEffect(() => setLocal(value), [value]);
 
@@ -26,6 +40,7 @@ export function EditableField({
     <div className="sr-field">
       {label && <div className="sr-field__label">{label}</div>}
       <textarea
+        ref={textareaRef}
         className="sr-field__input"
         value={local}
         placeholder={placeholder}
@@ -33,7 +48,7 @@ export function EditableField({
         onBlur={salvarSeMudou}
         rows={2}
       />
-      {sugestao && (
+      {sugestao && sugestao.valor !== value && (
         <div className="sr-field__sugestao">
           <div className="sr-field__sugestao-texto">{sugestao.valor}</div>
           <div className="sr-field__sugestao-acoes">
