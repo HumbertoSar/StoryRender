@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import "./home.css";
-import { criarRoteiro, listarRoteiros, type RoteiroResumo } from "../api";
+import { listarRoteiros, type RoteiroResumo } from "../api";
 
 function editadoHa(iso: string): string {
   const dias = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000);
@@ -14,7 +14,6 @@ function editadoHa(iso: string): string {
 
 export function Home() {
   const [roteiros, setRoteiros] = useState<RoteiroResumo[] | null>(null);
-  const [criando, setCriando] = useState(false);
 
   useEffect(() => {
     listarRoteiros()
@@ -27,14 +26,7 @@ export function Home() {
   }
 
   function novoRoteiro() {
-    if (criando) return;
-    setCriando(true);
-    criarRoteiro()
-      .then((r) => abrirRoteiro(r.id))
-      .catch((err) => {
-        console.error("Falha ao criar roteiro:", err);
-        setCriando(false);
-      });
+    window.location.href = "/novo";
   }
 
   return (
@@ -55,7 +47,7 @@ export function Home() {
               </div>
             </button>
           ))}
-          <button className="sr-home__novo" onClick={novoRoteiro} type="button" disabled={criando}>
+          <button className="sr-home__novo" onClick={novoRoteiro} type="button">
             <div className="sr-home__novo-icone">+</div>
             <div className="sr-home__card-info">
               <div className="sr-home__novo-titulo">Novo roteiro</div>

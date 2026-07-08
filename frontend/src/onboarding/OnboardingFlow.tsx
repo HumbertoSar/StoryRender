@@ -4,7 +4,7 @@ import { EspinhaRail, type NoEspinha, type NoStatus } from "./EspinhaRail";
 import { ProtagonistaCard } from "./ProtagonistaCard";
 import { ChatPanel, type ChatMessage } from "./ChatPanel";
 import { A_DEFINIR, NAO_SEI, ONBOARDING_STEPS } from "./script";
-import { atualizarRoteiro, criarRoteiro, registrarEvento, type RoteiroResponse, type RoteiroUpdate } from "../api";
+import { atualizarRoteiro, registrarEvento, type RoteiroResponse, type RoteiroUpdate } from "../api";
 
 const INDICE_ESPINHA = { incidente_incitante: 0, crise: 2, climax: 3 } as const;
 
@@ -59,18 +59,6 @@ interface OnboardingState {
   mensagens: ChatMessage[];
 }
 
-const ESTADO_INICIAL: OnboardingState = {
-  passo: 0,
-  concluido: false,
-  titulo: "",
-  generos: [],
-  want: "",
-  incidente: { conteudo: "", status: "vazio" },
-  crise: { conteudo: "", status: "vazio" },
-  climax: { conteudo: "", status: "vazio" },
-  mensagens: [{ from: "agente", texto: ONBOARDING_STEPS[0].pergunta }],
-};
-
 function estadoDoRoteiro(data: Record<string, unknown>): OnboardingState {
   const assets = data.assets as Record<string, unknown>;
   const protagonista = (assets.protagonistas as Array<Record<string, unknown>>)[0];
@@ -120,58 +108,32 @@ export function OnboardingFlow({
 }: {
   onFaseC: (roteiroId: string) => void;
   onModoLivre: (roteiroId: string) => void;
-  roteiroExistente?: RoteiroResponse;
+  roteiroExistente: RoteiroResponse;
 }) {
-  const [estado, setEstado] = useState<OnboardingState>(() =>
-    roteiroExistente ? estadoDoRoteiro(roteiroExistente.data) : ESTADO_INICIAL,
-  );
-  const roteiroIdRef = useRef<string | null>(roteiroExistente?.id ?? null);
+  const [estado, setEstado] = useState<OnboardingState>(() => estadoDoRoteiro(roteiroExistente.data));
+  const roteiroId = roteiroExistente.id;
   const passoInicialRef = useRef(estado.passo);
 
   useEffect(() => {
-    if (roteiroExistente) {
-      registrarEvento(roteiroExistente.id, "tela", {
-        tela: `onboarding_passo_${passoInicialRef.current}`,
-        retomado: passoInicialRef.current > 0,
-      });
-    }
+    registrarEvento(roteiroId, "tela", {
+      tela: `onboarding_passo_${passoInicialRef.current}`,
+      retomado: passoInicialRef.current > 0,
+    });
     // roda só na montagem — transições subsequentes são registradas em avancar()
-  }, [roteiroExistente]);
-
-  useEffect(() => {
-    if (roteiroExistente) return;
-    let cancelado = false;
-    criarRoteiro()
-      .then((r) => {
-        if (!cancelado) {
-          roteiroIdRef.current = r.id;
-          window.history.replaceState(null, "", `/r/${r.id}`);
-          registrarEvento(r.id, "tela", { tela: "onboarding_passo_0" });
-        }
-      })
-      .catch((err) => {
-        console.error("Falha ao criar roteiro:", err);
-      });
-    return () => {
-      cancelado = true;
-    };
-  }, [roteiroExistente]);
+  }, [roteiroId]);
 
   const passoAtual = ONBOARDING_STEPS[estado.passo];
 
   function avancar(resposta: string, generosResposta?: string[]) {
     const passo = estado.passo;
-    if (roteiroIdRef.current) {
-      const roteiroId = roteiroIdRef.current;
-      const updates = updatesParaPasso(passo, resposta, generosResposta);
-      if (updates.length > 0) {
-        atualizarRoteiro(roteiroId, updates).catch((err) => {
-          registrarEvento(roteiroId, "erro", { contexto: "onboarding_avancar", mensagem: (err as Error).message });
-          console.error("Falha ao persistir resposta:", err);
-        });
-      }
-      registrarEvento(roteiroId, "tela", { tela: `onboarding_passo_${passo + 1}` });
+    const updates = updatesParaPasso(passo, resposta, generosResposta);
+    if (updates.length > 0) {
+      atualizarRoteiro(roteiroId, updates).catch((err) => {
+        registrarEvento(roteiroId, "erro", { contexto: "onboarding_avancar", mensagem: (err as Error).message });
+        console.error("Falha ao persistir resposta:", err);
+      });
     }
+    registrarEvento(roteiroId, "tela", { tela: `onboarding_passo_${passo + 1}` });
 
     setEstado((prev) => {
       const proximo = { ...prev };
@@ -262,10 +224,10 @@ export function OnboardingFlow({
           tipoInput={estado.concluido ? null : passoAtual.tipo}
           onResponderTexto={avancar}
           onResponderGenero={(generos) => avancar(generos.join(", "), generos)}
-          onPularModoLivre={() => roteiroIdRef.current && onModoLivre(roteiroIdRef.current)}
+          onPularModoLivre={() => onModoLivre(roteiroId)}
           concluido={estado.concluido}
-          onContinuarComAgente={() => roteiroIdRef.current && onFaseC(roteiroIdRef.current)}
-          onEditarNoQuadro={() => roteiroIdRef.current && onModoLivre(roteiroIdRef.current)}
+          onContinuarComAgente={() => onFaseC(roteiroId)}
+          onEditarNoQuadro={() => onModoLivre(roteiroId)}
         />
       </div>
     </div>

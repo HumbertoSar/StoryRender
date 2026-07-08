@@ -100,11 +100,6 @@
   padding: 15px 18px;
 }
 
-.sr-home__novo:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
-
 .sr-home__novo-icone {
   width: 26px;
   height: 26px;

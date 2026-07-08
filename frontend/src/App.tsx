@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Home } from "./home/Home";
+import { MetodoScreen } from "./home/MetodoScreen";
 import { OnboardingFlow } from "./onboarding/OnboardingFlow";
 import { Quadro } from "./quadro/Quadro";
 import { atualizarRoteiro, buscarRoteiro, type RoteiroResponse } from "./api";
 
 const ID_NA_URL = window.location.pathname.match(/^\/r\/([0-9a-f-]{36})$/)?.[1] ?? null;
+const NOVO_NA_URL = window.location.pathname === "/novo";
 
 function App() {
   const [modo, setModo] = useState<"onboarding" | "quadro">("onboarding");
@@ -36,6 +38,10 @@ function App() {
       .catch((err) => console.error("Falha ao carregar roteiro:", err));
   }
 
+  if (NOVO_NA_URL) {
+    return <MetodoScreen />;
+  }
+
   if (!ID_NA_URL) {
     return <Home />;
   }
@@ -56,11 +62,15 @@ function App() {
     );
   }
 
-  if (modo === "quadro" && roteiro) {
+  if (!roteiro) {
+    return null;
+  }
+
+  if (modo === "quadro") {
     return <Quadro roteiro={roteiro} />;
   }
 
-  return <OnboardingFlow onFaseC={irParaQuadro} onModoLivre={irParaQuadro} roteiroExistente={roteiro ?? undefined} />;
+  return <OnboardingFlow onFaseC={irParaQuadro} onModoLivre={irParaQuadro} roteiroExistente={roteiro} />;
 }
 
 export default App;
