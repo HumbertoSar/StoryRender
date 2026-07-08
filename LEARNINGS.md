@@ -106,3 +106,18 @@ Wiring: os botões "Continuar com o agente — Fase C" e "Editar direto no quadr
 **Gotcha:** rodei um teste manual de ponta a ponta e o backend continuou respondendo 404 pra `/mensagens` mesmo depois do código estar certo — o processo do `tsx` tinha sido iniciado (sem `--watch`) antes da rota existir, e eu reaproveitei o processo antigo em vez de reiniciar. `tsx src/index.ts` sem watch não recarrega o arquivo sozinho; matar e resubir o processo resolveu. Lição: depois de editar rotas, sempre reiniciar o processo de dev manual (ou usar `npm run dev`, que já roda com `tsx watch`).
 
 **Smoke test:** testes automatizados (fetch mockado) cobrindo: injeção correta do esquema no system prompt, resposta feliz, 404 pra roteiro inexistente, 400 sem mensagem, 502 se o OpenRouter falha — 14/14 passando. Ponta a ponta manual (Playwright, sem `OPENROUTER_API_KEY` configurada): mensagem do usuário aparece no chat, erro 502 é exibido de forma legível sem quebrar a UI.
+
+## Revisão de código + simplificação — fim da Fase C
+
+Cadência periódica do `CLAUDE.md` (fim de fase), cobrindo `frontend/src/quadro/*`, `backend/src/agente/*` e `backend/src/routes/roteiros.ts`.
+
+**Review de código — achados:**
+- A regra 8 do rascunho de instrução (seção 7 do MVP doc — "se o usuário editar um cartão direto, na próxima interação verifique coerência com campos relacionados") não foi implementada no `prompt.ts`; a regra 9 do doc ("nunca bloqueie avanço") ocupou a posição 8, e a 8 original ficou de fora sem nota. Não é descuido de digitação: a arquitetura atual injeta o esquema completo a cada chamada sem guardar o estado anterior, então o agente não tem como saber o que mudou desde a última interação — implementar essa regra de verdade exige rastrear isso, o que é fatia própria, não um ajuste de revisão. Registrando aqui pra não ficar uma lacuna silenciosa.
+- `pontos_contato` (Antagonista) existe no schema e no tipo (`tipos.ts`), mas não tem nenhum campo na UI (`AntagonistaCard.tsx`) — a regra 5 do agente ("antagonismo sistêmico precisa de avatar por ponto de contato") referencia um campo que o usuário não consegue preencher em lugar nenhum. É P1 (seção 3.2 do MVP doc), então aceitável não ter ainda, mas não estava documentado como pendente até agora.
+- Caminhos de erro óbvios (404, 400, 502) estão tratados nas rotas; sem timeout/retry na chamada ao OpenRouter (já documentado como pendente na fatia anterior).
+
+**Simplificação — achados:**
+- `applyUpdates` (`backend/src/roteiro.ts`) e `aplicarAtualizacoes` (`frontend/src/quadro/imutavel.ts`) implementam o mesmo algoritmo de update imutável por path, mantido em dois lugares — com uma diferença sutil (o backend auto-vivifica paths intermediários ausentes, o frontend não). Inofensivo hoje porque o frontend sempre aplica updates sobre uma árvore que já veio completa do servidor. Não vale extrair um pacote compartilhado no monorepo só por causa dessa função de ~15 linhas nesse estágio — decisão de não mexer, não esquecimento.
+- Nenhum arquivo da Fase C passa de 132 linhas; nenhuma abstração criada "pra usar depois" sem uso; nenhum campo de Fase D (Mundo/Gênero) ou P2 (Elenco) vazou pra dentro da fatia.
+
+**Conclusão:** nenhuma mudança de código foi necessária nesta passada — os dois achados de review viram trabalho documentado pra decidir depois (não bugs a corrigir agora), e a duplicação de simplificação foi uma decisão consciente de não extrair ainda.
