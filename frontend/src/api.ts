@@ -100,6 +100,12 @@ export async function resolverProposta(
   return json.roteiro as RoteiroResponse;
 }
 
+export async function adicionarComplicacao(roteiroId: string): Promise<RoteiroResponse> {
+  const res = await fetch(`${API_URL}/roteiros/${roteiroId}/espinha/complicacoes`, { method: "POST" });
+  if (!res.ok) throw new Error(`Falha ao adicionar complicação: ${res.status}`);
+  return res.json();
+}
+
 export function registrarEvento(roteiroId: string, tipo: string, detalhes: Record<string, unknown> = {}): void {
   fetch(`${API_URL}/roteiros/${roteiroId}/eventos`, {
     method: "POST",

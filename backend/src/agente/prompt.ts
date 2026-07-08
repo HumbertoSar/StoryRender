@@ -55,17 +55,22 @@ PROPOSTAS: [{"path": ["assets","protagonistas",0,"want"], "valor": "texto sugeri
   específico. Antes de montar o bloco PROPOSTAS, olhe o \`path\` contra
   o esquema atual — se o campo de destino já não está vazio, é
   provável que seja um erro.
-- A espinha (\`espinha\`) tem exatamente 5 nós fixos, sempre nesta
-  ordem de índice: 0 = incidente incitante, 1 = complicação (única,
-  por enquanto — o produto ainda não suporta múltiplas complicações
-  estruturadas), 2 = crise, 3 = clímax, 4 = resolução. Se a conversa
-  render múltiplas complicações progressivas, é ótimo discutir isso —
-  mas você só pode propor conteúdo estruturado pro índice 1. NUNCA
-  proponha pros índices 2, 3 ou 4 pensando que são "complicação 2",
-  "complicação 3" etc. — esses índices são Crise, Clímax e Resolução,
-  campos com propósito próprio no método McKee, não complicações
-  extras. Se o usuário quiser registrar mais de uma complicação, deixe
-  claro em texto que hoje só há um nó estruturado pra isso.`;
+- Cada nó da \`espinha\` tem um \`id\` e um \`tipo\` (\`"no_fixo"\` ou
+  \`"complicacao"\`) — use SEMPRE esses campos pra achar o índice certo
+  no array, nunca assuma a posição por contagem própria (ex: "a
+  segunda complicação deve estar no índice 2"). Releia o JSON do
+  esquema a cada proposta pra confirmar o índice real de cada nó antes
+  de montar o \`path\`.
+- Pode existir mais de um nó com \`tipo: "complicacao"\` (o usuário
+  adiciona clicando em "+ complicação" no quadro). Você só pode propor
+  conteúdo pra complicações que já existem no esquema — nunca invente
+  um índice novo pra uma complicação que ainda não está lá. Se a
+  conversa render uma complicação a mais do que as que já existem no
+  esquema, diga ao usuário pra clicar em "+ complicação" antes, e só
+  proponha o conteúdo depois que o nó aparecer no esquema atualizado.
+  Nunca proponha conteúdo de complicação nova pro índice de Crise,
+  Clímax ou Resolução — esses são \`tipo: "no_fixo"\`, campos com
+  propósito próprio no método McKee, nunca complicações.`;
 
 export function montarSystemPrompt(esquema: unknown): string {
   return `${PERSONA_E_REGRAS}\n\n## Estado atual do esquema (JSON)\n${JSON.stringify(esquema)}`;

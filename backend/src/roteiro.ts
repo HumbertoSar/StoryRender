@@ -21,6 +21,30 @@ export function applyUpdates(data: unknown, updates: RoteiroUpdate[]): unknown {
   return proximo;
 }
 
+interface EspinhaNo {
+  id: string;
+  tipo: string;
+  ordem?: number;
+  conteudo: string;
+  status: string;
+  conecta_assets: string[];
+}
+
+export function adicionarComplicacao(data: unknown): unknown {
+  const proximo = structuredClone(data) as { espinha: EspinhaNo[] };
+  const complicacoes = proximo.espinha.filter((no) => no.tipo === "complicacao");
+  const proximaOrdem = complicacoes.length + 1;
+  proximo.espinha.push({
+    id: `complicacao_${proximaOrdem}`,
+    tipo: "complicacao",
+    ordem: proximaOrdem,
+    conteudo: "",
+    status: "vazio",
+    conecta_assets: ["antagonista", "protagonista"],
+  });
+  return proximo;
+}
+
 export function espinhaVazia() {
   return [
     { id: "incidente_incitante", tipo: "no_fixo", conteudo: "", status: "vazio", conecta_assets: ["protagonista", "mundo"] },

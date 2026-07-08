@@ -7,6 +7,7 @@ import { IdeiaControladoraCard } from "./IdeiaControladoraCard";
 import { AgenteChat } from "./AgenteChat";
 import { aplicarAtualizacoes } from "./imutavel";
 import {
+  adicionarComplicacao,
   atualizarRoteiro,
   listarPropostasPendentes,
   registrarEvento,
@@ -79,6 +80,18 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
     });
   }
 
+  function adicionarNovaComplicacao() {
+    adicionarComplicacao(roteiro.id)
+      .then((r) => {
+        setData(r.data as unknown as RoteiroData);
+        registrarEvento(roteiro.id, "espinha_no_adicionado", { tipo: "complicacao" });
+      })
+      .catch((err) => {
+        registrarEvento(roteiro.id, "erro", { contexto: "adicionar_complicacao", mensagem: (err as Error).message });
+        console.error("Falha ao adicionar complicação:", err);
+      });
+  }
+
   const protagonista = data.assets.protagonistas[0];
 
   return (
@@ -100,6 +113,7 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
           espinha={data.espinha}
           onSalvar={(indice, campo, valor) => salvar([{ path: ["espinha", indice, campo], value: valor }])}
           sugestaoPara={(indice) => sugestaoDoPath(["espinha", indice, "conteudo"])}
+          onAdicionarComplicacao={adicionarNovaComplicacao}
         />
         <div className="sr-cartoes">
           <ProtagonistaCardCompleto

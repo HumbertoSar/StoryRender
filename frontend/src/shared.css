@@ -97,6 +97,26 @@
   color: rgba(240, 233, 216, 0.3);
 }
 
+.sr-node__adicionar {
+  width: 100%;
+  flex-shrink: 0;
+  border: 1px dashed rgba(240, 233, 216, 0.3);
+  border-radius: 3px;
+  background: none;
+  color: rgba(240, 233, 216, 0.55);
+  font-family: var(--sr-font-mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.sr-node__adicionar:hover {
+  border-color: rgba(240, 233, 216, 0.55);
+  color: var(--sr-paper);
+}
+
 .sr-badge {
   align-self: flex-start;
   font-family: var(--sr-font-mono);

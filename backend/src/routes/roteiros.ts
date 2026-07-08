@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { pool } from "../db.js";
-import { applyUpdates, roteiroMckeeVazio } from "../roteiro.js";
+import { adicionarComplicacao, applyUpdates, roteiroMckeeVazio } from "../roteiro.js";
 import { chamarAgente, type MensagemChat } from "../agente/openrouter.js";
 import { montarSystemPrompt } from "../agente/prompt.js";
 import { extrairPropostas } from "../agente/propostas.js";
@@ -117,6 +117,27 @@ roteirosRouter.patch("/:id", async (req, res) => {
     [novaData, parsedParams.data.id],
   );
   res.json(result.rows[0]);
+});
+
+roteirosRouter.post("/:id/espinha/complicacoes", async (req, res) => {
+  const parsedParams = idParamSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    res.status(400).json({ error: "id inválido" });
+    return;
+  }
+
+  const existente = await pool.query("SELECT data FROM roteiros WHERE id = $1", [parsedParams.data.id]);
+  if (existente.rows.length === 0) {
+    res.status(404).json({ error: "roteiro não encontrado" });
+    return;
+  }
+
+  const novaData = adicionarComplicacao(existente.rows[0].data);
+  const result = await pool.query(
+    "UPDATE roteiros SET data = $1, updated_at = now() WHERE id = $2 RETURNING id, data, created_at, updated_at",
+    [novaData, parsedParams.data.id],
+  );
+  res.status(201).json(result.rows[0]);
 });
 
 roteirosRouter.post("/:id/mensagens", async (req, res) => {

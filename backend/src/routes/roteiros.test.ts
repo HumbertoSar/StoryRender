@@ -93,6 +93,43 @@ describe.skipIf(!hasDb)("roteirosRouter", () => {
     expect(res.status).toBe(400);
   });
 
+  describe("POST /:id/espinha/complicacoes", () => {
+    it("adiciona uma nova complicação no fim do array, sem mexer nos nós existentes", async () => {
+      const created = await request(app).post("/roteiros").send();
+
+      const res = await request(app).post(`/roteiros/${created.body.id}/espinha/complicacoes`).send();
+      expect(res.status).toBe(201);
+      expect(res.body.data.espinha).toHaveLength(6);
+
+      const nova = res.body.data.espinha[5];
+      expect(nova.id).toBe("complicacao_2");
+      expect(nova.tipo).toBe("complicacao");
+      expect(nova.ordem).toBe(2);
+      expect(nova.conteudo).toBe("");
+      expect(nova.status).toBe("vazio");
+
+      expect(res.body.data.espinha[1].id).toBe("complicacao_1");
+      expect(res.body.data.espinha[2].id).toBe("crise");
+    });
+
+    it("a ordem incrementa a cada complicação nova, mesmo com mais de uma", async () => {
+      const created = await request(app).post("/roteiros").send();
+      await request(app).post(`/roteiros/${created.body.id}/espinha/complicacoes`).send();
+      const res = await request(app).post(`/roteiros/${created.body.id}/espinha/complicacoes`).send();
+
+      expect(res.body.data.espinha).toHaveLength(7);
+      expect(res.body.data.espinha[6].id).toBe("complicacao_3");
+      expect(res.body.data.espinha[6].ordem).toBe(3);
+    });
+
+    it("retorna 404 pra roteiro inexistente", async () => {
+      const res = await request(app)
+        .post("/roteiros/00000000-0000-0000-0000-000000000000/espinha/complicacoes")
+        .send();
+      expect(res.status).toBe(404);
+    });
+  });
+
   describe("POST /:id/mensagens", () => {
     afterEach(() => {
       vi.unstubAllGlobals();
