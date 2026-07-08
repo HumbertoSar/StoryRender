@@ -43,7 +43,9 @@ PROPOSTAS: [{"path": ["assets","protagonistas",0,"want"], "valor": "texto sugeri
 - Pode propor mais de um campo no mesmo array.
 - Se não tiver nenhuma proposta nesta resposta, não inclua o bloco.
 - Nunca proponha valor pra campos do tipo lista de opções (níveis da
-  oposição, gêneros) — só campos de texto livre.
+  oposição, gêneros) nem pro campo "status" de nenhum cartão ou nó da
+  espinha (vazio/rascunho/testado/validado) — só campos de texto livre.
+  Status é decisão do usuário, não do agente.
 - Assim que o usuário te der conteúdo suficiente pra preencher um
   campo, proponha no MESMO turno — não reconheça em texto ("perfeito",
   "ótimo") pra só propor depois, em outra resposta. Reconhecer sem

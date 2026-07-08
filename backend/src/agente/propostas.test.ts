@@ -34,4 +34,16 @@ describe("extrairPropostas", () => {
     expect(texto).toBe(bruta.trim());
     expect(propostas).toEqual([]);
   });
+
+  it("filtra propostas pro campo status, mesmo que o modelo ignore a instrução", () => {
+    const bruta = `Ok.\nPROPOSTAS: [{"path": ["espinha", 1, "status"], "valor": "rascunho"}, {"path": ["espinha", 1, "conteudo"], "valor": "algo"}]`;
+    const { propostas } = extrairPropostas(bruta);
+    expect(propostas).toEqual([{ path: ["espinha", 1, "conteudo"], valor: "algo" }]);
+  });
+
+  it("filtra propostas pra niveis e generos (campos de lista)", () => {
+    const bruta = `Ok.\nPROPOSTAS: [{"path": ["assets","antagonista","niveis"], "valor": "interno"}, {"path": ["assets","genero","generos"], "valor": "Drama"}]`;
+    const { propostas } = extrairPropostas(bruta);
+    expect(propostas).toEqual([]);
+  });
 });

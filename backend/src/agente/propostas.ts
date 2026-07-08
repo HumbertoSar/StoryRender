@@ -12,12 +12,19 @@ const propostaSchema = z.object({
 
 const MARCADOR = /\n?PROPOSTAS:\s*(\[[\s\S]*\])\s*$/;
 
+const CAMPOS_PROIBIDOS = new Set(["status", "niveis", "generos"]);
+
+function ehCampoLivre(p: PropostaCampo): boolean {
+  const ultimo = p.path.at(-1);
+  return !(typeof ultimo === "string" && CAMPOS_PROIBIDOS.has(ultimo));
+}
+
 export function extrairPropostas(respostaBruta: string): { texto: string; propostas: PropostaCampo[] } {
   const match = respostaBruta.match(MARCADOR);
   if (!match) return { texto: respostaBruta.trim(), propostas: [] };
 
   try {
-    const propostas = z.array(propostaSchema).parse(JSON.parse(match[1]));
+    const propostas = z.array(propostaSchema).parse(JSON.parse(match[1])).filter(ehCampoLivre);
     return { texto: respostaBruta.slice(0, match.index).trim(), propostas };
   } catch {
     return { texto: respostaBruta.trim(), propostas: [] };
