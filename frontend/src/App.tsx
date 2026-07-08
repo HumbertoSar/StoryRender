@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Home } from "./home/Home";
 import { OnboardingFlow } from "./onboarding/OnboardingFlow";
 import { Quadro } from "./quadro/Quadro";
 import { atualizarRoteiro, buscarRoteiro, type RoteiroResponse } from "./api";
@@ -33,6 +34,10 @@ function App() {
         setModo("quadro");
       })
       .catch((err) => console.error("Falha ao carregar roteiro:", err));
+  }
+
+  if (!ID_NA_URL) {
+    return <Home />;
   }
 
   if (carregando) {

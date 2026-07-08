@@ -94,7 +94,8 @@ function estadoDoRoteiro(data: Record<string, unknown>): OnboardingState {
 
   const concluido = passo >= ONBOARDING_STEPS.length;
 
-  const mensagens: ChatMessage[] = [{ from: "agente", texto: "Bem-vindo de volta — retomando de onde você parou." }];
+  const mensagens: ChatMessage[] =
+    passo > 0 ? [{ from: "agente", texto: "Bem-vindo de volta — retomando de onde você parou." }] : [];
   if (!concluido) {
     mensagens.push({ from: "agente", texto: ONBOARDING_STEPS[passo].pergunta });
   }
@@ -131,7 +132,7 @@ export function OnboardingFlow({
     if (roteiroExistente) {
       registrarEvento(roteiroExistente.id, "tela", {
         tela: `onboarding_passo_${passoInicialRef.current}`,
-        retomado: true,
+        retomado: passoInicialRef.current > 0,
       });
     }
     // roda só na montagem — transições subsequentes são registradas em avancar()

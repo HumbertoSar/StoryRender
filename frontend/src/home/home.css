@@ -1,0 +1,134 @@
+.sr-home {
+  height: 100vh;
+  overflow: auto;
+  background: var(--sr-board);
+  background-image: radial-gradient(ellipse at 50% 18%, rgba(255, 255, 255, 0.04), transparent 60%);
+  display: flex;
+  justify-content: center;
+}
+
+.sr-home__conteudo {
+  width: 560px;
+  padding: 64px 0 48px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sr-home__titulo {
+  font-family: var(--sr-font-serif);
+  font-weight: 700;
+  font-size: 30px;
+  color: var(--sr-paper);
+}
+
+.sr-home__subtitulo {
+  font-family: var(--sr-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(240, 233, 216, 0.45);
+  margin-top: 6px;
+}
+
+.sr-home__secao-label {
+  font-family: var(--sr-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(240, 233, 216, 0.5);
+  margin: 44px 0 12px;
+}
+
+.sr-home__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sr-home__vazio {
+  font-family: var(--sr-font-sans);
+  font-size: 13px;
+  color: rgba(240, 233, 216, 0.5);
+  padding: 8px 2px;
+}
+
+.sr-home__card,
+.sr-home__novo {
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-radius: 3px;
+  padding: 16px 18px;
+}
+
+.sr-home__card {
+  background: var(--sr-paper);
+  border: 1px solid var(--sr-neutral);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.32);
+}
+
+.sr-home__card-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.sr-home__card-titulo {
+  font-family: var(--sr-font-serif);
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--sr-ink);
+}
+
+.sr-home__card-meta {
+  font-family: var(--sr-font-mono);
+  font-size: 8px;
+  letter-spacing: 0.07em;
+  color: #85714d;
+  margin-top: 5px;
+}
+
+.sr-home__novo {
+  border: 1px dashed rgba(240, 233, 216, 0.35);
+  background: none;
+  margin-top: 6px;
+  padding: 15px 18px;
+}
+
+.sr-home__novo:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.sr-home__novo-icone {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 3px;
+  background: var(--sr-accent);
+  color: var(--sr-paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--sr-font-mono);
+  font-size: 15px;
+}
+
+.sr-home__novo-titulo {
+  font-family: var(--sr-font-sans);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--sr-paper);
+}
+
+.sr-home__novo-legenda {
+  font-family: var(--sr-font-sans);
+  font-size: 11px;
+  color: rgba(240, 233, 216, 0.5);
+  margin-top: 2px;
+}

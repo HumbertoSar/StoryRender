@@ -15,6 +15,23 @@ describe.skipIf(!hasDb)("roteirosRouter", () => {
     await pool.end();
   });
 
+  it("lista roteiros com os campos resumidos, mais recente primeiro", async () => {
+    const created = await request(app).post("/roteiros").send();
+    await request(app)
+      .patch(`/roteiros/${created.body.id}`)
+      .send({ updates: [{ path: ["titulo"], value: "Roteiro de teste da listagem" }] });
+
+    const res = await request(app).get("/roteiros");
+    expect(res.status).toBe(200);
+    const item = res.body.find((r: { id: string }) => r.id === created.body.id);
+    expect(item).toBeDefined();
+    expect(item.titulo).toBe("Roteiro de teste da listagem");
+    expect(item.template).toBe("mckee");
+    expect(item.fase_atual).toBe("A");
+    expect(item.data).toBeUndefined();
+    expect(res.body[0].id).toBe(created.body.id);
+  });
+
   it("cria um roteiro McKee vazio e lê de volta", async () => {
     const created = await request(app).post("/roteiros").send();
     expect(created.status).toBe(201);

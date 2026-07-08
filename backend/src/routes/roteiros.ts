@@ -38,6 +38,16 @@ const patchBodySchema = z.object({
     .min(1),
 });
 
+roteirosRouter.get("/", async (_req, res) => {
+  const result = await pool.query(
+    `SELECT id, data->>'titulo' AS titulo, data->>'template' AS template,
+            data->>'fase_atual' AS fase_atual, updated_at
+     FROM roteiros
+     ORDER BY updated_at DESC`,
+  );
+  res.json(result.rows);
+});
+
 roteirosRouter.post("/", async (_req, res) => {
   const data = roteiroMckeeVazio();
   const result = await pool.query(

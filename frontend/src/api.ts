@@ -12,6 +12,20 @@ export interface RoteiroResponse {
   updated_at: string;
 }
 
+export interface RoteiroResumo {
+  id: string;
+  titulo: string | null;
+  template: string;
+  fase_atual: string;
+  updated_at: string;
+}
+
+export async function listarRoteiros(): Promise<RoteiroResumo[]> {
+  const res = await fetch(`${API_URL}/roteiros`);
+  if (!res.ok) throw new Error(`Falha ao listar roteiros: ${res.status}`);
+  return res.json();
+}
+
 export async function criarRoteiro(): Promise<RoteiroResponse> {
   const res = await fetch(`${API_URL}/roteiros`, { method: "POST" });
   if (!res.ok) throw new Error(`Falha ao criar roteiro: ${res.status}`);
