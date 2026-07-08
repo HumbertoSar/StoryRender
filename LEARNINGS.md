@@ -74,3 +74,19 @@
 - Erro de "roteiro não encontrado" (id inválido/apagado) mostra uma tela mínima com link pra recomeçar — sem redirecionamento automático.
 
 **Smoke test:** subi backend+frontend reais, respondi 3 das 6 perguntas via Playwright, conferi que a URL virou `/r/<uuid>`, dei `page.reload()` de verdade (recarregamento completo, não SPA navigation) e confirmei visualmente (screenshot) que o quadro retomou exatamente no estado esperado — título, gênero e cartão de Protagonista intactos, chat abrindo na pergunta 4 com "Bem-vindo de volta".
+
+## Fatia: Quadro livre da Fase C (cartões + espinha editáveis)
+
+**O que foi construído:** `frontend/src/quadro/` — `Quadro.tsx` (orquestrador), 3 cartões completos (`ProtagonistaCardCompleto`, `AntagonistaCard`, `IdeiaControladoraCard`) e `EspinhaColuna` (espinha inteira editável, não só leitura como no onboarding). Campos reutilizáveis em `campos.tsx`: `EditableField` (textarea que salva no blur só se mudou), `StatusSelect` (dropdown vazio/rascunho/testado/validado), `ChipsField` (multi-seleção, usado nos níveis da oposição do Antagonista). Extraí os estilos compartilhados entre onboarding e quadro pra `shared.css` (cartão, campo, badge, chip, espinha, topbar) pra não duplicar CSS entre as duas telas.
+
+Wiring: os botões "Continuar com o agente — Fase C" e "Editar direto no quadro" do beat de transição do onboarding agora levam ao quadro de verdade (antes eram placeholders de texto). Ambos convergem pro mesmo `Quadro` por enquanto — não há diferença de comportamento entre "Fase C" e "modo livre" ainda, porque nenhum dos dois tem agente real. Ao entrar no quadro, `fase_atual` é promovido de `"B"` pra `"C"` via PATCH. Se o usuário recarrega a página com `fase_atual` já em C/D, `App.tsx` pula o onboarding e vai direto pro quadro.
+
+**Por quê:** era o escopo combinado com o usuário pra essa fatia — validar a UI de edição direta (P0 "Edição direta no cartão, sem passar pelo chat") antes de meter agente real (Condução via Claude API) por cima, que é conceitualmente mais arriscado e merece fatia própria.
+
+**O que ficou pra depois:**
+- Nenhum agente real ainda — painel lateral é um placeholder estático avisando que Condução/Diagnóstico chegam depois.
+- Complicações Progressivas continuam fixas em 1 (`complicacao_1`) — o padrão de nó repetível (slot "+ complicação", excluir/reordenar) documentado no `docs/design/Story_Render_Onboarding.dc.html` (seção "Comportamento do nó repetível") não foi implementado; é uma fatia própria.
+- Mundo da História e Gênero & Promessa (Fase D) continuam de fora, corretamente — `CLAUDE.md` proíbe construir Fase D antes de D estar na ordem certa.
+- Sem validação de conteúdo (ex: "Aposta" vaga como "tudo"/"muito") — isso é regra do agente (seção 7 do MVP doc), não existe sem agente real.
+
+**Smoke test:** onboarding completo → "Editar direto no quadro" → quadro real com os 3 cartões e a espinha (5 nós + complicação 1) todos com os dados da Fase A/B carregados corretamente. Editei Need do Protagonista e Valor da Ideia Controladora direto no cartão (sem chat) e confirmei via `psql` que persistiu no Postgres, incluindo `fase_atual` virando `"C"`. `npm run build`/`oxlint` limpos (nenhum warning).

@@ -117,8 +117,8 @@ export function OnboardingFlow({
   onModoLivre,
   roteiroExistente,
 }: {
-  onFaseC: () => void;
-  onModoLivre: () => void;
+  onFaseC: (roteiroId: string) => void;
+  onModoLivre: (roteiroId: string) => void;
   roteiroExistente?: RoteiroResponse;
 }) {
   const [estado, setEstado] = useState<OnboardingState>(() =>
@@ -246,10 +246,10 @@ export function OnboardingFlow({
           tipoInput={estado.concluido ? null : passoAtual.tipo}
           onResponderTexto={avancar}
           onResponderGenero={(generos) => avancar(generos.join(", "), generos)}
-          onPularModoLivre={onModoLivre}
+          onPularModoLivre={() => roteiroIdRef.current && onModoLivre(roteiroIdRef.current)}
           concluido={estado.concluido}
-          onContinuarComAgente={onFaseC}
-          onEditarNoQuadro={onModoLivre}
+          onContinuarComAgente={() => roteiroIdRef.current && onFaseC(roteiroIdRef.current)}
+          onEditarNoQuadro={() => roteiroIdRef.current && onModoLivre(roteiroIdRef.current)}
         />
       </div>
     </div>
