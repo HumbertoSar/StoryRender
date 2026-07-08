@@ -61,3 +61,16 @@
 **Gotcha:** o React StrictMode (dev) dobra o efeito de criação do roteiro (`POST /roteiros` disparado 2x), deixando uma linha órfã no banco a cada carregamento em dev — comportamento só de desenvolvimento (StrictMode não roda em produção), mas corrigi com um cleanup (`cancelado` flag) garantindo que o `ref` sempre aponte pro roteiro correto mesmo com o double-invoke.
 
 **Smoke test:** subi backend real (Postgres) + frontend juntos, rodei o onboarding completo via Playwright capturando as requisições de rede (confirmei `POST` seguido de 5 `PATCH`), e consultei o Postgres direto via `psql` — todos os campos batendo: título, gêneros, want, incidente, crise (`a definir`), clímax, e `fase_atual` virando `"B"`. `npm run build`/`oxlint` (frontend) e `tsc`/`vitest` (7/7)/`eslint` (backend) limpos.
+
+## Fatia: Retomar roteiro por id (recarregar não perde o progresso)
+
+**O que foi construído:** `GET /roteiros/:id` (já existia) agora é usado de verdade pelo frontend. Ao criar um roteiro, `OnboardingFlow` atualiza a URL pra `/r/<id>` via `history.replaceState` (sem navegação de página). `App.tsx` lê `/r/:id` da URL no mount; se presente, busca o roteiro via `GET` em vez de criar um novo, e `estadoDoRoteiro()` deriva o passo do onboarding (0 a 6) a partir de quais campos já estão preenchidos no `data` — sem precisar guardar o passo explicitamente no banco.
+
+**Por quê:** era o buraco mais óbvio da fatia anterior — sem isso, um F5 no meio do onboarding perdia a UI mesmo com os dados salvos no Postgres, quebrando o P0 "persistência do esquema (fechar e voltar sem perder nada)".
+
+**O que ficou pra depois:**
+- O histórico de chat não é reconstruído fielmente — ao retomar, mostra só "Bem-vindo de volta" + a pergunta atual, não a conversa inteira. Aceitável: o objetivo é não perder o *esquema*, não replays de conversa.
+- Sem router de verdade (react-router) — parsing manual de `/r/:id` via regex no `App.tsx`. Suficiente pra 1 rota; se aparecer uma segunda rota real (Fase C, por exemplo), vale revisitar.
+- Erro de "roteiro não encontrado" (id inválido/apagado) mostra uma tela mínima com link pra recomeçar — sem redirecionamento automático.
+
+**Smoke test:** subi backend+frontend reais, respondi 3 das 6 perguntas via Playwright, conferi que a URL virou `/r/<uuid>`, dei `page.reload()` de verdade (recarregamento completo, não SPA navigation) e confirmei visualmente (screenshot) que o quadro retomou exatamente no estado esperado — título, gênero e cartão de Protagonista intactos, chat abrindo na pergunta 4 com "Bem-vindo de volta".

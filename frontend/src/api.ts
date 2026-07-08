@@ -18,6 +18,12 @@ export async function criarRoteiro(): Promise<RoteiroResponse> {
   return res.json();
 }
 
+export async function buscarRoteiro(id: string): Promise<RoteiroResponse> {
+  const res = await fetch(`${API_URL}/roteiros/${id}`);
+  if (!res.ok) throw new Error(`Falha ao buscar roteiro: ${res.status}`);
+  return res.json();
+}
+
 export async function atualizarRoteiro(id: string, updates: RoteiroUpdate[]): Promise<RoteiroResponse> {
   const res = await fetch(`${API_URL}/roteiros/${id}`, {
     method: "PATCH",

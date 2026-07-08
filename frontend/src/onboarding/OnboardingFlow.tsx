@@ -4,7 +4,7 @@ import { EspinhaRail, type NoEspinha, type NoStatus } from "./EspinhaRail";
 import { ProtagonistaCard } from "./ProtagonistaCard";
 import { ChatPanel, type ChatMessage } from "./ChatPanel";
 import { A_DEFINIR, NAO_SEI, ONBOARDING_STEPS } from "./script";
-import { atualizarRoteiro, criarRoteiro, type RoteiroUpdate } from "../api";
+import { atualizarRoteiro, criarRoteiro, type RoteiroResponse, type RoteiroUpdate } from "../api";
 
 const INDICE_ESPINHA = { incidente_incitante: 0, crise: 2, climax: 3 } as const;
 
@@ -71,15 +71,70 @@ const ESTADO_INICIAL: OnboardingState = {
   mensagens: [{ from: "agente", texto: ONBOARDING_STEPS[0].pergunta }],
 };
 
-export function OnboardingFlow({ onFaseC, onModoLivre }: { onFaseC: () => void; onModoLivre: () => void }) {
-  const [estado, setEstado] = useState<OnboardingState>(ESTADO_INICIAL);
-  const roteiroIdRef = useRef<string | null>(null);
+function estadoDoRoteiro(data: Record<string, unknown>): OnboardingState {
+  const assets = data.assets as Record<string, unknown>;
+  const protagonista = (assets.protagonistas as Array<Record<string, unknown>>)[0];
+  const genero = assets.genero as { generos: string[] };
+  const espinha = data.espinha as Array<{ conteudo: string; status: NoStatus }>;
+
+  const titulo = (data.titulo as string) ?? "";
+  const generos = genero.generos ?? [];
+  const want = (protagonista.want as string) ?? "";
+  const incidente = espinha[INDICE_ESPINHA.incidente_incitante];
+  const crise = espinha[INDICE_ESPINHA.crise];
+  const climax = espinha[INDICE_ESPINHA.climax];
+
+  let passo = 0;
+  if (titulo) passo = 1;
+  if (generos.length > 0) passo = 2;
+  if (want) passo = 3;
+  if (incidente.conteudo) passo = 4;
+  if (crise.conteudo) passo = 5;
+  if (climax.conteudo) passo = 6;
+
+  const concluido = passo >= ONBOARDING_STEPS.length;
+
+  const mensagens: ChatMessage[] = [{ from: "agente", texto: "Bem-vindo de volta — retomando de onde você parou." }];
+  if (!concluido) {
+    mensagens.push({ from: "agente", texto: ONBOARDING_STEPS[passo].pergunta });
+  }
+
+  return {
+    passo,
+    concluido,
+    titulo,
+    generos,
+    want,
+    incidente: { conteudo: incidente.conteudo, status: incidente.status },
+    crise: { conteudo: crise.conteudo, status: crise.status },
+    climax: { conteudo: climax.conteudo, status: climax.status },
+    mensagens,
+  };
+}
+
+export function OnboardingFlow({
+  onFaseC,
+  onModoLivre,
+  roteiroExistente,
+}: {
+  onFaseC: () => void;
+  onModoLivre: () => void;
+  roteiroExistente?: RoteiroResponse;
+}) {
+  const [estado, setEstado] = useState<OnboardingState>(() =>
+    roteiroExistente ? estadoDoRoteiro(roteiroExistente.data) : ESTADO_INICIAL,
+  );
+  const roteiroIdRef = useRef<string | null>(roteiroExistente?.id ?? null);
 
   useEffect(() => {
+    if (roteiroExistente) return;
     let cancelado = false;
     criarRoteiro()
       .then((r) => {
-        if (!cancelado) roteiroIdRef.current = r.id;
+        if (!cancelado) {
+          roteiroIdRef.current = r.id;
+          window.history.replaceState(null, "", `/r/${r.id}`);
+        }
       })
       .catch((err) => {
         console.error("Falha ao criar roteiro:", err);
@@ -87,7 +142,7 @@ export function OnboardingFlow({ onFaseC, onModoLivre }: { onFaseC: () => void; 
     return () => {
       cancelado = true;
     };
-  }, []);
+  }, [roteiroExistente]);
 
   const passoAtual = ONBOARDING_STEPS[estado.passo];
 

@@ -7,3 +7,12 @@ body {
 #root {
   min-height: 100vh;
 }
+
+.sr-tela-cheia {
+  padding: 40px;
+  font-family: var(--sr-font-sans);
+  color: var(--sr-paper);
+  background: var(--sr-board);
+  min-height: 100vh;
+  box-sizing: border-box;
+}
