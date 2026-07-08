@@ -90,3 +90,19 @@ Wiring: os botões "Continuar com o agente — Fase C" e "Editar direto no quadr
 - Sem validação de conteúdo (ex: "Aposta" vaga como "tudo"/"muito") — isso é regra do agente (seção 7 do MVP doc), não existe sem agente real.
 
 **Smoke test:** onboarding completo → "Editar direto no quadro" → quadro real com os 3 cartões e a espinha (5 nós + complicação 1) todos com os dados da Fase A/B carregados corretamente. Editei Need do Protagonista e Valor da Ideia Controladora direto no cartão (sem chat) e confirmei via `psql` que persistiu no Postgres, incluindo `fase_atual` virando `"C"`. `npm run build`/`oxlint` limpos (nenhum warning).
+
+## Fatia: Agente Condução via OpenRouter (só conversa, sem sugestões estruturadas)
+
+**O que foi construído:** `backend/src/agente/openrouter.ts` (cliente HTTP fino pro `openrouter.ai/api/v1/chat/completions`, sem SDK) e `backend/src/agente/prompt.ts` (persona + regras não-negociáveis, copiadas do rascunho de instrução da seção 7 do MVP doc, com uma regra 7 nova/temporária: "você ainda não pode escrever direto nos campos"). Endpoint `POST /roteiros/:id/mensagens` injeta o esquema completo (`data` inteiro) como system prompt a cada chamada — mesmo princípio da decisão "agente único, dois modos" da seção 7 (nunca perde contexto cruzado entre cartões). Modelo default `anthropic/claude-sonnet-4.5` (mesmo modelo seria usado no Diagnóstico também, quando existir, pra não reintroduzir o problema de inconsistência de voz que o doc explicitamente quer evitar). No frontend, `AgenteChat` substitui o placeholder do Quadro por um chat de verdade.
+
+**Por quê:** era o item que faltava pra fechar a arquitetura de agente decidida ainda no início do projeto (seção 7 do MVP doc) — sem isso, "Condução" era só um nome numa caixa de texto estática.
+
+**O que ficou pra depois:**
+- Sugestões estruturadas de campo (o "ghost text" pendente até confirmação — P0 do brief de prototipagem, "o padrão de interação mais importante do produto inteiro") não existem ainda. Por enquanto o agente só conversa em texto; se quiser propor um valor, escreve em prosa e pede pro usuário colar no cartão manualmente. Isso é uma fatia própria, exige um formato de saída estruturado (JSON com propostas) e UI de aceitar/rejeitar no cartão.
+- Modo Diagnóstico (revisão sob demanda, lista de inconsistências) não existe — é outra fatia, provavelmente reaproveitando o mesmo `chamarAgente` com um prompt/formato de saída diferente.
+- Sem retry ou rate-limit tratado nas chamadas ao OpenRouter — erro vira 502 e aparece na UI, sem novas tentativas automáticas.
+- Testado só com fetch mockado (unit/integração) — não validei uma chamada real ao OpenRouter nesta sessão porque não há uma `OPENROUTER_API_KEY` real disponível aqui; precisa validar num ambiente com a chave antes de considerar "pronto de verdade".
+
+**Gotcha:** rodei um teste manual de ponta a ponta e o backend continuou respondendo 404 pra `/mensagens` mesmo depois do código estar certo — o processo do `tsx` tinha sido iniciado (sem `--watch`) antes da rota existir, e eu reaproveitei o processo antigo em vez de reiniciar. `tsx src/index.ts` sem watch não recarrega o arquivo sozinho; matar e resubir o processo resolveu. Lição: depois de editar rotas, sempre reiniciar o processo de dev manual (ou usar `npm run dev`, que já roda com `tsx watch`).
+
+**Smoke test:** testes automatizados (fetch mockado) cobrindo: injeção correta do esquema no system prompt, resposta feliz, 404 pra roteiro inexistente, 400 sem mensagem, 502 se o OpenRouter falha — 14/14 passando. Ponta a ponta manual (Playwright, sem `OPENROUTER_API_KEY` configurada): mensagem do usuário aparece no chat, erro 502 é exibido de forma legível sem quebrar a UI.

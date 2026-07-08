@@ -29,27 +29,15 @@
   padding: 0 4px;
 }
 
-.sr-agente-placeholder {
-  width: 260px;
+.sr-agente-chat {
+  width: 320px;
   flex: none;
-  background: rgba(58, 51, 44, 0.6);
-  border: 1px dashed rgba(240, 233, 216, 0.25);
+  min-height: 0;
+  max-height: 100%;
+  background: #3a332c;
+  border: 1px solid rgba(0, 0, 0, 0.4);
   border-radius: 6px;
-  padding: 16px;
-  align-self: flex-start;
-}
-
-.sr-agente-placeholder__titulo {
-  font-family: var(--sr-font-sans);
-  font-weight: 600;
-  font-size: 13px;
-  color: var(--sr-paper);
-  margin-bottom: 8px;
-}
-
-.sr-agente-placeholder__texto {
-  font-family: var(--sr-font-sans);
-  font-size: 12px;
-  line-height: 1.5;
-  color: rgba(240, 233, 216, 0.55);
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
 }

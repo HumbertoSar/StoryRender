@@ -33,3 +33,23 @@ export async function atualizarRoteiro(id: string, updates: RoteiroUpdate[]): Pr
   if (!res.ok) throw new Error(`Falha ao atualizar roteiro: ${res.status}`);
   return res.json();
 }
+
+export interface HistoricoMensagem {
+  from: "agente" | "usuario";
+  texto: string;
+}
+
+export async function enviarMensagemAgente(
+  roteiroId: string,
+  mensagem: string,
+  historico: HistoricoMensagem[],
+): Promise<string> {
+  const res = await fetch(`${API_URL}/roteiros/${roteiroId}/mensagens`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ mensagem, historico }),
+  });
+  if (!res.ok) throw new Error(`Falha ao falar com o agente: ${res.status}`);
+  const json = await res.json();
+  return json.resposta as string;
+}

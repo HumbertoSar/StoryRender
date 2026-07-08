@@ -12,7 +12,7 @@ Fase atual: MVP, ainda sem código. Este arquivo governa **processo** (como cons
 Se uma fatia exigir uma decisão que nenhum desses três cobre: **parar e perguntar**, não inventar escopo.
 
 ## Stack
-Decidido na fatia de setup: frontend React + Vite + TypeScript (`frontend/`), canvas custom em CSS/SVG (sem tldraw — o layout do brief é restrito o bastante pra não precisar de motor de canvas infinito). Backend Node + Express + TypeScript (`backend/`), persistência em Postgres (schema do roteiro como `jsonb`, seção 6 do MVP doc). Postgres local via Docker Compose. Agente usa a Claude API (Messages API) diretamente do backend.
+Decidido na fatia de setup: frontend React + Vite + TypeScript (`frontend/`), canvas custom em CSS/SVG (sem tldraw — o layout do brief é restrito o bastante pra não precisar de motor de canvas infinito). Backend Node + Express + TypeScript (`backend/`), persistência em Postgres (schema do roteiro como `jsonb`, seção 6 do MVP doc). Postgres local via Docker Compose. Agente chama a OpenRouter (`OPENROUTER_API_KEY`/`OPENROUTER_MODEL` em `backend/.env`) em vez da API da Anthropic direto — permite trocar de modelo por env var sem mudar código.
 
 ```
 # Postgres local

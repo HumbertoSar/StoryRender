@@ -1,4 +1,4 @@
-import { describe, it, expect, afterAll } from "vitest";
+import { describe, it, expect, afterAll, afterEach, vi } from "vitest";
 import express from "express";
 import request from "supertest";
 import { pool } from "../db.js";
@@ -74,5 +74,59 @@ describe.skipIf(!hasDb)("roteirosRouter", () => {
     const created = await request(app).post("/roteiros").send();
     const res = await request(app).patch(`/roteiros/${created.body.id}`).send({ updates: [] });
     expect(res.status).toBe(400);
+  });
+
+  describe("POST /:id/mensagens", () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      delete process.env.OPENROUTER_API_KEY;
+    });
+
+    it("injeta o esquema no system prompt e retorna a resposta do agente", async () => {
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({ choices: [{ message: { content: "boa pergunta, me fala mais" } }] }),
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app)
+        .post(`/roteiros/${created.body.id}/mensagens`)
+        .send({ mensagem: "o want da protagonista é encontrar o irmão", historico: [] });
+
+      expect(res.status).toBe(200);
+      expect(res.body.resposta).toBe("boa pergunta, me fala mais");
+
+      const corpoEnviado = JSON.parse(fetchMock.mock.calls[0][1].body);
+      expect(corpoEnviado.messages[0].role).toBe("system");
+      expect(corpoEnviado.messages[0].content).toContain("mckee");
+      expect(corpoEnviado.messages.at(-1)).toEqual({
+        role: "user",
+        content: "o want da protagonista é encontrar o irmão",
+      });
+    });
+
+    it("retorna 404 pra roteiro inexistente", async () => {
+      const res = await request(app)
+        .post("/roteiros/00000000-0000-0000-0000-000000000000/mensagens")
+        .send({ mensagem: "oi" });
+      expect(res.status).toBe(404);
+    });
+
+    it("retorna 400 sem mensagem", async () => {
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app).post(`/roteiros/${created.body.id}/mensagens`).send({});
+      expect(res.status).toBe(400);
+    });
+
+    it("retorna 502 se o OpenRouter falhar", async () => {
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500, text: async () => "erro" }));
+
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app).post(`/roteiros/${created.body.id}/mensagens`).send({ mensagem: "oi" });
+      expect(res.status).toBe(502);
+    });
   });
 });

@@ -2,10 +2,24 @@ import { Router } from "express";
 import { z } from "zod";
 import { pool } from "../db.js";
 import { applyUpdates, roteiroMckeeVazio } from "../roteiro.js";
+import { chamarAgente, type MensagemChat } from "../agente/openrouter.js";
+import { montarSystemPrompt } from "../agente/prompt.js";
 
 export const roteirosRouter = Router();
 
 const idParamSchema = z.object({ id: z.uuid() });
+
+const mensagemBodySchema = z.object({
+  mensagem: z.string().min(1),
+  historico: z
+    .array(
+      z.object({
+        from: z.enum(["agente", "usuario"]),
+        texto: z.string(),
+      }),
+    )
+    .default([]),
+});
 
 const patchBodySchema = z.object({
   updates: z
@@ -69,4 +83,38 @@ roteirosRouter.patch("/:id", async (req, res) => {
     [novaData, parsedParams.data.id],
   );
   res.json(result.rows[0]);
+});
+
+roteirosRouter.post("/:id/mensagens", async (req, res) => {
+  const parsedParams = idParamSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    res.status(400).json({ error: "id inválido" });
+    return;
+  }
+  const parsedBody = mensagemBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    res.status(400).json({ error: "body inválido", detalhes: parsedBody.error.issues });
+    return;
+  }
+
+  const existente = await pool.query("SELECT data FROM roteiros WHERE id = $1", [parsedParams.data.id]);
+  if (existente.rows.length === 0) {
+    res.status(404).json({ error: "roteiro não encontrado" });
+    return;
+  }
+
+  const mensagens: MensagemChat[] = [
+    { role: "system", content: montarSystemPrompt(existente.rows[0].data) },
+    ...parsedBody.data.historico.map(
+      (m): MensagemChat => ({ role: m.from === "agente" ? "assistant" : "user", content: m.texto }),
+    ),
+    { role: "user", content: parsedBody.data.mensagem },
+  ];
+
+  try {
+    const resposta = await chamarAgente(mensagens);
+    res.json({ resposta });
+  } catch (err) {
+    res.status(502).json({ error: "falha ao chamar o agente", detalhes: (err as Error).message });
+  }
 });

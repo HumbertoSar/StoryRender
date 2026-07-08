@@ -4,6 +4,7 @@ import { EspinhaColuna } from "./EspinhaColuna";
 import { ProtagonistaCardCompleto } from "./ProtagonistaCardCompleto";
 import { AntagonistaCard } from "./AntagonistaCard";
 import { IdeiaControladoraCard } from "./IdeiaControladoraCard";
+import { AgenteChat } from "./AgenteChat";
 import { aplicarAtualizacoes } from "./imutavel";
 import { atualizarRoteiro, type RoteiroResponse, type RoteiroUpdate } from "../api";
 import type { RoteiroData } from "./tipos";
@@ -57,13 +58,7 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
             }
           />
         </div>
-        <div className="sr-agente-placeholder">
-          <div className="sr-agente-placeholder__titulo">Agente</div>
-          <div className="sr-agente-placeholder__texto">
-            Os modos Condução e Diagnóstico chegam numa próxima fatia — por enquanto, edite os cartões e a espinha
-            direto aqui ao lado.
-          </div>
-        </div>
+        <AgenteChat roteiroId={roteiro.id} />
       </div>
     </div>
   );
