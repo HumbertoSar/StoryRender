@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400..900;1,400..900&family=Source+Sans+3:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#2E2822;font-family:system-ui,sans-serif}
+a{color:#7A2E2E}a:hover{color:#9c4040}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(255,255,255,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 8px}
+.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#F0E9D8;color:#211E1A;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#F0E9D8}
+.dv-note{max-width:900px;font:400 11.5px/1.55 system-ui,sans-serif;color:rgba(240,233,216,.55);margin:0 0 24px}
+.dv-opts{display:flex;flex-wrap:wrap;gap:36px;align-items:flex-start;max-width:2720px}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(240,233,216,.14);color:#F0E9D8;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(240,233,216,.6);max-width:1280px}
+.dv-card{max-width:100%;background:#4A4038;border:1px solid rgba(0,0,0,.4);border-radius:6px;box-shadow:0 2px 14px rgba(0,0,0,.4);overflow:hidden}
+.dv-opt:target .dv-oid{background:#7A2E2E;color:#F0E9D8}
+.dv-next{margin:26px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(240,233,216,.45)}
+.dv-next a{color:#c9bfa8}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Comportamento do nó repetível — Complicações Progressivas</span></div>
+<p class="dv-note">Regras propostas: (1) enquanto nada foi preenchido, a espinha mostra um único nó-placeholder "Complicações progressivas" — é o que a jornada da rodada <a class="dv-oid" href="#t1">1</a> usa. (2) Ao preencher a primeira, o placeholder vira "Complicação 1" e um <em>slot fino</em> "+ complicação" aparece abaixo — é convite, não nó: não conta como pendência nem aparece pro agente como campo vazio. (3) Quem só precisa de uma não deleta nada — o slot é só um botão que fica ali, discreto. (4) Complicações reais têm menu ⋯ com excluir e reordenar (nós fixos da espinha não têm excluir); a numeração reajusta sozinha. (5) Dá pra adicionar pelo slot, pelo menu "adicionar abaixo", ou pedindo ao agente no chat.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2a">
+<div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Estado zero — um placeholder repetível, não uma lista</div>
+<div class="dv-card" style="width:400px">
+<div data-screen-label="Nó repetível — estado zero" style="width:400px;height:560px;background:#4A4038;background-image:radial-gradient(ellipse at 50% 15%, rgba(255,255,255,.035), transparent 60%);font-family:'Source Sans 3',system-ui,sans-serif;padding:28px 30px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box;overflow:hidden">
+  <div style="opacity:.55;background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;padding:9px 12px;display:flex;flex-direction:column;gap:3px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Incidente incitante</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-size:12px;color:#211E1A">A garrafa chega com a carta do Léo — datada de amanhã.</div>
+  </div>
+  <div style="border:1px dashed rgba(240,233,216,.4);border-radius:3px;padding:12px 13px;display:flex;flex-direction:column;gap:5px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.6)">Complicações progressivas</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.32)">—</div>
+    <div style="display:flex;align-items:center;gap:7px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.42)">vazio</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.05em;color:rgba(240,233,216,.35)">nó repetível · cada uma maior que a anterior</div>
+    </div>
+  </div>
+  <div style="opacity:.55;background:rgba(240,233,216,.88);border:1px dashed #b09056;border-radius:3px;padding:9px 12px;display:flex;flex-direction:column;gap:3px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Crise</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(33,30,26,.7)">Entrar na névoa, ou proteger Rosa.</div>
+  </div>
+  <div style="flex:1"></div>
+  <div style="font-family:'Source Sans 3',sans-serif;font-size:11px;font-style:italic;line-height:1.5;color:rgba(240,233,216,.45)">Um placeholder só — a espinha não sugere quantidade antes do escritor pensar na primeira.</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="2b">
+<div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Primeira preenchida — vira "Complicação 1" e o slot fino de convite aparece</div>
+<div class="dv-card" style="width:400px">
+<div data-screen-label="Nó repetível — primeira preenchida" style="width:400px;height:560px;background:#4A4038;background-image:radial-gradient(ellipse at 50% 15%, rgba(255,255,255,.035), transparent 60%);font-family:'Source Sans 3',system-ui,sans-serif;padding:28px 30px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box;overflow:hidden">
+  <div style="opacity:.55;background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;padding:9px 12px;display:flex;flex-direction:column;gap:3px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Incidente incitante</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-size:12px;color:#211E1A">A garrafa chega com a carta do Léo — datada de amanhã.</div>
+  </div>
+  <div style="background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;box-shadow:0 3px 10px rgba(0,0,0,.32);padding:11px 13px;display:flex;flex-direction:column;gap:5px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Complicação 1</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a99e8c">⋯</div>
+    </div>
+    <div style="font-family:Alegreya,Georgia,serif;font-size:12.5px;line-height:1.4;color:#211E1A">A névoa avança uma milha por noite, rumo ao farol.</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dashed #b09056;color:#9C7A3C">rascunho</div>
+  </div>
+  <div style="border:1px dashed rgba(240,233,216,.25);border-radius:3px;padding:8px 12px;display:flex;align-items:center;justify-content:center;gap:8px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(240,233,216,.45)">+</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:rgba(240,233,216,.4)">complicação</div>
+  </div>
+  <div style="opacity:.55;background:rgba(240,233,216,.88);border:1px dashed #b09056;border-radius:3px;padding:9px 12px;display:flex;flex-direction:column;gap:3px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Crise</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(33,30,26,.7)">Entrar na névoa, ou proteger Rosa.</div>
+  </div>
+  <div style="flex:1"></div>
+  <div style="font-family:'Source Sans 3',sans-serif;font-size:11px;font-style:italic;line-height:1.5;color:rgba(240,233,216,.45)">O slot é affordance, não nó: não conta como "vazio" na espinha nem vira pendência pro agente. Quem só precisa de uma, ignora — ele não cobra nada.</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="2c">
+<div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>Menu ⋯ do nó — excluir e reordenar existem só em complicações; a numeração reajusta</div>
+<div class="dv-card" style="width:400px">
+<div data-screen-label="Nó repetível — menu do nó" style="width:400px;height:560px;background:#4A4038;background-image:radial-gradient(ellipse at 50% 15%, rgba(255,255,255,.035), transparent 60%);font-family:'Source Sans 3',system-ui,sans-serif;padding:28px 30px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box;overflow:hidden">
+  <div style="opacity:.55;background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;padding:9px 12px;display:flex;flex-direction:column;gap:3px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Incidente incitante</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-size:12px;color:#211E1A">A garrafa chega com a carta do Léo — datada de amanhã.</div>
+  </div>
+  <div style="position:relative">
+    <div style="background:#F0E9D8;border:1px solid #C9BFA8;outline:2px solid rgba(122,46,46,.45);outline-offset:1px;border-radius:3px;box-shadow:0 3px 10px rgba(0,0,0,.32);padding:11px 13px;display:flex;flex-direction:column;gap:5px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Complicação 1</div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#211E1A">⋯</div>
+      </div>
+      <div style="font-family:Alegreya,Georgia,serif;font-size:12.5px;line-height:1.4;color:#211E1A">A névoa avança uma milha por noite, rumo ao farol.</div>
+      <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dashed #b09056;color:#9C7A3C">rascunho</div>
+    </div>
+    <div style="position:absolute;right:-4px;top:30px;width:190px;background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;box-shadow:0 10px 26px rgba(0,0,0,.5);padding:6px 0;z-index:10;display:flex;flex-direction:column">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.05em;color:#211E1A;padding:7px 14px">editar</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.05em;color:#211E1A;padding:7px 14px">adicionar abaixo</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.05em;color:rgba(33,30,26,.35);padding:7px 14px">mover pra cima</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.05em;color:rgba(33,30,26,.35);padding:7px 14px">mover pra baixo</div>
+      <div style="height:1px;background:#C9BFA8;margin:5px 12px"></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.05em;color:#7A2E2E;padding:7px 14px">excluir complicação</div>
+    </div>
+  </div>
+  <div style="border:1px dashed rgba(240,233,216,.25);border-radius:3px;padding:8px 12px;display:flex;align-items:center;justify-content:center;gap:8px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(240,233,216,.45)">+</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:rgba(240,233,216,.4)">complicação</div>
+  </div>
+  <div style="flex:1"></div>
+  <div style="font-family:'Source Sans 3',sans-serif;font-size:11px;font-style:italic;line-height:1.5;color:rgba(240,233,216,.45)">Nós fixos (Incidente, Crise, Clímax, Resolução) não têm "excluir". Mover só ativa com 2+; ao excluir, C2 vira C1 — a numeração é posição, não nome.</div>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="2d">
+<div class="dv-olabel"><a class="dv-oid" href="#2d">2d</a>Segunda adicionada — C2 nasce em edição inline; o slot desce; o agente testa cada uma</div>
+<div class="dv-card" style="width:400px">
+<div data-screen-label="Nó repetível — segunda adicionada" style="width:400px;height:640px;background:#4A4038;background-image:radial-gradient(ellipse at 50% 15%, rgba(255,255,255,.035), transparent 60%);font-family:'Source Sans 3',system-ui,sans-serif;padding:28px 30px;display:flex;flex-direction:column;gap:16px;box-sizing:border-box;overflow:hidden">
+  <div style="opacity:.55;background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;padding:9px 12px;display:flex;flex-direction:column;gap:3px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Incidente incitante</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-size:12px;color:#211E1A">A garrafa chega com a carta do Léo — datada de amanhã.</div>
+  </div>
+  <div style="background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;box-shadow:0 3px 10px rgba(0,0,0,.32);padding:11px 13px;display:flex;flex-direction:column;gap:5px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Complicação 1</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#a99e8c">⋯</div>
+    </div>
+    <div style="font-family:Alegreya,Georgia,serif;font-size:12.5px;line-height:1.4;color:#211E1A">A névoa avança uma milha por noite, rumo ao farol.</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dashed #b09056;color:#9C7A3C">rascunho</div>
+  </div>
+  <div style="background:#fff;border:1px solid #9C7A3C;border-radius:3px;box-shadow:0 0 0 3px rgba(156,122,60,.14), 0 3px 10px rgba(0,0,0,.32);padding:11px 13px;display:flex;flex-direction:column;gap:5px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Complicação 2</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-size:12.5px;line-height:1.4;color:#211E1A">O vilarejo evacua; Marina fica<span style="display:inline-block;width:1.5px;height:13px;background:#7A2E2E;vertical-align:-2px;margin-left:1px"></span></div>
+    <div style="font-family:'Source Sans 3',sans-serif;font-size:10px;font-style:italic;color:rgba(33,30,26,.4)">edição direta no nó — sem passar pelo chat</div>
+  </div>
+  <div style="border:1px dashed rgba(240,233,216,.25);border-radius:3px;padding:8px 12px;display:flex;align-items:center;justify-content:center;gap:8px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:rgba(240,233,216,.45)">+</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:rgba(240,233,216,.4)">complicação</div>
+  </div>
+  <div style="opacity:.55;background:rgba(240,233,216,.88);border:1px dashed #b09056;border-radius:3px;padding:9px 12px;display:flex;flex-direction:column;gap:3px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Crise</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(33,30,26,.7)">Entrar na névoa, ou proteger Rosa.</div>
+  </div>
+  <div style="flex:1"></div>
+  <div style="font-family:'Source Sans 3',sans-serif;font-size:11px;font-style:italic;line-height:1.5;color:rgba(240,233,216,.45)">Quando um nó sai de edição, o agente testa a complicação contra o Want/Need do Protagonista e o nível do Antagonista — é o gancho da Fase C.</div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Tente: "mostra o estado com 3 complicações e o menu de reordenar ativo" · "e se o usuário excluir a C1? mostra a renumeração" · "leva esse padrão pro quadro grande da página de protótipo"</p>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Onboarding — do clique em McKee à primeira espinha plotada (versão A: revelação ao vivo)</span></div>
+<p class="dv-note">7 estados em sequência, pra sentir o ritmo das 6 perguntas. O canvas fica visível desde o início com os 5 nós em contorno vazio; cada resposta materializa algo. Estados de borda contemplados sem resolver: o link discreto "pular pro modo livre" vive no rodapé do chat desde <a class="dv-oid" href="#1a">1a</a>, e a partir de <a class="dv-oid" href="#1e">1e</a> as perguntas de esboço aceitam "ainda não sei" — vira rascunho "a definir" e a jornada segue. Gramática visual herdada da página do protótipo (espinha vertical, Par A, chat familiar).</p>
+<div class="dv-opts">
+
+<!-- ============ 1a — ESTADO 0: PERGUNTA 1 ============ -->
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Pergunta 1 — canvas vazio, 5 nós em contorno; a resposta está sendo digitada</div>
+<div class="dv-card" style="width:1280px">
+<div data-screen-label="Onboarding — pergunta 1" style="position:relative;width:1280px;height:800px;background:#4A4038;background-image:radial-gradient(ellipse at 40% 20%, rgba(255,255,255,.035), transparent 62%);font-family:'Source Sans 3',system-ui,sans-serif;overflow:hidden">
+  <div style="position:absolute;left:0;top:0;width:1280px;height:44px;background:rgba(24,20,16,.35);border-bottom:1px solid rgba(0,0,0,.3);display:flex;align-items:center;gap:12px;padding:0 20px;box-sizing:border-box;z-index:5">
+    <div style="font-family:Alegreya,Georgia,serif;font-weight:700;font-size:14px;color:#F0E9D8">Story Render</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,233,216,.5);border:1px solid rgba(240,233,216,.25);border-radius:2px;padding:2px 7px">McKee</div>
+    <div style="flex:1"></div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.1em;color:#F0E9D8;background:rgba(240,233,216,.14);border-radius:2px;padding:2px 8px">FASE A — SEMENTE</div>
+  </div>
+  <div style="position:absolute;left:110px;top:96px;width:1px;height:568px;background:rgba(240,233,216,.14)"></div>
+  <div style="position:absolute;left:260px;top:66px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(240,233,216,.35)">roteiro sem título</div>
+  <div style="position:absolute;left:20px;top:110px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Incidente incitante</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:224px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Complicações progressivas</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:338px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Crise</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:452px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Clímax</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:566px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Resolução</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:340px;top:300px;width:420px;text-align:center;font-family:Alegreya,Georgia,serif;font-style:italic;font-size:14px;line-height:1.6;color:rgba(240,233,216,.35)">O quadro se constrói conforme você responde —<br>nada aqui é definitivo.</div>
+
+  <!-- chat -->
+  <div style="position:absolute;left:940px;top:44px;width:340px;height:756px;background:#3A332C;border-left:1px solid rgba(0,0,0,.4);display:flex;flex-direction:column;z-index:6">
+    <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid rgba(240,233,216,.12)">
+      <div style="width:22px;height:22px;border-radius:50%;background:#7A2E2E;display:flex;align-items:center;justify-content:center;font-family:Alegreya,Georgia,serif;font-weight:700;font-size:12px;color:#F0E9D8">S</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-weight:600;font-size:13px;color:#F0E9D8">Agente</div>
+      <div style="flex:1"></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;color:rgba(240,233,216,.45)">1 DE 6</div>
+    </div>
+    <div style="flex:1;padding:20px 16px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:13.5px;line-height:1.55;color:#DCD3BE">Vamos começar pela semente. Em uma frase: do que se trata essa história?</div>
+    </div>
+    <div style="padding:0 16px 6px;text-align:center"><span style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.08em;color:rgba(240,233,216,.32);border-bottom:1px dotted rgba(240,233,216,.25);padding-bottom:1px">pular pro modo livre →</span></div>
+    <div style="padding:10px 14px 16px">
+      <div style="display:flex;align-items:flex-end;gap:10px;background:rgba(255,255,255,.07);border:1px solid rgba(240,233,216,.22);border-radius:14px;padding:11px 8px 11px 14px">
+        <div style="flex:1;font-family:'Source Sans 3',sans-serif;font-size:13px;line-height:1.45;color:#F0E9D8">Um faroleiro encontra uma garrafa com a letra do próprio irmão, desaparecido há dez anos<span style="display:inline-block;width:1.5px;height:14px;background:#F0E9D8;vertical-align:-2px;margin-left:1px"></span></div>
+        <div style="width:28px;height:28px;border-radius:50%;background:#7A2E2E;display:flex;align-items:center;justify-content:center;color:#F0E9D8;font-size:13px;flex:none">↑</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ============ 1b — TÍTULO NO QUADRO, PERGUNTA 2 ============ -->
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Resposta 1 vira o título do quadro · pergunta 2 é escolha rápida de gênero, não pergunta aberta</div>
+<div class="dv-card" style="width:1280px">
+<div data-screen-label="Onboarding — pergunta 2" style="position:relative;width:1280px;height:800px;background:#4A4038;background-image:radial-gradient(ellipse at 40% 20%, rgba(255,255,255,.035), transparent 62%);font-family:'Source Sans 3',system-ui,sans-serif;overflow:hidden">
+  <div style="position:absolute;left:0;top:0;width:1280px;height:44px;background:rgba(24,20,16,.35);border-bottom:1px solid rgba(0,0,0,.3);display:flex;align-items:center;gap:12px;padding:0 20px;box-sizing:border-box;z-index:5">
+    <div style="font-family:Alegreya,Georgia,serif;font-weight:700;font-size:14px;color:#F0E9D8">Story Render</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,233,216,.5);border:1px solid rgba(240,233,216,.25);border-radius:2px;padding:2px 7px">McKee</div>
+    <div style="flex:1"></div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.1em;color:#F0E9D8;background:rgba(240,233,216,.14);border-radius:2px;padding:2px 8px">FASE A — SEMENTE</div>
+  </div>
+  <div style="position:absolute;left:110px;top:96px;width:1px;height:568px;background:rgba(240,233,216,.14)"></div>
+  <div style="position:absolute;left:260px;top:60px;width:620px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:rgba(240,233,216,.4)">semente</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-size:15px;line-height:1.4;color:#F0E9D8;margin-top:4px">Um faroleiro encontra uma garrafa com a letra do próprio irmão, desaparecido há dez anos — e a carta está datada de amanhã.</div>
+  </div>
+  <div style="position:absolute;left:20px;top:110px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Incidente incitante</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:224px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Complicações progressivas</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:338px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Crise</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:452px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Clímax</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:566px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Resolução</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+
+  <!-- chat -->
+  <div style="position:absolute;left:940px;top:44px;width:340px;height:756px;background:#3A332C;border-left:1px solid rgba(0,0,0,.4);display:flex;flex-direction:column;z-index:6">
+    <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid rgba(240,233,216,.12)">
+      <div style="width:22px;height:22px;border-radius:50%;background:#7A2E2E;display:flex;align-items:center;justify-content:center;font-family:Alegreya,Georgia,serif;font-weight:700;font-size:12px;color:#F0E9D8">S</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-weight:600;font-size:13px;color:#F0E9D8">Agente</div>
+      <div style="flex:1"></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;color:rgba(240,233,216,.45)">2 DE 6</div>
+    </div>
+    <div style="flex:1;padding:20px 16px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+      <div style="align-self:flex-end;max-width:88%;background:rgba(240,233,216,.12);border-radius:14px 14px 3px 14px;padding:10px 14px">
+        <div style="font-family:'Source Sans 3',sans-serif;font-size:13px;line-height:1.5;color:#F0E9D8">Um faroleiro encontra uma garrafa com a letra do próprio irmão, desaparecido há dez anos — e a carta está datada de amanhã.</div>
+      </div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:13.5px;line-height:1.55;color:#DCD3BE">Boa semente — já virou o título provisório do quadro, ali no topo. Agora me diz o gênero. Pode marcar mais de um:</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        <div style="font-family:'Source Sans 3',sans-serif;font-size:12px;color:#F0E9D8;border:1px solid rgba(240,233,216,.35);border-radius:12px;padding:5px 13px">Mistério</div>
+        <div style="font-family:'Source Sans 3',sans-serif;font-size:12px;color:#F0E9D8;border:1px solid rgba(240,233,216,.35);border-radius:12px;padding:5px 13px">Ficção especulativa</div>
+        <div style="font-family:'Source Sans 3',sans-serif;font-size:12px;color:#F0E9D8;border:1px solid rgba(240,233,216,.35);border-radius:12px;padding:5px 13px">Drama</div>
+        <div style="font-family:'Source Sans 3',sans-serif;font-size:12px;color:#F0E9D8;border:1px solid rgba(240,233,216,.35);border-radius:12px;padding:5px 13px">Thriller</div>
+        <div style="font-family:'Source Sans 3',sans-serif;font-size:12px;color:#F0E9D8;border:1px solid rgba(240,233,216,.35);border-radius:12px;padding:5px 13px">Fantasia</div>
+        <div style="font-family:'Source Sans 3',sans-serif;font-size:12px;color:#F0E9D8;border:1px solid rgba(240,233,216,.35);border-radius:12px;padding:5px 13px">Romance</div>
+      </div>
+    </div>
+    <div style="padding:0 16px 6px;text-align:center"><span style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.08em;color:rgba(240,233,216,.32);border-bottom:1px dotted rgba(240,233,216,.25);padding-bottom:1px">pular pro modo livre →</span></div>
+    <div style="padding:10px 14px 16px">
+      <div style="display:flex;align-items:flex-end;gap:10px;background:rgba(255,255,255,.07);border:1px solid rgba(240,233,216,.22);border-radius:14px;padding:11px 8px 11px 14px">
+        <div style="flex:1;font-family:'Source Sans 3',sans-serif;font-size:13px;color:rgba(240,233,216,.4)">ou descreva com suas palavras…</div>
+        <div style="width:28px;height:28px;border-radius:50%;background:#7A2E2E;display:flex;align-items:center;justify-content:center;color:#F0E9D8;font-size:13px;flex:none">↑</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ============ 1c — GÊNERO ANCORADO, PERGUNTA 3 ============ -->
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Gênero ancora no canto do canvas · pergunta 3 abre o Protagonista pelo Want</div>
+<div class="dv-card" style="width:1280px">
+<div data-screen-label="Onboarding — pergunta 3" style="position:relative;width:1280px;height:800px;background:#4A4038;background-image:radial-gradient(ellipse at 40% 20%, rgba(255,255,255,.035), transparent 62%);font-family:'Source Sans 3',system-ui,sans-serif;overflow:hidden">
+  <div style="position:absolute;left:0;top:0;width:1280px;height:44px;background:rgba(24,20,16,.35);border-bottom:1px solid rgba(0,0,0,.3);display:flex;align-items:center;gap:12px;padding:0 20px;box-sizing:border-box;z-index:5">
+    <div style="font-family:Alegreya,Georgia,serif;font-weight:700;font-size:14px;color:#F0E9D8">Story Render</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,233,216,.5);border:1px solid rgba(240,233,216,.25);border-radius:2px;padding:2px 7px">McKee</div>
+    <div style="flex:1"></div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.1em;color:#F0E9D8;background:rgba(240,233,216,.14);border-radius:2px;padding:2px 8px">FASE A — SEMENTE</div>
+  </div>
+  <div style="position:absolute;left:110px;top:96px;width:1px;height:568px;background:rgba(240,233,216,.14)"></div>
+  <div style="position:absolute;left:260px;top:60px;width:440px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:rgba(240,233,216,.4)">semente</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-size:15px;line-height:1.4;color:#F0E9D8;margin-top:4px">Um faroleiro encontra uma garrafa com a letra do próprio irmão, desaparecido há dez anos — e a carta está datada de amanhã.</div>
+  </div>
+  <div style="position:absolute;right:370px;top:62px;background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;box-shadow:0 2px 6px rgba(0,0,0,.3);padding:7px 12px;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d;z-index:2">Mistério · Ficção especulativa</div>
+  <div style="position:absolute;left:20px;top:110px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Incidente incitante</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:224px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Complicações progressivas</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:338px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Crise</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:452px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Clímax</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:566px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Resolução</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+
+  <!-- chat -->
+  <div style="position:absolute;left:940px;top:44px;width:340px;height:756px;background:#3A332C;border-left:1px solid rgba(0,0,0,.4);display:flex;flex-direction:column;z-index:6">
+    <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid rgba(240,233,216,.12)">
+      <div style="width:22px;height:22px;border-radius:50%;background:#7A2E2E;display:flex;align-items:center;justify-content:center;font-family:Alegreya,Georgia,serif;font-weight:700;font-size:12px;color:#F0E9D8">S</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-weight:600;font-size:13px;color:#F0E9D8">Agente</div>
+      <div style="flex:1"></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;color:rgba(240,233,216,.45)">3 DE 6</div>
+    </div>
+    <div style="flex:1;padding:20px 16px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+      <div style="align-self:flex-end;max-width:70%;background:rgba(240,233,216,.12);border-radius:14px 14px 3px 14px;padding:10px 14px">
+        <div style="font-family:'Source Sans 3',sans-serif;font-size:13px;line-height:1.5;color:#F0E9D8">Mistério + Ficção especulativa</div>
+      </div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:13.5px;line-height:1.55;color:#DCD3BE">Anotado no quadro. Agora a pergunta que abre tudo: se você perguntasse pro seu protagonista <em>"o que você quer?"</em>, o que ele diria — sem rodeios?</div>
+    </div>
+    <div style="padding:0 16px 6px;text-align:center"><span style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.08em;color:rgba(240,233,216,.32);border-bottom:1px dotted rgba(240,233,216,.25);padding-bottom:1px">pular pro modo livre →</span></div>
+    <div style="padding:10px 14px 16px">
+      <div style="display:flex;align-items:flex-end;gap:10px;background:rgba(255,255,255,.07);border:1px solid rgba(240,233,216,.22);border-radius:14px;padding:11px 8px 11px 14px">
+        <div style="flex:1;font-family:'Source Sans 3',sans-serif;font-size:13px;color:rgba(240,233,216,.4)">Responder ao agente…</div>
+        <div style="width:28px;height:28px;border-radius:50%;background:#7A2E2E;display:flex;align-items:center;justify-content:center;color:#F0E9D8;font-size:13px;flex:none">↑</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ============ 1d — CARTÃO MATERIALIZA, PERGUNTA 4 ============ -->
+<div class="dv-opt" id="1d">
+<div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>O cartão de Protagonista materializa — só o Want preenchido, o resto visível e vazio · entra a Fase B</div>
+<div class="dv-card" style="width:1280px">
+<div data-screen-label="Onboarding — pergunta 4" style="position:relative;width:1280px;height:800px;background:#4A4038;background-image:radial-gradient(ellipse at 40% 20%, rgba(255,255,255,.035), transparent 62%);font-family:'Source Sans 3',system-ui,sans-serif;overflow:hidden">
+  <div style="position:absolute;left:0;top:0;width:1280px;height:44px;background:rgba(24,20,16,.35);border-bottom:1px solid rgba(0,0,0,.3);display:flex;align-items:center;gap:12px;padding:0 20px;box-sizing:border-box;z-index:5">
+    <div style="font-family:Alegreya,Georgia,serif;font-weight:700;font-size:14px;color:#F0E9D8">Story Render</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,233,216,.5);border:1px solid rgba(240,233,216,.25);border-radius:2px;padding:2px 7px">McKee</div>
+    <div style="flex:1"></div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.1em;color:#F0E9D8;background:rgba(240,233,216,.14);border-radius:2px;padding:2px 8px">FASE B — ESPINHA MÍNIMA</div>
+  </div>
+  <div style="position:absolute;left:110px;top:96px;width:1px;height:568px;background:rgba(240,233,216,.14)"></div>
+  <div style="position:absolute;left:260px;top:60px;width:440px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:rgba(240,233,216,.4)">semente</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-size:15px;line-height:1.4;color:#F0E9D8;margin-top:4px">Um faroleiro encontra uma garrafa com a letra do próprio irmão, desaparecido há dez anos — e a carta está datada de amanhã.</div>
+  </div>
+  <div style="position:absolute;right:370px;top:62px;background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;box-shadow:0 2px 6px rgba(0,0,0,.3);padding:7px 12px;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d;z-index:2">Mistério · Ficção especulativa</div>
+  <div style="position:absolute;left:20px;top:110px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Incidente incitante</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:224px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Complicações progressivas</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:338px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Crise</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:452px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Clímax</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:566px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Resolução</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+
+  <!-- protagonist card, just materialized -->
+  <div style="position:absolute;left:330px;top:160px;width:290px;background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;box-shadow:0 6px 18px rgba(0,0,0,.4);padding:14px 16px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;z-index:2">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid #C9BFA8;padding-bottom:8px">
+      <div style="font-family:Alegreya,Georgia,serif;font-weight:700;font-size:16px;color:#211E1A">Protagonista</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:2px;border:1px dashed #b09056;color:#9C7A3C">rascunho</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Desejo consciente (want)</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:12.5px;line-height:1.4;color:#211E1A">Encontrar meu irmão, Léo.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Necessidade inconsciente (need)</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:12px;color:rgba(33,30,26,.3);border-bottom:1px dashed #C9BFA8;padding-bottom:3px">—</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">A aposta</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:12px;color:rgba(33,30,26,.3);border-bottom:1px dashed #C9BFA8;padding-bottom:3px">—</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Arco</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:12px;color:rgba(33,30,26,.3);border-bottom:1px dashed #C9BFA8;padding-bottom:3px">—</div>
+    </div>
+    <div style="font-family:'Source Sans 3',sans-serif;font-size:10px;font-style:italic;color:rgba(33,30,26,.4);border-top:1px solid #C9BFA8;padding-top:8px">os outros campos abrem no aprofundamento — Fase C</div>
+  </div>
+
+  <!-- chat -->
+  <div style="position:absolute;left:940px;top:44px;width:340px;height:756px;background:#3A332C;border-left:1px solid rgba(0,0,0,.4);display:flex;flex-direction:column;z-index:6">
+    <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid rgba(240,233,216,.12)">
+      <div style="width:22px;height:22px;border-radius:50%;background:#7A2E2E;display:flex;align-items:center;justify-content:center;font-family:Alegreya,Georgia,serif;font-weight:700;font-size:12px;color:#F0E9D8">S</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-weight:600;font-size:13px;color:#F0E9D8">Agente</div>
+      <div style="flex:1"></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;color:rgba(240,233,216,.45)">4 DE 6</div>
+    </div>
+    <div style="flex:1;padding:20px 16px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+      <div style="align-self:flex-end;max-width:70%;background:rgba(240,233,216,.12);border-radius:14px 14px 3px 14px;padding:10px 14px">
+        <div style="font-family:'Source Sans 3',sans-serif;font-size:13px;line-height:1.5;color:#F0E9D8">"Encontrar meu irmão, Léo."</div>
+      </div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:13.5px;line-height:1.55;color:#DCD3BE">Direto — gostei. O cartão dela acabou de entrar no quadro, só com esse campo. Os outros ficam pra depois.<br><br>Agora a espinha: o que acontece pra virar a vida dela de cabeça pra baixo — o <em>Incidente Incitante</em>?</div>
+    </div>
+    <div style="padding:0 16px 6px;text-align:center"><span style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.08em;color:rgba(240,233,216,.32);border-bottom:1px dotted rgba(240,233,216,.25);padding-bottom:1px">pular pro modo livre →</span></div>
+    <div style="padding:10px 14px 16px">
+      <div style="display:flex;align-items:flex-end;gap:10px;background:rgba(255,255,255,.07);border:1px solid rgba(240,233,216,.22);border-radius:14px;padding:11px 8px 11px 14px">
+        <div style="flex:1;font-family:'Source Sans 3',sans-serif;font-size:13px;color:rgba(240,233,216,.4)">Responder ao agente…</div>
+        <div style="width:28px;height:28px;border-radius:50%;background:#7A2E2E;display:flex;align-items:center;justify-content:center;color:#F0E9D8;font-size:13px;flex:none">↑</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ============ 1e — INCIDENTE PREENCHE, PERGUNTA 5 ============ -->
+<div class="dv-opt" id="1e">
+<div class="dv-olabel"><a class="dv-oid" href="#1e">1e</a>Incidente preenchido + primeira linha de conexão · pergunta 5 aceita "ainda não sei" sem fricção</div>
+<div class="dv-card" style="width:1280px">
+<div data-screen-label="Onboarding — pergunta 5" style="position:relative;width:1280px;height:800px;background:#4A4038;background-image:radial-gradient(ellipse at 40% 20%, rgba(255,255,255,.035), transparent 62%);font-family:'Source Sans 3',system-ui,sans-serif;overflow:hidden">
+  <div style="position:absolute;left:0;top:0;width:1280px;height:44px;background:rgba(24,20,16,.35);border-bottom:1px solid rgba(0,0,0,.3);display:flex;align-items:center;gap:12px;padding:0 20px;box-sizing:border-box;z-index:5">
+    <div style="font-family:Alegreya,Georgia,serif;font-weight:700;font-size:14px;color:#F0E9D8">Story Render</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,233,216,.5);border:1px solid rgba(240,233,216,.25);border-radius:2px;padding:2px 7px">McKee</div>
+    <div style="flex:1"></div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.1em;color:#F0E9D8;background:rgba(240,233,216,.14);border-radius:2px;padding:2px 8px">FASE B — ESPINHA MÍNIMA</div>
+  </div>
+  <svg viewBox="0 0 1280 800" style="position:absolute;left:0;top:0;width:1280px;height:800px;z-index:1;pointer-events:none">
+    <g stroke="#7A2E2E" stroke-width="1.5" fill="none" stroke-dasharray="2 6" stroke-linecap="round">
+      <path d="M330,200 C290,190 240,168 220,156"></path>
+    </g>
+    <g fill="#7A2E2E"><circle cx="220" cy="156" r="3"></circle><circle cx="330" cy="200" r="2.5"></circle></g>
+    <line x1="110" y1="96" x2="110" y2="664" stroke="rgba(240,233,216,.14)" stroke-width="1"></line>
+  </svg>
+  <div style="position:absolute;left:260px;top:60px;width:440px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:rgba(240,233,216,.4)">semente</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-size:15px;line-height:1.4;color:#F0E9D8;margin-top:4px">Um faroleiro encontra uma garrafa com a letra do próprio irmão, desaparecido há dez anos — e a carta está datada de amanhã.</div>
+  </div>
+  <div style="position:absolute;right:370px;top:62px;background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;box-shadow:0 2px 6px rgba(0,0,0,.3);padding:7px 12px;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d;z-index:2">Mistério · Ficção especulativa</div>
+  <div style="position:absolute;left:20px;top:110px;width:200px;height:92px;background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;box-shadow:0 2px 6px rgba(0,0,0,.3);padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Incidente incitante</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-size:12px;line-height:1.35;color:#211E1A;flex:1">A garrafa chega com a carta do Léo — datada de amanhã.</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dashed #b09056;color:#9C7A3C">rascunho</div>
+  </div>
+  <div style="position:absolute;left:20px;top:224px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Complicações progressivas</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:338px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Crise</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:452px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Clímax</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:566px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Resolução</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+
+  <div style="position:absolute;left:330px;top:160px;width:290px;background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;box-shadow:0 6px 18px rgba(0,0,0,.4);padding:14px 16px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;z-index:2">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid #C9BFA8;padding-bottom:8px">
+      <div style="font-family:Alegreya,Georgia,serif;font-weight:700;font-size:16px;color:#211E1A">Protagonista</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:2px;border:1px dashed #b09056;color:#9C7A3C">rascunho</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Desejo consciente (want)</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:12.5px;line-height:1.4;color:#211E1A">Encontrar meu irmão, Léo.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Necessidade inconsciente (need)</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:12px;color:rgba(33,30,26,.3);border-bottom:1px dashed #C9BFA8;padding-bottom:3px">—</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">A aposta</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:12px;color:rgba(33,30,26,.3);border-bottom:1px dashed #C9BFA8;padding-bottom:3px">—</div>
+    </div>
+    <div style="display:flex;gap:6px;border-top:1px solid #C9BFA8;padding-top:9px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.06em;color:#7A2E2E;border:1px solid rgba(122,46,46,.5);border-radius:2px;padding:2px 6px">↳ Incidente</div>
+    </div>
+  </div>
+
+  <!-- chat -->
+  <div style="position:absolute;left:940px;top:44px;width:340px;height:756px;background:#3A332C;border-left:1px solid rgba(0,0,0,.4);display:flex;flex-direction:column;z-index:6">
+    <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid rgba(240,233,216,.12)">
+      <div style="width:22px;height:22px;border-radius:50%;background:#7A2E2E;display:flex;align-items:center;justify-content:center;font-family:Alegreya,Georgia,serif;font-weight:700;font-size:12px;color:#F0E9D8">S</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-weight:600;font-size:13px;color:#F0E9D8">Agente</div>
+      <div style="flex:1"></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;color:rgba(240,233,216,.45)">5 DE 6</div>
+    </div>
+    <div style="flex:1;padding:20px 16px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+      <div style="align-self:flex-end;max-width:88%;background:rgba(240,233,216,.12);border-radius:14px 14px 3px 14px;padding:10px 14px">
+        <div style="font-family:'Source Sans 3',sans-serif;font-size:13px;line-height:1.5;color:#F0E9D8">A garrafa chega com a carta do Léo, datada de amanhã.</div>
+      </div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:13.5px;line-height:1.55;color:#DCD3BE">Primeiro nó no quadro — e já conectado ao Want dela.<br><br>Agora, ainda em esboço, sem compromisso: no fim dessa história, que <em>escolha impossível</em> ela vai enfrentar?</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        <div style="font-family:'Source Sans 3',sans-serif;font-size:12px;color:rgba(240,233,216,.6);border:1px dashed rgba(240,233,216,.3);border-radius:12px;padding:5px 13px">ainda não sei</div>
+      </div>
+    </div>
+    <div style="padding:0 16px 6px;text-align:center"><span style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.08em;color:rgba(240,233,216,.32);border-bottom:1px dotted rgba(240,233,216,.25);padding-bottom:1px">pular pro modo livre →</span></div>
+    <div style="padding:10px 14px 16px">
+      <div style="display:flex;align-items:flex-end;gap:10px;background:rgba(255,255,255,.07);border:1px solid rgba(240,233,216,.22);border-radius:14px;padding:11px 8px 11px 14px">
+        <div style="flex:1;font-family:'Source Sans 3',sans-serif;font-size:13px;color:rgba(240,233,216,.4)">Responder ao agente…</div>
+        <div style="width:28px;height:28px;border-radius:50%;background:#7A2E2E;display:flex;align-items:center;justify-content:center;color:#F0E9D8;font-size:13px;flex:none">↑</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ============ 1f — CRISE ESBOÇADA, PERGUNTA 6 ============ -->
+<div class="dv-opt" id="1f">
+<div class="dv-olabel"><a class="dv-oid" href="#1f">1f</a>Crise entra como rascunho (visualmente distinta do preenchido) · pergunta 6, a última</div>
+<div class="dv-card" style="width:1280px">
+<div data-screen-label="Onboarding — pergunta 6" style="position:relative;width:1280px;height:800px;background:#4A4038;background-image:radial-gradient(ellipse at 40% 20%, rgba(255,255,255,.035), transparent 62%);font-family:'Source Sans 3',system-ui,sans-serif;overflow:hidden">
+  <div style="position:absolute;left:0;top:0;width:1280px;height:44px;background:rgba(24,20,16,.35);border-bottom:1px solid rgba(0,0,0,.3);display:flex;align-items:center;gap:12px;padding:0 20px;box-sizing:border-box;z-index:5">
+    <div style="font-family:Alegreya,Georgia,serif;font-weight:700;font-size:14px;color:#F0E9D8">Story Render</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,233,216,.5);border:1px solid rgba(240,233,216,.25);border-radius:2px;padding:2px 7px">McKee</div>
+    <div style="flex:1"></div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.1em;color:#F0E9D8;background:rgba(240,233,216,.14);border-radius:2px;padding:2px 8px">FASE B — ESPINHA MÍNIMA</div>
+  </div>
+  <svg viewBox="0 0 1280 800" style="position:absolute;left:0;top:0;width:1280px;height:800px;z-index:1;pointer-events:none">
+    <g stroke="#7A2E2E" stroke-width="1.5" fill="none" stroke-dasharray="2 6" stroke-linecap="round">
+      <path d="M330,200 C290,190 240,168 220,156"></path>
+      <path d="M330,260 C280,300 240,350 220,384"></path>
+    </g>
+    <g fill="#7A2E2E"><circle cx="220" cy="156" r="3"></circle><circle cx="220" cy="384" r="3"></circle><circle cx="330" cy="200" r="2.5"></circle><circle cx="330" cy="260" r="2.5"></circle></g>
+    <line x1="110" y1="96" x2="110" y2="664" stroke="rgba(240,233,216,.14)" stroke-width="1"></line>
+  </svg>
+  <div style="position:absolute;left:260px;top:60px;width:440px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:rgba(240,233,216,.4)">semente</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-size:15px;line-height:1.4;color:#F0E9D8;margin-top:4px">Um faroleiro encontra uma garrafa com a letra do próprio irmão, desaparecido há dez anos — e a carta está datada de amanhã.</div>
+  </div>
+  <div style="position:absolute;right:370px;top:62px;background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;box-shadow:0 2px 6px rgba(0,0,0,.3);padding:7px 12px;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d;z-index:2">Mistério · Ficção especulativa</div>
+  <div style="position:absolute;left:20px;top:110px;width:200px;height:92px;background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;box-shadow:0 2px 6px rgba(0,0,0,.3);padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Incidente incitante</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-size:12px;line-height:1.35;color:#211E1A;flex:1">A garrafa chega com a carta do Léo — datada de amanhã.</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dashed #b09056;color:#9C7A3C">rascunho</div>
+  </div>
+  <div style="position:absolute;left:20px;top:224px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Complicações progressivas</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:338px;width:200px;height:92px;background:rgba(240,233,216,.88);border:1px dashed #b09056;border-radius:3px;box-shadow:0 2px 6px rgba(0,0,0,.25);padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Crise</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;line-height:1.35;color:rgba(33,30,26,.75);flex:1">Entrar na névoa que engoliu Léo, ou proteger a filha que só tem a ela.</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dashed #b09056;color:#9C7A3C">esboço</div>
+  </div>
+  <div style="position:absolute;left:20px;top:452px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Clímax</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:566px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Resolução</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+
+  <div style="position:absolute;left:330px;top:160px;width:290px;background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;box-shadow:0 6px 18px rgba(0,0,0,.4);padding:14px 16px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;z-index:2">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid #C9BFA8;padding-bottom:8px">
+      <div style="font-family:Alegreya,Georgia,serif;font-weight:700;font-size:16px;color:#211E1A">Protagonista</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:2px;border:1px dashed #b09056;color:#9C7A3C">rascunho</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Desejo consciente (want)</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:12.5px;line-height:1.4;color:#211E1A">Encontrar meu irmão, Léo.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Necessidade inconsciente (need)</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:12px;color:rgba(33,30,26,.3);border-bottom:1px dashed #C9BFA8;padding-bottom:3px">—</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">A aposta</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:12px;color:rgba(33,30,26,.3);border-bottom:1px dashed #C9BFA8;padding-bottom:3px">—</div>
+    </div>
+    <div style="display:flex;gap:6px;border-top:1px solid #C9BFA8;padding-top:9px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.06em;color:#7A2E2E;border:1px solid rgba(122,46,46,.5);border-radius:2px;padding:2px 6px">↳ Incidente</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.06em;color:#7A2E2E;border:1px solid rgba(122,46,46,.5);border-radius:2px;padding:2px 6px">↳ Crise</div>
+    </div>
+  </div>
+
+  <!-- chat -->
+  <div style="position:absolute;left:940px;top:44px;width:340px;height:756px;background:#3A332C;border-left:1px solid rgba(0,0,0,.4);display:flex;flex-direction:column;z-index:6">
+    <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid rgba(240,233,216,.12)">
+      <div style="width:22px;height:22px;border-radius:50%;background:#7A2E2E;display:flex;align-items:center;justify-content:center;font-family:Alegreya,Georgia,serif;font-weight:700;font-size:12px;color:#F0E9D8">S</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-weight:600;font-size:13px;color:#F0E9D8">Agente</div>
+      <div style="flex:1"></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;color:rgba(240,233,216,.45)">6 DE 6</div>
+    </div>
+    <div style="flex:1;padding:20px 16px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+      <div style="align-self:flex-end;max-width:88%;background:rgba(240,233,216,.12);border-radius:14px 14px 3px 14px;padding:10px 14px">
+        <div style="font-family:'Source Sans 3',sans-serif;font-size:13px;line-height:1.5;color:#F0E9D8">Talvez entrar na névoa que engoliu o Léo… ou ficar com a filha. Algo assim.</div>
+      </div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:13.5px;line-height:1.55;color:#DCD3BE">"Algo assim" serve perfeitamente por agora — entrou como esboço, dá pra ver no quadro que ainda é hipótese.<br><br>Última: o que muda pra sempre depois dessa escolha — o <em>Clímax</em>, mesmo que só uma hipótese?</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap">
+        <div style="font-family:'Source Sans 3',sans-serif;font-size:12px;color:rgba(240,233,216,.6);border:1px dashed rgba(240,233,216,.3);border-radius:12px;padding:5px 13px">ainda não sei</div>
+      </div>
+    </div>
+    <div style="padding:0 16px 6px;text-align:center"><span style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.08em;color:rgba(240,233,216,.32);border-bottom:1px dotted rgba(240,233,216,.25);padding-bottom:1px">pular pro modo livre →</span></div>
+    <div style="padding:10px 14px 16px">
+      <div style="display:flex;align-items:flex-end;gap:10px;background:rgba(255,255,255,.07);border:1px solid rgba(240,233,216,.22);border-radius:14px;padding:11px 8px 11px 14px">
+        <div style="flex:1;font-family:'Source Sans 3',sans-serif;font-size:13px;color:rgba(240,233,216,.4)">Responder ao agente…</div>
+        <div style="width:28px;height:28px;border-radius:50%;background:#7A2E2E;display:flex;align-items:center;justify-content:center;color:#F0E9D8;font-size:13px;flex:none">↑</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+<!-- ============ 1g — TRANSIÇÃO: MODO LIVRE ============ -->
+<div class="dv-opt" id="1g">
+<div class="dv-olabel"><a class="dv-oid" href="#1g">1g</a>O beat de transição — esqueleto pronto, o chat recua, o canvas ganha o foco; a ordem imposta vira sugestão</div>
+<div class="dv-card" style="width:1280px">
+<div data-screen-label="Onboarding — transição pro modo livre" style="position:relative;width:1280px;height:800px;background:#4A4038;background-image:radial-gradient(ellipse at 40% 30%, rgba(255,255,255,.05), transparent 65%);font-family:'Source Sans 3',system-ui,sans-serif;overflow:hidden">
+  <div style="position:absolute;left:0;top:0;width:1280px;height:44px;background:rgba(24,20,16,.35);border-bottom:1px solid rgba(0,0,0,.3);display:flex;align-items:center;gap:12px;padding:0 20px;box-sizing:border-box;z-index:5">
+    <div style="font-family:Alegreya,Georgia,serif;font-weight:700;font-size:14px;color:#F0E9D8">Story Render</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:rgba(240,233,216,.5);border:1px solid rgba(240,233,216,.25);border-radius:2px;padding:2px 7px">McKee</div>
+    <div style="flex:1"></div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8.5px;letter-spacing:.1em;color:#9C7A3C;border:1px solid rgba(156,122,60,.5);border-radius:2px;padding:2px 8px">FASE B ✓ — ESQUELETO PRONTO</div>
+  </div>
+  <svg viewBox="0 0 1280 800" style="position:absolute;left:0;top:0;width:1280px;height:800px;z-index:1;pointer-events:none">
+    <g stroke="#7A2E2E" stroke-width="1.5" fill="none" stroke-dasharray="2 6" stroke-linecap="round">
+      <path d="M330,200 C290,190 240,168 220,156"></path>
+      <path d="M330,260 C280,300 240,350 220,384"></path>
+      <path d="M330,310 C280,380 240,450 220,498"></path>
+    </g>
+    <g fill="#7A2E2E"><circle cx="220" cy="156" r="3"></circle><circle cx="220" cy="384" r="3"></circle><circle cx="220" cy="498" r="3"></circle><circle cx="330" cy="200" r="2.5"></circle><circle cx="330" cy="260" r="2.5"></circle><circle cx="330" cy="310" r="2.5"></circle></g>
+    <line x1="110" y1="96" x2="110" y2="664" stroke="rgba(240,233,216,.14)" stroke-width="1"></line>
+  </svg>
+  <div style="position:absolute;left:260px;top:60px;width:440px">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:rgba(240,233,216,.4)">semente</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-size:15px;line-height:1.4;color:#F0E9D8;margin-top:4px">Um faroleiro encontra uma garrafa com a letra do próprio irmão, desaparecido há dez anos — e a carta está datada de amanhã.</div>
+  </div>
+  <div style="position:absolute;right:340px;top:62px;background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;box-shadow:0 2px 6px rgba(0,0,0,.3);padding:7px 12px;font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d;z-index:2">Mistério · Ficção especulativa</div>
+  <div style="position:absolute;left:20px;top:110px;width:200px;height:92px;background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;box-shadow:0 2px 6px rgba(0,0,0,.3);padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Incidente incitante</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-size:12px;line-height:1.35;color:#211E1A;flex:1">A garrafa chega com a carta do Léo — datada de amanhã.</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dashed #b09056;color:#9C7A3C">rascunho</div>
+  </div>
+  <div style="position:absolute;left:20px;top:224px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Complicações progressivas</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+  <div style="position:absolute;left:20px;top:338px;width:200px;height:92px;background:rgba(240,233,216,.88);border:1px dashed #b09056;border-radius:3px;box-shadow:0 2px 6px rgba(0,0,0,.25);padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Crise</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;line-height:1.35;color:rgba(33,30,26,.75);flex:1">Entrar na névoa que engoliu Léo, ou proteger a filha que só tem a ela.</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dashed #b09056;color:#9C7A3C">esboço</div>
+  </div>
+  <div style="position:absolute;left:20px;top:452px;width:200px;height:92px;background:rgba(240,233,216,.88);border:1px dashed #b09056;border-radius:3px;box-shadow:0 2px 6px rgba(0,0,0,.25);padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Clímax</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;line-height:1.35;color:rgba(33,30,26,.75);flex:1">Ela entra na névoa.</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dashed #b09056;color:#9C7A3C">esboço</div>
+  </div>
+  <div style="position:absolute;left:20px;top:566px;width:200px;height:92px;border:1px dashed rgba(240,233,216,.35);border-radius:3px;padding:8px 10px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;z-index:2">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.09em;text-transform:uppercase;color:rgba(240,233,216,.55)">Resolução</div>
+    <div style="font-family:Alegreya,Georgia,serif;font-style:italic;font-size:12px;color:rgba(240,233,216,.3);flex:1">—</div>
+    <div style="align-self:flex-start;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:.07em;text-transform:uppercase;padding:1px 5px;border-radius:2px;border:1px dotted rgba(240,233,216,.3);color:rgba(240,233,216,.4)">vazio</div>
+  </div>
+
+  <div style="position:absolute;left:330px;top:160px;width:290px;background:#F0E9D8;border:1px solid #C9BFA8;border-radius:3px;box-shadow:0 6px 18px rgba(0,0,0,.4);padding:14px 16px;box-sizing:border-box;display:flex;flex-direction:column;gap:10px;z-index:2">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid #C9BFA8;padding-bottom:8px">
+      <div style="font-family:Alegreya,Georgia,serif;font-weight:700;font-size:16px;color:#211E1A">Protagonista</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:2px;border:1px dashed #b09056;color:#9C7A3C">rascunho</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Desejo consciente (want)</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:12.5px;line-height:1.4;color:#211E1A">Encontrar meu irmão, Léo.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">Necessidade inconsciente (need)</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:12px;color:rgba(33,30,26,.3);border-bottom:1px dashed #C9BFA8;padding-bottom:3px">—</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:3px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.09em;text-transform:uppercase;color:#85714d">A aposta</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-size:12px;color:rgba(33,30,26,.3);border-bottom:1px dashed #C9BFA8;padding-bottom:3px">—</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid #C9BFA8;padding-top:9px">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.06em;color:#7A2E2E;border:1px solid rgba(122,46,46,.5);border-radius:2px;padding:2px 6px">↳ Incidente</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.06em;color:#7A2E2E;border:1px solid rgba(122,46,46,.5);border-radius:2px;padding:2px 6px">↳ Crise</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:7.5px;letter-spacing:.06em;color:#7A2E2E;border:1px solid rgba(122,46,46,.5);border-radius:2px;padding:2px 6px">↳ Clímax</div>
+    </div>
+  </div>
+
+  <!-- chat recuado -->
+  <div style="position:absolute;left:980px;top:44px;width:300px;height:756px;background:rgba(46,40,34,.92);border-left:1px solid rgba(0,0,0,.4);display:flex;flex-direction:column;z-index:6">
+    <div style="display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid rgba(240,233,216,.1)">
+      <div style="width:22px;height:22px;border-radius:50%;background:#7A2E2E;display:flex;align-items:center;justify-content:center;font-family:Alegreya,Georgia,serif;font-weight:700;font-size:12px;color:#F0E9D8">S</div>
+      <div style="font-family:'Source Sans 3',sans-serif;font-weight:600;font-size:13px;color:#F0E9D8">Agente</div>
+      <div style="flex:1"></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:8px;letter-spacing:.08em;color:#9C7A3C">6 DE 6 ✓</div>
+    </div>
+    <div style="flex:1;padding:20px 16px;display:flex;flex-direction:column;gap:16px;overflow:hidden">
+      <div style="align-self:flex-end;max-width:80%;background:rgba(240,233,216,.1);border-radius:14px 14px 3px 14px;padding:10px 14px">
+        <div style="font-family:'Source Sans 3',sans-serif;font-size:13px;line-height:1.5;color:rgba(240,233,216,.85)">Ela entra na névoa.</div>
+      </div>
+      <div style="background:rgba(240,233,216,.06);border:1px solid rgba(156,122,60,.4);border-radius:6px;padding:14px 15px;display:flex;flex-direction:column;gap:12px">
+        <div style="font-family:Alegreya,Georgia,serif;font-size:15px;line-height:1.55;color:#F0E9D8">Isso já é o esqueleto. A partir daqui você manda: edita qualquer cartão direto no quadro, ou continua comigo.</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="font-family:'Source Sans 3',sans-serif;font-weight:600;font-size:12.5px;text-align:center;color:#F0E9D8;background:#7A2E2E;border-radius:3px;padding:9px 12px">Continuar com o agente — Fase C</div>
+          <div style="font-family:'Source Sans 3',sans-serif;font-size:12.5px;text-align:center;color:rgba(240,233,216,.75);border:1px solid rgba(240,233,216,.3);border-radius:3px;padding:9px 12px">Editar direto no quadro</div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:10px 14px 16px;opacity:.55">
+      <div style="display:flex;align-items:flex-end;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(240,233,216,.18);border-radius:14px;padding:11px 8px 11px 14px">
+        <div style="flex:1;font-family:'Source Sans 3',sans-serif;font-size:13px;color:rgba(240,233,216,.35)">Responder ao agente…</div>
+        <div style="width:28px;height:28px;border-radius:50%;background:#7A2E2E;display:flex;align-items:center;justify-content:center;color:#F0E9D8;font-size:13px;flex:none">↑</div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Tente: "o ritmo está lento — funde as perguntas 5 e 6 num estado só" · "mostra a variação de <a class="dv-oid" href="#1f">1f</a> com a resposta 'ainda não sei' virando rascunho 'a definir'" · "compara com a versão B: wizard linear com revelação no fim"</p>
+</section>
+
+</x-dc>
+</body>
+</html>

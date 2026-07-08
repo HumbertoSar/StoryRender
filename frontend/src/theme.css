@@ -1,0 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Alegreya:ital,wght@0,400..900;1,400..900&family=Source+Sans+3:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --sr-board: #4A4038;
+  --sr-paper: #F0E9D8;
+  --sr-ink: #211E1A;
+  --sr-accent: #7A2E2E;
+  --sr-brass: #9C7A3C;
+  --sr-neutral: #C9BFA8;
+
+  --sr-font-serif: 'Alegreya', Georgia, serif;
+  --sr-font-sans: 'Source Sans 3', system-ui, sans-serif;
+  --sr-font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
