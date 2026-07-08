@@ -1,3 +1,26 @@
+export interface RoteiroUpdate {
+  path: (string | number)[];
+  value: unknown;
+}
+
+export function applyUpdates(data: unknown, updates: RoteiroUpdate[]): unknown {
+  const proximo = structuredClone(data) as Record<string | number, unknown>;
+  for (const { path, value } of updates) {
+    if (path.length === 0) continue;
+    let alvo: Record<string | number, unknown> = proximo;
+    for (let i = 0; i < path.length - 1; i++) {
+      const chave = path[i];
+      const proximoAlvo = alvo[chave];
+      if (typeof proximoAlvo !== "object" || proximoAlvo === null) {
+        alvo[chave] = typeof path[i + 1] === "number" ? [] : {};
+      }
+      alvo = alvo[chave] as Record<string | number, unknown>;
+    }
+    alvo[path[path.length - 1]] = value;
+  }
+  return proximo;
+}
+
 export function espinhaVazia() {
   return [
     { id: "incidente_incitante", tipo: "no_fixo", conteudo: "", status: "vazio", conecta_assets: ["protagonista", "mundo"] },
@@ -11,6 +34,7 @@ export function espinhaVazia() {
 export function roteiroMckeeVazio() {
   return {
     template: "mckee",
+    titulo: "",
     fase_atual: "A",
     espinha: espinhaVazia(),
     assets: {

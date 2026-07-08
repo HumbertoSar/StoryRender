@@ -1,9 +1,51 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import "./onboarding.css";
 import { EspinhaRail, type NoEspinha, type NoStatus } from "./EspinhaRail";
 import { ProtagonistaCard } from "./ProtagonistaCard";
 import { ChatPanel, type ChatMessage } from "./ChatPanel";
 import { A_DEFINIR, NAO_SEI, ONBOARDING_STEPS } from "./script";
+import { atualizarRoteiro, criarRoteiro, type RoteiroUpdate } from "../api";
+
+const INDICE_ESPINHA = { incidente_incitante: 0, crise: 2, climax: 3 } as const;
+
+function updatesParaPasso(passo: number, resposta: string, generos?: string[]): RoteiroUpdate[] {
+  switch (passo) {
+    case 0:
+      return [{ path: ["titulo"], value: resposta }];
+    case 1:
+      return [
+        { path: ["assets", "genero", "generos"], value: generos ?? [resposta] },
+        { path: ["assets", "genero", "status"], value: "rascunho" },
+      ];
+    case 2:
+      return [
+        { path: ["assets", "protagonistas", 0, "want"], value: resposta },
+        { path: ["assets", "protagonistas", 0, "status"], value: "rascunho" },
+      ];
+    case 3:
+      return [
+        { path: ["espinha", INDICE_ESPINHA.incidente_incitante, "conteudo"], value: resposta },
+        { path: ["espinha", INDICE_ESPINHA.incidente_incitante, "status"], value: "rascunho" },
+        { path: ["fase_atual"], value: "B" },
+      ];
+    case 4: {
+      const valor = resposta === NAO_SEI ? A_DEFINIR : resposta;
+      return [
+        { path: ["espinha", INDICE_ESPINHA.crise, "conteudo"], value: valor },
+        { path: ["espinha", INDICE_ESPINHA.crise, "status"], value: "esboço" },
+      ];
+    }
+    case 5: {
+      const valor = resposta === NAO_SEI ? A_DEFINIR : resposta;
+      return [
+        { path: ["espinha", INDICE_ESPINHA.climax, "conteudo"], value: valor },
+        { path: ["espinha", INDICE_ESPINHA.climax, "status"], value: "esboço" },
+      ];
+    }
+    default:
+      return [];
+  }
+}
 
 interface OnboardingState {
   passo: number;
@@ -31,10 +73,35 @@ const ESTADO_INICIAL: OnboardingState = {
 
 export function OnboardingFlow({ onFaseC, onModoLivre }: { onFaseC: () => void; onModoLivre: () => void }) {
   const [estado, setEstado] = useState<OnboardingState>(ESTADO_INICIAL);
+  const roteiroIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    criarRoteiro()
+      .then((r) => {
+        if (!cancelado) roteiroIdRef.current = r.id;
+      })
+      .catch((err) => {
+        console.error("Falha ao criar roteiro:", err);
+      });
+    return () => {
+      cancelado = true;
+    };
+  }, []);
 
   const passoAtual = ONBOARDING_STEPS[estado.passo];
 
   function avancar(resposta: string, generosResposta?: string[]) {
+    const passo = estado.passo;
+    if (roteiroIdRef.current) {
+      const updates = updatesParaPasso(passo, resposta, generosResposta);
+      if (updates.length > 0) {
+        atualizarRoteiro(roteiroIdRef.current, updates).catch((err) => {
+          console.error("Falha ao persistir resposta:", err);
+        });
+      }
+    }
+
     setEstado((prev) => {
       const proximo = { ...prev };
       proximo.mensagens = [...prev.mensagens, { from: "usuario", texto: resposta }];

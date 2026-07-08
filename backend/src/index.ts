@@ -1,3 +1,4 @@
+import cors from "cors";
 import express from "express";
 import { pool } from "./db.js";
 import { roteirosRouter } from "./routes/roteiros.js";
@@ -5,6 +6,7 @@ import { roteirosRouter } from "./routes/roteiros.js";
 const app = express();
 const port = process.env.PORT ?? 3001;
 
+app.use(cors({ origin: process.env.FRONTEND_ORIGIN ?? "http://localhost:5173" }));
 app.use(express.json());
 app.use("/roteiros", roteirosRouter);
 

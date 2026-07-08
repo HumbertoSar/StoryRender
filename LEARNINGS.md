@@ -46,3 +46,18 @@
 **Gotcha:** o painel de chat crescia além da viewport e a página inteira rolava em vez do painel — `.sr-onboarding` tinha só `min-height:100vh` em vez de `height:100vh` + `overflow:hidden`, então o flex nunca ficava contido e o scroll interno do chat (`overflow-y:auto`) não tinha efeito. Trocar pra `height:100vh` no container raiz resolveu; sem isso o beat de transição final (com os 2 botões) ficava invisível fora da tela.
 
 **Smoke test:** rodei o fluxo de ponta a ponta com Playwright (headless Chromium já pré-instalado no ambiente) — as 6 perguntas, incluindo o chip de gênero e o "ainda não sei" virando "a definir", terminando no beat de transição com os 2 botões funcionando (clique em "Continuar com o agente" leva ao placeholder de Fase C). Screenshots conferidos visualmente, batem com o `.dc.html` original. `npm run build` e `npx oxlint` limpos.
+
+## Fatia: Persistência real do onboarding (PATCH + wiring)
+
+**O que foi construído:** `PATCH /roteiros/:id` no backend — aceita `{ updates: [{ path, value }] }` e aplica edições por path num clone imutável do `data` (`applyUpdates` em `roteiro.ts`), sem precisar de um endpoint por campo. Adicionei `titulo` ao esquema McKee vazio (campo que faltava — a Fase A usa a semente como "título provisório do quadro", mas a seção 6 do MVP doc não previa esse campo). CORS liberado pro `FRONTEND_ORIGIN` (dev: `localhost:5173`), já que backend e frontend rodam em portas diferentes. No frontend, `api.ts` (fetch simples pro backend) e `OnboardingFlow` agora cria o roteiro de verdade no mount (`POST /roteiros`) e persiste cada resposta via `PATCH` (fire-and-forget — o estado local do React continua sendo a fonte de verdade pra UI imediata).
+
+**Por quê:** era o item que tinha ficado pendente da fatia anterior — sem isso o onboarding "esquece" tudo ao recarregar, violando o P0 "persistência do esquema" do MVP doc.
+
+**O que ficou pra depois:**
+- Nenhuma tela ainda lê o roteiro de volta (GET) pra retomar uma sessão — se o usuário recarrega no meio do onboarding, perde o estado local (mesmo com os dados salvos no banco). Isso é a próxima fatia óbvia: carregar por `id` na URL.
+- Falha de rede no PATCH só loga no console — não há retry nem aviso visual pro usuário. Aceitável pro MVP local de um usuário só; revisitar se virar multi-dispositivo.
+- Fase C, "modo livre" e agente real (Claude API) continuam sem tela.
+
+**Gotcha:** o React StrictMode (dev) dobra o efeito de criação do roteiro (`POST /roteiros` disparado 2x), deixando uma linha órfã no banco a cada carregamento em dev — comportamento só de desenvolvimento (StrictMode não roda em produção), mas corrigi com um cleanup (`cancelado` flag) garantindo que o `ref` sempre aponte pro roteiro correto mesmo com o double-invoke.
+
+**Smoke test:** subi backend real (Postgres) + frontend juntos, rodei o onboarding completo via Playwright capturando as requisições de rede (confirmei `POST` seguido de 5 `PATCH`), e consultei o Postgres direto via `psql` — todos os campos batendo: título, gêneros, want, incidente, crise (`a definir`), clímax, e `fase_atual` virando `"B"`. `npm run build`/`oxlint` (frontend) e `tsc`/`vitest` (7/7)/`eslint` (backend) limpos.
