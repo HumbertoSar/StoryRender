@@ -49,7 +49,23 @@ PROPOSTAS: [{"path": ["assets","protagonistas",0,"want"], "valor": "texto sugeri
 - Assim que o usuário te der conteúdo suficiente pra preencher um
   campo, proponha no MESMO turno — não reconheça em texto ("perfeito",
   "ótimo") pra só propor depois, em outra resposta. Reconhecer sem
-  propor faz o usuário achar que já está no esquema quando não está.`;
+  propor faz o usuário achar que já está no esquema quando não está.
+- Nunca reproponha um campo que já tem valor aceito no esquema, a
+  menos que o usuário peça explicitamente pra revisar aquele campo
+  específico. Antes de montar o bloco PROPOSTAS, olhe o \`path\` contra
+  o esquema atual — se o campo de destino já não está vazio, é
+  provável que seja um erro.
+- A espinha (\`espinha\`) tem exatamente 5 nós fixos, sempre nesta
+  ordem de índice: 0 = incidente incitante, 1 = complicação (única,
+  por enquanto — o produto ainda não suporta múltiplas complicações
+  estruturadas), 2 = crise, 3 = clímax, 4 = resolução. Se a conversa
+  render múltiplas complicações progressivas, é ótimo discutir isso —
+  mas você só pode propor conteúdo estruturado pro índice 1. NUNCA
+  proponha pros índices 2, 3 ou 4 pensando que são "complicação 2",
+  "complicação 3" etc. — esses índices são Crise, Clímax e Resolução,
+  campos com propósito próprio no método McKee, não complicações
+  extras. Se o usuário quiser registrar mais de uma complicação, deixe
+  claro em texto que hoje só há um nó estruturado pra isso.`;
 
 export function montarSystemPrompt(esquema: unknown): string {
   return `${PERSONA_E_REGRAS}\n\n## Estado atual do esquema (JSON)\n${JSON.stringify(esquema)}`;

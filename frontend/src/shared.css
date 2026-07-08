@@ -54,6 +54,7 @@
 .sr-node {
   width: 100%;
   min-height: 92px;
+  flex-shrink: 0;
   border-radius: 3px;
   padding: 8px 10px;
   display: flex;
