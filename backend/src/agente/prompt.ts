@@ -43,7 +43,11 @@ PROPOSTAS: [{"path": ["assets","protagonistas",0,"want"], "valor": "texto sugeri
 - Pode propor mais de um campo no mesmo array.
 - Se não tiver nenhuma proposta nesta resposta, não inclua o bloco.
 - Nunca proponha valor pra campos do tipo lista de opções (níveis da
-  oposição, gêneros) — só campos de texto livre.`;
+  oposição, gêneros) — só campos de texto livre.
+- Assim que o usuário te der conteúdo suficiente pra preencher um
+  campo, proponha no MESMO turno — não reconheça em texto ("perfeito",
+  "ótimo") pra só propor depois, em outra resposta. Reconhecer sem
+  propor faz o usuário achar que já está no esquema quando não está.`;
 
 export function montarSystemPrompt(esquema: unknown): string {
   return `${PERSONA_E_REGRAS}\n\n## Estado atual do esquema (JSON)\n${JSON.stringify(esquema)}`;

@@ -8,7 +8,9 @@ import { AgenteChat } from "./AgenteChat";
 import { aplicarAtualizacoes } from "./imutavel";
 import {
   atualizarRoteiro,
+  listarPropostasPendentes,
   registrarEvento,
+  resolverProposta,
   type PropostaCampo,
   type RoteiroResponse,
   type RoteiroUpdate,
@@ -21,6 +23,12 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
 
   useEffect(() => {
     registrarEvento(roteiro.id, "tela", { tela: "quadro" });
+  }, [roteiro.id]);
+
+  useEffect(() => {
+    listarPropostasPendentes(roteiro.id)
+      .then(setPropostas)
+      .catch((err) => console.error("Falha ao carregar propostas pendentes:", err));
   }, [roteiro.id]);
 
   function salvar(updates: RoteiroUpdate[]) {
@@ -41,20 +49,25 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
     setPropostas((prev) => prev.filter((p) => p !== alvo));
   }
 
+  function resolver(proposta: PropostaCampo, acao: "aceitar" | "rejeitar") {
+    registrarEvento(roteiro.id, "sugestao", { acao: acao === "aceitar" ? "aceita" : "rejeitada", path: proposta.path });
+    if (acao === "aceitar") {
+      setData((prev) => aplicarAtualizacoes(prev, [{ path: proposta.path, value: proposta.valor }]));
+    }
+    removerProposta(proposta);
+    resolverProposta(roteiro.id, proposta.id, acao).catch((err) => {
+      registrarEvento(roteiro.id, "erro", { contexto: "resolver_proposta", mensagem: (err as Error).message });
+      console.error(`Falha ao ${acao} proposta:`, err);
+    });
+  }
+
   function sugestaoDoPath(path: (string | number)[]): SugestaoCampo | undefined {
     const proposta = encontrarProposta(path);
     if (!proposta) return undefined;
     return {
       valor: String(proposta.valor),
-      aceitar: () => {
-        registrarEvento(roteiro.id, "sugestao", { acao: "aceita", path: proposta.path });
-        salvar([{ path: proposta.path, value: proposta.valor }]);
-        removerProposta(proposta);
-      },
-      rejeitar: () => {
-        registrarEvento(roteiro.id, "sugestao", { acao: "rejeitada", path: proposta.path });
-        removerProposta(proposta);
-      },
+      aceitar: () => resolver(proposta, "aceitar"),
+      rejeitar: () => resolver(proposta, "rejeitar"),
     };
   }
 

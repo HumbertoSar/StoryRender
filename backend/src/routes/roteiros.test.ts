@@ -140,7 +140,7 @@ describe.skipIf(!hasDb)("roteirosRouter", () => {
       expect(res.status).toBe(200);
       expect(res.body.resposta).toBe("Beleza, vou sugerir um want.");
       expect(res.body.propostas).toEqual([
-        { path: ["assets", "protagonistas", 0, "want"], valor: "Encontrar o irmão" },
+        { id: expect.any(String), path: ["assets", "protagonistas", 0, "want"], valor: "Encontrar o irmão" },
       ]);
     });
 
@@ -212,6 +212,98 @@ describe.skipIf(!hasDb)("roteirosRouter", () => {
       const res = await request(app).get(`/roteiros/${created.body.id}/eventos`);
       expect(res.status).toBe(200);
       expect(res.body).toEqual([]);
+    });
+  });
+
+  describe("propostas", () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      delete process.env.OPENROUTER_API_KEY;
+    });
+
+    async function criarComProposta(valor: string) {
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      const conteudo = `Ok.\nPROPOSTAS: [{"path": ["assets","protagonistas",0,"want"], "valor": "${valor}"}]`;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: conteudo } }] }) }),
+      );
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app)
+        .post(`/roteiros/${created.body.id}/mensagens`)
+        .send({ mensagem: "propõe um want", historico: [] });
+      return { roteiroId: created.body.id, propostaId: res.body.propostas[0].id };
+    }
+
+    it("GET lista só as propostas pendentes por padrão", async () => {
+      const { roteiroId } = await criarComProposta("Encontrar o irmão");
+      const res = await request(app).get(`/roteiros/${roteiroId}/propostas`);
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveLength(1);
+      expect(res.body[0].status).toBe("pendente");
+      expect(res.body[0].valor).toBe("Encontrar o irmão");
+    });
+
+    it("aceitar aplica o valor no roteiro e marca a proposta como aceita", async () => {
+      const { roteiroId, propostaId } = await criarComProposta("Encontrar o irmão");
+
+      const res = await request(app)
+        .post(`/roteiros/${roteiroId}/propostas/${propostaId}/resolver`)
+        .send({ acao: "aceitar" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.proposta.status).toBe("aceita");
+      expect(res.body.roteiro.data.assets.protagonistas[0].want).toBe("Encontrar o irmão");
+
+      const pendentes = await request(app).get(`/roteiros/${roteiroId}/propostas`);
+      expect(pendentes.body).toEqual([]);
+    });
+
+    it("rejeitar não altera o roteiro, só marca a proposta como rejeitada", async () => {
+      const { roteiroId, propostaId } = await criarComProposta("Encontrar o irmão");
+
+      const res = await request(app)
+        .post(`/roteiros/${roteiroId}/propostas/${propostaId}/resolver`)
+        .send({ acao: "rejeitar" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.proposta.status).toBe("rejeitada");
+      expect(res.body.roteiro.data.assets.protagonistas[0].want).toBe("");
+
+      const pendentes = await request(app).get(`/roteiros/${roteiroId}/propostas`);
+      expect(pendentes.body).toEqual([]);
+    });
+
+    it("uma nova proposta pro mesmo campo substitui a pendente anterior", async () => {
+      const { roteiroId } = await criarComProposta("Primeira versão");
+
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      const conteudo = `Ok.\nPROPOSTAS: [{"path": ["assets","protagonistas",0,"want"], "valor": "Segunda versão"}]`;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: conteudo } }] }) }),
+      );
+      await request(app).post(`/roteiros/${roteiroId}/mensagens`).send({ mensagem: "de novo", historico: [] });
+
+      const pendentes = await request(app).get(`/roteiros/${roteiroId}/propostas`);
+      expect(pendentes.body).toHaveLength(1);
+      expect(pendentes.body[0].valor).toBe("Segunda versão");
+    });
+
+    it("retorna 404 ao resolver proposta que não existe ou já foi resolvida", async () => {
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app)
+        .post(`/roteiros/${created.body.id}/propostas/00000000-0000-0000-0000-000000000000/resolver`)
+        .send({ acao: "aceitar" });
+      expect(res.status).toBe(404);
+    });
+
+    it("retorna 400 com ação inválida", async () => {
+      const { roteiroId, propostaId } = await criarComProposta("Encontrar o irmão");
+      const res = await request(app)
+        .post(`/roteiros/${roteiroId}/propostas/${propostaId}/resolver`)
+        .send({ acao: "esperar" });
+      expect(res.status).toBe(400);
     });
   });
 });

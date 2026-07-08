@@ -54,6 +54,7 @@ export interface HistoricoMensagem {
 }
 
 export interface PropostaCampo {
+  id: string;
   path: (string | number)[];
   valor: unknown;
 }
@@ -76,6 +77,27 @@ export async function enviarMensagemAgente(
   if (!res.ok) throw new Error(`Falha ao falar com o agente: ${res.status}`);
   const json = await res.json();
   return { resposta: json.resposta as string, propostas: (json.propostas as PropostaCampo[]) ?? [] };
+}
+
+export async function listarPropostasPendentes(roteiroId: string): Promise<PropostaCampo[]> {
+  const res = await fetch(`${API_URL}/roteiros/${roteiroId}/propostas`);
+  if (!res.ok) throw new Error(`Falha ao listar propostas: ${res.status}`);
+  return res.json();
+}
+
+export async function resolverProposta(
+  roteiroId: string,
+  propostaId: string,
+  acao: "aceitar" | "rejeitar",
+): Promise<RoteiroResponse> {
+  const res = await fetch(`${API_URL}/roteiros/${roteiroId}/propostas/${propostaId}/resolver`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ acao }),
+  });
+  if (!res.ok) throw new Error(`Falha ao resolver proposta: ${res.status}`);
+  const json = await res.json();
+  return json.roteiro as RoteiroResponse;
 }
 
 export function registrarEvento(roteiroId: string, tipo: string, detalhes: Record<string, unknown> = {}): void {
