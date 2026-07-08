@@ -212,6 +212,51 @@
   font-style: italic;
 }
 
+.sr-field__sugestao {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  border: 1px dashed var(--sr-accent);
+  border-radius: 3px;
+  padding: 5px 7px;
+  background: rgba(122, 46, 46, 0.06);
+}
+
+.sr-field__sugestao-texto {
+  flex: 1;
+  font-family: var(--sr-font-sans);
+  font-size: 12.5px;
+  font-style: italic;
+  line-height: 1.4;
+  color: var(--sr-accent);
+}
+
+.sr-field__sugestao-acoes {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+
+.sr-field__sugestao-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid rgba(122, 46, 46, 0.4);
+  background: none;
+  color: var(--sr-accent);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sr-field__sugestao-btn:hover {
+  background: var(--sr-accent);
+  color: var(--sr-paper);
+}
+
 .sr-status-select {
   font-family: var(--sr-font-mono);
   font-size: 7.5px;

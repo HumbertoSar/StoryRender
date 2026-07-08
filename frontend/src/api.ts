@@ -39,11 +39,21 @@ export interface HistoricoMensagem {
   texto: string;
 }
 
+export interface PropostaCampo {
+  path: (string | number)[];
+  valor: unknown;
+}
+
+export interface RespostaAgente {
+  resposta: string;
+  propostas: PropostaCampo[];
+}
+
 export async function enviarMensagemAgente(
   roteiroId: string,
   mensagem: string,
   historico: HistoricoMensagem[],
-): Promise<string> {
+): Promise<RespostaAgente> {
   const res = await fetch(`${API_URL}/roteiros/${roteiroId}/mensagens`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -51,5 +61,5 @@ export async function enviarMensagemAgente(
   });
   if (!res.ok) throw new Error(`Falha ao falar com o agente: ${res.status}`);
   const json = await res.json();
-  return json.resposta as string;
+  return { resposta: json.resposta as string, propostas: (json.propostas as PropostaCampo[]) ?? [] };
 }

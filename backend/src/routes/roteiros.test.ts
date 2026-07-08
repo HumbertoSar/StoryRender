@@ -107,6 +107,26 @@ describe.skipIf(!hasDb)("roteirosRouter", () => {
       });
     });
 
+    it("retorna as propostas extraídas do bloco PROPOSTAS", async () => {
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      const conteudo = `Beleza, vou sugerir um want.\nPROPOSTAS: [{"path": ["assets","protagonistas",0,"want"], "valor": "Encontrar o irmão"}]`;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: conteudo } }] }) }),
+      );
+
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app)
+        .post(`/roteiros/${created.body.id}/mensagens`)
+        .send({ mensagem: "propõe um want pra mim", historico: [] });
+
+      expect(res.status).toBe(200);
+      expect(res.body.resposta).toBe("Beleza, vou sugerir um want.");
+      expect(res.body.propostas).toEqual([
+        { path: ["assets", "protagonistas", 0, "want"], valor: "Encontrar o irmão" },
+      ]);
+    });
+
     it("retorna 404 pra roteiro inexistente", async () => {
       const res = await request(app)
         .post("/roteiros/00000000-0000-0000-0000-000000000000/mensagens")

@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { enviarMensagemAgente, type HistoricoMensagem } from "../api";
+import { enviarMensagemAgente, type HistoricoMensagem, type PropostaCampo } from "../api";
 
-export function AgenteChat({ roteiroId }: { roteiroId: string }) {
+export function AgenteChat({
+  roteiroId,
+  onPropostas,
+}: {
+  roteiroId: string;
+  onPropostas: (propostas: PropostaCampo[]) => void;
+}) {
   const [mensagens, setMensagens] = useState<HistoricoMensagem[]>([
     { from: "agente", texto: "Estou vendo o esquema inteiro. Pergunta, peça uma revisão, ou edite os cartões direto — o que fizer sentido." },
   ]);
@@ -24,8 +30,9 @@ export function AgenteChat({ roteiroId }: { roteiroId: string }) {
     setMensagens((prev) => [...prev, { from: "usuario", texto: mensagem }]);
     setEnviando(true);
     try {
-      const resposta = await enviarMensagemAgente(roteiroId, mensagem, historicoAtual);
+      const { resposta, propostas } = await enviarMensagemAgente(roteiroId, mensagem, historicoAtual);
       setMensagens((prev) => [...prev, { from: "agente", texto: resposta }]);
+      if (propostas.length > 0) onPropostas(propostas);
     } catch (err) {
       setErro((err as Error).message);
     } finally {

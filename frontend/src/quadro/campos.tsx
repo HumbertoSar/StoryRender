@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
-import { STATUS_OPCOES } from "./tipos";
+import { STATUS_OPCOES, type SugestaoCampo } from "./tipos";
 
 export function EditableField({
   label,
   value,
   onSave,
   placeholder = "—",
+  sugestao,
 }: {
   label: string;
   value: string;
   onSave: (valor: string) => void;
   placeholder?: string;
+  sugestao?: SugestaoCampo;
 }) {
   const [local, setLocal] = useState(value);
 
@@ -31,6 +33,29 @@ export function EditableField({
         onBlur={salvarSeMudou}
         rows={2}
       />
+      {sugestao && (
+        <div className="sr-field__sugestao">
+          <div className="sr-field__sugestao-texto">{sugestao.valor}</div>
+          <div className="sr-field__sugestao-acoes">
+            <button
+              type="button"
+              className="sr-field__sugestao-btn"
+              title="Aceitar sugestão"
+              onClick={sugestao.aceitar}
+            >
+              ✓
+            </button>
+            <button
+              type="button"
+              className="sr-field__sugestao-btn"
+              title="Rejeitar sugestão"
+              onClick={sugestao.rejeitar}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

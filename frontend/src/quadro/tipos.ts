@@ -1,6 +1,12 @@
 export const STATUS_OPCOES = ["vazio", "rascunho", "testado", "validado"] as const;
 export type Status = (typeof STATUS_OPCOES)[number];
 
+export interface SugestaoCampo {
+  valor: string;
+  aceitar: () => void;
+  rejeitar: () => void;
+}
+
 export interface Protagonista {
   id: string;
   want: string;

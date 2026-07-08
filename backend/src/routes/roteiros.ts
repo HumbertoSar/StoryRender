@@ -4,6 +4,7 @@ import { pool } from "../db.js";
 import { applyUpdates, roteiroMckeeVazio } from "../roteiro.js";
 import { chamarAgente, type MensagemChat } from "../agente/openrouter.js";
 import { montarSystemPrompt } from "../agente/prompt.js";
+import { extrairPropostas } from "../agente/propostas.js";
 
 export const roteirosRouter = Router();
 
@@ -112,8 +113,9 @@ roteirosRouter.post("/:id/mensagens", async (req, res) => {
   ];
 
   try {
-    const resposta = await chamarAgente(mensagens);
-    res.json({ resposta });
+    const respostaBruta = await chamarAgente(mensagens);
+    const { texto, propostas } = extrairPropostas(respostaBruta);
+    res.json({ resposta: texto, propostas });
   } catch (err) {
     res.status(502).json({ error: "falha ao chamar o agente", detalhes: (err as Error).message });
   }
