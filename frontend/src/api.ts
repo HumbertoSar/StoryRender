@@ -63,3 +63,13 @@ export async function enviarMensagemAgente(
   const json = await res.json();
   return { resposta: json.resposta as string, propostas: (json.propostas as PropostaCampo[]) ?? [] };
 }
+
+export function registrarEvento(roteiroId: string, tipo: string, detalhes: Record<string, unknown> = {}): void {
+  fetch(`${API_URL}/roteiros/${roteiroId}/eventos`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ tipo, detalhes }),
+  }).catch((err) => {
+    console.error("Falha ao registrar evento:", err);
+  });
+}

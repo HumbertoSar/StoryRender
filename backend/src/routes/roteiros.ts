@@ -22,6 +22,11 @@ const mensagemBodySchema = z.object({
     .default([]),
 });
 
+const eventoBodySchema = z.object({
+  tipo: z.string().min(1),
+  detalhes: z.record(z.string(), z.unknown()).default({}),
+});
+
 const patchBodySchema = z.object({
   updates: z
     .array(
@@ -119,4 +124,41 @@ roteirosRouter.post("/:id/mensagens", async (req, res) => {
   } catch (err) {
     res.status(502).json({ error: "falha ao chamar o agente", detalhes: (err as Error).message });
   }
+});
+
+roteirosRouter.post("/:id/eventos", async (req, res) => {
+  const parsedParams = idParamSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    res.status(400).json({ error: "id inválido" });
+    return;
+  }
+  const parsedBody = eventoBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    res.status(400).json({ error: "body inválido", detalhes: parsedBody.error.issues });
+    return;
+  }
+
+  try {
+    const result = await pool.query(
+      "INSERT INTO eventos (roteiro_id, tipo, detalhes) VALUES ($1, $2, $3) RETURNING id, tipo, detalhes, criado_em",
+      [parsedParams.data.id, parsedBody.data.tipo, parsedBody.data.detalhes],
+    );
+    res.status(201).json(result.rows[0]);
+  } catch {
+    res.status(404).json({ error: "roteiro não encontrado" });
+  }
+});
+
+roteirosRouter.get("/:id/eventos", async (req, res) => {
+  const parsedParams = idParamSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    res.status(400).json({ error: "id inválido" });
+    return;
+  }
+
+  const result = await pool.query(
+    "SELECT id, tipo, detalhes, criado_em FROM eventos WHERE roteiro_id = $1 ORDER BY criado_em ASC",
+    [parsedParams.data.id],
+  );
+  res.json(result.rows);
 });

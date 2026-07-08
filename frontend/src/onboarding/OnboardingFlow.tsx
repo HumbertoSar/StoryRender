@@ -4,7 +4,7 @@ import { EspinhaRail, type NoEspinha, type NoStatus } from "./EspinhaRail";
 import { ProtagonistaCard } from "./ProtagonistaCard";
 import { ChatPanel, type ChatMessage } from "./ChatPanel";
 import { A_DEFINIR, NAO_SEI, ONBOARDING_STEPS } from "./script";
-import { atualizarRoteiro, criarRoteiro, type RoteiroResponse, type RoteiroUpdate } from "../api";
+import { atualizarRoteiro, criarRoteiro, registrarEvento, type RoteiroResponse, type RoteiroUpdate } from "../api";
 
 const INDICE_ESPINHA = { incidente_incitante: 0, crise: 2, climax: 3 } as const;
 
@@ -125,6 +125,17 @@ export function OnboardingFlow({
     roteiroExistente ? estadoDoRoteiro(roteiroExistente.data) : ESTADO_INICIAL,
   );
   const roteiroIdRef = useRef<string | null>(roteiroExistente?.id ?? null);
+  const passoInicialRef = useRef(estado.passo);
+
+  useEffect(() => {
+    if (roteiroExistente) {
+      registrarEvento(roteiroExistente.id, "tela", {
+        tela: `onboarding_passo_${passoInicialRef.current}`,
+        retomado: true,
+      });
+    }
+    // roda só na montagem — transições subsequentes são registradas em avancar()
+  }, [roteiroExistente]);
 
   useEffect(() => {
     if (roteiroExistente) return;
@@ -134,6 +145,7 @@ export function OnboardingFlow({
         if (!cancelado) {
           roteiroIdRef.current = r.id;
           window.history.replaceState(null, "", `/r/${r.id}`);
+          registrarEvento(r.id, "tela", { tela: "onboarding_passo_0" });
         }
       })
       .catch((err) => {
@@ -149,12 +161,15 @@ export function OnboardingFlow({
   function avancar(resposta: string, generosResposta?: string[]) {
     const passo = estado.passo;
     if (roteiroIdRef.current) {
+      const roteiroId = roteiroIdRef.current;
       const updates = updatesParaPasso(passo, resposta, generosResposta);
       if (updates.length > 0) {
-        atualizarRoteiro(roteiroIdRef.current, updates).catch((err) => {
+        atualizarRoteiro(roteiroId, updates).catch((err) => {
+          registrarEvento(roteiroId, "erro", { contexto: "onboarding_avancar", mensagem: (err as Error).message });
           console.error("Falha ao persistir resposta:", err);
         });
       }
+      registrarEvento(roteiroId, "tela", { tela: `onboarding_passo_${passo + 1}` });
     }
 
     setEstado((prev) => {

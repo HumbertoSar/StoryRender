@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./quadro.css";
 import { EspinhaColuna } from "./EspinhaColuna";
 import { ProtagonistaCardCompleto } from "./ProtagonistaCardCompleto";
@@ -6,16 +6,28 @@ import { AntagonistaCard } from "./AntagonistaCard";
 import { IdeiaControladoraCard } from "./IdeiaControladoraCard";
 import { AgenteChat } from "./AgenteChat";
 import { aplicarAtualizacoes } from "./imutavel";
-import { atualizarRoteiro, type PropostaCampo, type RoteiroResponse, type RoteiroUpdate } from "../api";
+import {
+  atualizarRoteiro,
+  registrarEvento,
+  type PropostaCampo,
+  type RoteiroResponse,
+  type RoteiroUpdate,
+} from "../api";
 import type { RoteiroData, SugestaoCampo } from "./tipos";
 
 export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
   const [data, setData] = useState<RoteiroData>(roteiro.data as unknown as RoteiroData);
   const [propostas, setPropostas] = useState<PropostaCampo[]>([]);
 
+  useEffect(() => {
+    registrarEvento(roteiro.id, "tela", { tela: "quadro" });
+  }, [roteiro.id]);
+
   function salvar(updates: RoteiroUpdate[]) {
     setData((prev) => aplicarAtualizacoes(prev, updates));
+    for (const u of updates) registrarEvento(roteiro.id, "campo_editado", { path: u.path });
     atualizarRoteiro(roteiro.id, updates).catch((err) => {
+      registrarEvento(roteiro.id, "erro", { contexto: "patch_roteiro", mensagem: (err as Error).message });
       console.error("Falha ao persistir edição:", err);
     });
   }
@@ -35,14 +47,19 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
     return {
       valor: String(proposta.valor),
       aceitar: () => {
+        registrarEvento(roteiro.id, "sugestao", { acao: "aceita", path: proposta.path });
         salvar([{ path: proposta.path, value: proposta.valor }]);
         removerProposta(proposta);
       },
-      rejeitar: () => removerProposta(proposta),
+      rejeitar: () => {
+        registrarEvento(roteiro.id, "sugestao", { acao: "rejeitada", path: proposta.path });
+        removerProposta(proposta);
+      },
     };
   }
 
   function receberPropostas(novas: PropostaCampo[]) {
+    for (const p of novas) registrarEvento(roteiro.id, "sugestao", { acao: "recebida", path: p.path });
     setPropostas((prev) => {
       const chavesNovas = new Set(novas.map((p) => JSON.stringify(p.path)));
       return [...prev.filter((p) => !chavesNovas.has(JSON.stringify(p.path))), ...novas];

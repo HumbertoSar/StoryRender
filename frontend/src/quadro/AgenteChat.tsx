@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { enviarMensagemAgente, type HistoricoMensagem, type PropostaCampo } from "../api";
+import { enviarMensagemAgente, registrarEvento, type HistoricoMensagem, type PropostaCampo } from "../api";
 
 export function AgenteChat({
   roteiroId,
@@ -28,13 +28,16 @@ export function AgenteChat({
     setErro(null);
     const historicoAtual = mensagens;
     setMensagens((prev) => [...prev, { from: "usuario", texto: mensagem }]);
+    registrarEvento(roteiroId, "mensagem_agente", { direcao: "usuario", texto: mensagem });
     setEnviando(true);
     try {
       const { resposta, propostas } = await enviarMensagemAgente(roteiroId, mensagem, historicoAtual);
       setMensagens((prev) => [...prev, { from: "agente", texto: resposta }]);
+      registrarEvento(roteiroId, "mensagem_agente", { direcao: "agente", texto: resposta });
       if (propostas.length > 0) onPropostas(propostas);
     } catch (err) {
       setErro((err as Error).message);
+      registrarEvento(roteiroId, "erro", { contexto: "chat_agente", mensagem: (err as Error).message });
     } finally {
       setEnviando(false);
     }

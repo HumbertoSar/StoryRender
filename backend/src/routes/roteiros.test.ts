@@ -149,4 +149,52 @@ describe.skipIf(!hasDb)("roteirosRouter", () => {
       expect(res.status).toBe(502);
     });
   });
+
+  describe("eventos", () => {
+    it("registra um evento e devolve na ordem em que foram criados", async () => {
+      const created = await request(app).post("/roteiros").send();
+      const id = created.body.id;
+
+      const registrado = await request(app)
+        .post(`/roteiros/${id}/eventos`)
+        .send({ tipo: "tela", detalhes: { tela: "onboarding_pergunta_1" } });
+      expect(registrado.status).toBe(201);
+      expect(registrado.body.tipo).toBe("tela");
+      expect(registrado.body.detalhes).toEqual({ tela: "onboarding_pergunta_1" });
+
+      await request(app).post(`/roteiros/${id}/eventos`).send({ tipo: "tela", detalhes: { tela: "quadro" } });
+
+      const listados = await request(app).get(`/roteiros/${id}/eventos`);
+      expect(listados.status).toBe(200);
+      expect(listados.body.map((e: { tipo: string }) => e.tipo)).toEqual(["tela", "tela"]);
+      expect(listados.body[1].detalhes).toEqual({ tela: "quadro" });
+    });
+
+    it("aceita evento sem detalhes (usa objeto vazio)", async () => {
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app).post(`/roteiros/${created.body.id}/eventos`).send({ tipo: "erro" });
+      expect(res.status).toBe(201);
+      expect(res.body.detalhes).toEqual({});
+    });
+
+    it("retorna 404 ao registrar evento pra roteiro inexistente", async () => {
+      const res = await request(app)
+        .post("/roteiros/00000000-0000-0000-0000-000000000000/eventos")
+        .send({ tipo: "tela" });
+      expect(res.status).toBe(404);
+    });
+
+    it("retorna 400 sem tipo", async () => {
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app).post(`/roteiros/${created.body.id}/eventos`).send({});
+      expect(res.status).toBe(400);
+    });
+
+    it("GET retorna lista vazia pra roteiro sem eventos", async () => {
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app).get(`/roteiros/${created.body.id}/eventos`);
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual([]);
+    });
+  });
 });
