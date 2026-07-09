@@ -9,7 +9,9 @@ import { aplicarAtualizacoes } from "./imutavel";
 import {
   adicionarComplicacao,
   atualizarRoteiro,
+  excluirComplicacao,
   listarPropostasPendentes,
+  moverComplicacao,
   registrarEvento,
   resolverProposta,
   type PropostaCampo,
@@ -92,6 +94,31 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
       });
   }
 
+  function excluirComplicacaoDaEspinha(indice: number) {
+    excluirComplicacao(roteiro.id, indice)
+      .then((r) => {
+        setData(r.data as unknown as RoteiroData);
+        setPropostas((prev) => prev.filter((p) => !(p.path[0] === "espinha" && p.path[1] === indice)));
+        registrarEvento(roteiro.id, "espinha_no_excluido", { indice });
+      })
+      .catch((err) => {
+        registrarEvento(roteiro.id, "erro", { contexto: "excluir_complicacao", mensagem: (err as Error).message });
+        console.error("Falha ao excluir complicação:", err);
+      });
+  }
+
+  function moverComplicacaoNaEspinha(indice: number, direcao: "cima" | "baixo") {
+    moverComplicacao(roteiro.id, indice, direcao)
+      .then((r) => {
+        setData(r.data as unknown as RoteiroData);
+        registrarEvento(roteiro.id, "espinha_no_movido", { indice, direcao });
+      })
+      .catch((err) => {
+        registrarEvento(roteiro.id, "erro", { contexto: "mover_complicacao", mensagem: (err as Error).message });
+        console.error("Falha ao mover complicação:", err);
+      });
+  }
+
   const protagonista = data.assets.protagonistas[0];
 
   return (
@@ -114,6 +141,8 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
           onSalvar={(indice, campo, valor) => salvar([{ path: ["espinha", indice, campo], value: valor }])}
           sugestaoPara={(indice) => sugestaoDoPath(["espinha", indice, "conteudo"])}
           onAdicionarComplicacao={adicionarNovaComplicacao}
+          onExcluirComplicacao={excluirComplicacaoDaEspinha}
+          onMoverComplicacao={moverComplicacaoNaEspinha}
         />
         <div className="sr-cartoes">
           <ProtagonistaCardCompleto

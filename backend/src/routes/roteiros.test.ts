@@ -130,6 +130,111 @@ describe.skipIf(!hasDb)("roteirosRouter", () => {
     });
   });
 
+  describe("POST /:id/espinha/complicacoes/:indice/excluir", () => {
+    it("marca a complicação como excluída sem remover do array nem mexer nos outros índices", async () => {
+      const created = await request(app).post("/roteiros").send();
+      const id = created.body.id;
+
+      const res = await request(app).post(`/roteiros/${id}/espinha/complicacoes/1/excluir`).send();
+      expect(res.status).toBe(200);
+      expect(res.body.data.espinha).toHaveLength(5);
+      expect(res.body.data.espinha[1].id).toBe("complicacao_1");
+      expect(res.body.data.espinha[1].excluido).toBe(true);
+      expect(res.body.data.espinha[2].id).toBe("crise");
+    });
+
+    it("rejeita qualquer proposta pendente pro conteúdo do nó excluído", async () => {
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      const conteudo = `Beleza.\nPROPOSTAS: [{"path": ["espinha",1,"conteudo"], "valor": "texto proposto"}]`;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: conteudo } }] }) }),
+      );
+      const created = await request(app).post("/roteiros").send();
+      const id = created.body.id;
+      await request(app).post(`/roteiros/${id}/mensagens`).send({ mensagem: "propõe a complicação", historico: [] });
+      vi.unstubAllGlobals();
+      delete process.env.OPENROUTER_API_KEY;
+
+      await request(app).post(`/roteiros/${id}/espinha/complicacoes/1/excluir`).send();
+
+      const pendentes = await request(app).get(`/roteiros/${id}/propostas`);
+      expect(pendentes.body).toEqual([]);
+      const rejeitadas = await request(app).get(`/roteiros/${id}/propostas?status=rejeitada`);
+      expect(rejeitadas.body).toHaveLength(1);
+    });
+
+    it("retorna 400 se o índice não for uma complicação", async () => {
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app).post(`/roteiros/${created.body.id}/espinha/complicacoes/2/excluir`).send();
+      expect(res.status).toBe(400);
+    });
+
+    it("retorna 404 pra roteiro inexistente", async () => {
+      const res = await request(app)
+        .post("/roteiros/00000000-0000-0000-0000-000000000000/espinha/complicacoes/1/excluir")
+        .send();
+      expect(res.status).toBe(404);
+    });
+  });
+
+  describe("POST /:id/espinha/complicacoes/:indice/mover", () => {
+    it("troca a ordem com a complicação vizinha visível", async () => {
+      const created = await request(app).post("/roteiros").send();
+      const id = created.body.id;
+      await request(app).post(`/roteiros/${id}/espinha/complicacoes`).send();
+
+      const res = await request(app)
+        .post(`/roteiros/${id}/espinha/complicacoes/1/mover`)
+        .send({ direcao: "baixo" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.espinha[1].id).toBe("complicacao_1");
+      expect(res.body.data.espinha[1].ordem).toBe(2);
+      expect(res.body.data.espinha[5].id).toBe("complicacao_2");
+      expect(res.body.data.espinha[5].ordem).toBe(1);
+    });
+
+    it("pula complicações excluídas ao achar a vizinha", async () => {
+      const created = await request(app).post("/roteiros").send();
+      const id = created.body.id;
+      await request(app).post(`/roteiros/${id}/espinha/complicacoes`).send();
+      await request(app).post(`/roteiros/${id}/espinha/complicacoes`).send();
+      await request(app).post(`/roteiros/${id}/espinha/complicacoes/5/excluir`).send();
+
+      const res = await request(app)
+        .post(`/roteiros/${id}/espinha/complicacoes/6/mover`)
+        .send({ direcao: "cima" });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.espinha[1].ordem).toBe(3);
+      expect(res.body.data.espinha[6].ordem).toBe(1);
+    });
+
+    it("retorna 400 se não houver vizinha nessa direção", async () => {
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app)
+        .post(`/roteiros/${created.body.id}/espinha/complicacoes/1/mover`)
+        .send({ direcao: "cima" });
+      expect(res.status).toBe(400);
+    });
+
+    it("retorna 400 com direção inválida", async () => {
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app)
+        .post(`/roteiros/${created.body.id}/espinha/complicacoes/1/mover`)
+        .send({ direcao: "lado" });
+      expect(res.status).toBe(400);
+    });
+
+    it("retorna 404 pra roteiro inexistente", async () => {
+      const res = await request(app)
+        .post("/roteiros/00000000-0000-0000-0000-000000000000/espinha/complicacoes/1/mover")
+        .send({ direcao: "cima" });
+      expect(res.status).toBe(404);
+    });
+  });
+
   describe("POST /:id/mensagens", () => {
     afterEach(() => {
       vi.unstubAllGlobals();

@@ -106,6 +106,28 @@ export async function adicionarComplicacao(roteiroId: string): Promise<RoteiroRe
   return res.json();
 }
 
+export async function excluirComplicacao(roteiroId: string, indice: number): Promise<RoteiroResponse> {
+  const res = await fetch(`${API_URL}/roteiros/${roteiroId}/espinha/complicacoes/${indice}/excluir`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error(`Falha ao excluir complicação: ${res.status}`);
+  return res.json();
+}
+
+export async function moverComplicacao(
+  roteiroId: string,
+  indice: number,
+  direcao: "cima" | "baixo",
+): Promise<RoteiroResponse> {
+  const res = await fetch(`${API_URL}/roteiros/${roteiroId}/espinha/complicacoes/${indice}/mover`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ direcao }),
+  });
+  if (!res.ok) throw new Error(`Falha ao mover complicação: ${res.status}`);
+  return res.json();
+}
+
 export function registrarEvento(roteiroId: string, tipo: string, detalhes: Record<string, unknown> = {}): void {
   fetch(`${API_URL}/roteiros/${roteiroId}/eventos`, {
     method: "POST",

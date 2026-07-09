@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { pool } from "../db.js";
-import { adicionarComplicacao, applyUpdates, roteiroMckeeVazio } from "../roteiro.js";
+import { adicionarComplicacao, applyUpdates, excluirComplicacao, moverComplicacao, roteiroMckeeVazio } from "../roteiro.js";
 import { chamarAgente, type MensagemChat } from "../agente/openrouter.js";
 import { montarSystemPrompt } from "../agente/prompt.js";
 import { extrairPropostas } from "../agente/propostas.js";
@@ -39,6 +39,9 @@ const patchBodySchema = z.object({
 });
 
 const resolverPropostaBodySchema = z.object({ acao: z.enum(["aceitar", "rejeitar"]) });
+
+const indiceParamSchema = z.object({ id: z.uuid(), indice: z.coerce.number().int().min(0) });
+const moverBodySchema = z.object({ direcao: z.enum(["cima", "baixo"]) });
 
 async function persistirPropostas(roteiroId: string, propostas: { path: (string | number)[]; valor: unknown }[]) {
   const persistidas = [];
@@ -138,6 +141,72 @@ roteirosRouter.post("/:id/espinha/complicacoes", async (req, res) => {
     [novaData, parsedParams.data.id],
   );
   res.status(201).json(result.rows[0]);
+});
+
+roteirosRouter.post("/:id/espinha/complicacoes/:indice/excluir", async (req, res) => {
+  const parsedParams = indiceParamSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    res.status(400).json({ error: "id ou índice inválido" });
+    return;
+  }
+
+  const existente = await pool.query("SELECT data FROM roteiros WHERE id = $1", [parsedParams.data.id]);
+  if (existente.rows.length === 0) {
+    res.status(404).json({ error: "roteiro não encontrado" });
+    return;
+  }
+
+  let novaData;
+  try {
+    novaData = excluirComplicacao(existente.rows[0].data, parsedParams.data.indice);
+  } catch (err) {
+    res.status(400).json({ error: (err as Error).message });
+    return;
+  }
+
+  const result = await pool.query(
+    "UPDATE roteiros SET data = $1, updated_at = now() WHERE id = $2 RETURNING id, data, created_at, updated_at",
+    [novaData, parsedParams.data.id],
+  );
+  await pool.query(
+    `UPDATE propostas SET status = 'rejeitada', resolvida_em = now()
+     WHERE roteiro_id = $1 AND status = 'pendente' AND path->>0 = 'espinha' AND (path->>1)::int = $2`,
+    [parsedParams.data.id, parsedParams.data.indice],
+  );
+  res.json(result.rows[0]);
+});
+
+roteirosRouter.post("/:id/espinha/complicacoes/:indice/mover", async (req, res) => {
+  const parsedParams = indiceParamSchema.safeParse(req.params);
+  if (!parsedParams.success) {
+    res.status(400).json({ error: "id ou índice inválido" });
+    return;
+  }
+  const parsedBody = moverBodySchema.safeParse(req.body);
+  if (!parsedBody.success) {
+    res.status(400).json({ error: "body inválido", detalhes: parsedBody.error.issues });
+    return;
+  }
+
+  const existente = await pool.query("SELECT data FROM roteiros WHERE id = $1", [parsedParams.data.id]);
+  if (existente.rows.length === 0) {
+    res.status(404).json({ error: "roteiro não encontrado" });
+    return;
+  }
+
+  let novaData;
+  try {
+    novaData = moverComplicacao(existente.rows[0].data, parsedParams.data.indice, parsedBody.data.direcao);
+  } catch (err) {
+    res.status(400).json({ error: (err as Error).message });
+    return;
+  }
+
+  const result = await pool.query(
+    "UPDATE roteiros SET data = $1, updated_at = now() WHERE id = $2 RETURNING id, data, created_at, updated_at",
+    [novaData, parsedParams.data.id],
+  );
+  res.json(result.rows[0]);
 });
 
 roteirosRouter.post("/:id/mensagens", async (req, res) => {

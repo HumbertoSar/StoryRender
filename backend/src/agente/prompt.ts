@@ -70,7 +70,12 @@ PROPOSTAS: [{"path": ["assets","protagonistas",0,"want"], "valor": "texto sugeri
   proponha o conteúdo depois que o nó aparecer no esquema atualizado.
   Nunca proponha conteúdo de complicação nova pro índice de Crise,
   Clímax ou Resolução — esses são \`tipo: "no_fixo"\`, campos com
-  propósito próprio no método McKee, nunca complicações.`;
+  propósito próprio no método McKee, nunca complicações.
+- Um nó de complicação pode ter \`excluido: true\` — o usuário a
+  removeu do quadro pelo menu do nó. Trate esse índice como se não
+  existisse: nunca proponha conteúdo pra ele, e nunca o conte ao
+  procurar "a próxima complicação vazia" ou ao decidir se falta pedir
+  pro usuário clicar em "+ complicação".`;
 
 export function montarSystemPrompt(esquema: unknown): string {
   return `${PERSONA_E_REGRAS}\n\n## Estado atual do esquema (JSON)\n${JSON.stringify(esquema)}`;

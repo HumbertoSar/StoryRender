@@ -28,6 +28,7 @@ interface EspinhaNo {
   conteudo: string;
   status: string;
   conecta_assets: string[];
+  excluido?: boolean;
 }
 
 export function adicionarComplicacao(data: unknown): unknown {
@@ -42,6 +43,39 @@ export function adicionarComplicacao(data: unknown): unknown {
     status: "vazio",
     conecta_assets: ["antagonista", "protagonista"],
   });
+  return proximo;
+}
+
+export function excluirComplicacao(data: unknown, indice: number): unknown {
+  const proximo = structuredClone(data) as { espinha: EspinhaNo[] };
+  const no = proximo.espinha[indice];
+  if (!no || no.tipo !== "complicacao") {
+    throw new Error("índice não corresponde a uma complicação");
+  }
+  no.excluido = true;
+  return proximo;
+}
+
+export function moverComplicacao(data: unknown, indice: number, direcao: "cima" | "baixo"): unknown {
+  const proximo = structuredClone(data) as { espinha: EspinhaNo[] };
+  const no = proximo.espinha[indice];
+  if (!no || no.tipo !== "complicacao" || no.excluido) {
+    throw new Error("índice não corresponde a uma complicação visível");
+  }
+
+  const visiveis = proximo.espinha
+    .map((n, i) => ({ n, i }))
+    .filter(({ n }) => n.tipo === "complicacao" && !n.excluido)
+    .sort((a, b) => (a.n.ordem ?? 0) - (b.n.ordem ?? 0));
+  const posicao = visiveis.findIndex(({ i }) => i === indice);
+  const vizinho = direcao === "cima" ? visiveis[posicao - 1] : visiveis[posicao + 1];
+  if (!vizinho) {
+    throw new Error("não há complicação vizinha nessa direção");
+  }
+
+  const ordemDoNo = no.ordem;
+  no.ordem = vizinho.n.ordem;
+  vizinho.n.ordem = ordemDoNo;
   return proximo;
 }
 

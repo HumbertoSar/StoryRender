@@ -43,6 +43,7 @@ export interface EspinhaNo {
   status: string;
   conecta_assets: string[];
   ordem?: number;
+  excluido?: boolean;
 }
 
 export interface RoteiroData {
