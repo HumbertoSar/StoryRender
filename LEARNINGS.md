@@ -363,3 +363,13 @@ Cadência periódica do `CLAUDE.md` (fim de fase). Fase C acumulou bastante cois
 **O que ficou pra depois:** as duas fatias seguintes da Fase D (Gênero & Promessa, Elenco de Apoio); nenhuma regra nova do agente pra testar coerência Mundo↔Complicações (seção 5 do MVP doc: "as regras do mundo geram os obstáculos das complicações") — a Fase D é "opcional, expande quando quiser" no MVP doc, não "o agente conduz pesado aqui" como a Fase C, então não adicionei regra de teste cruzado nesta fatia só-de-UI; fica pra quando (se) o produto quiser reforçar isso de verdade.
 
 **Smoke test:** `npm run build`/lint limpos em frontend. Ponta a ponta via Playwright contra o agente real: criei um roteiro de teste, editei Época direto no cartão (persistiu, sobreviveu a reload), pedi ao agente uma descrição do mundo — ele propôs Local e Regras/custo sem precisar de nenhuma mudança de prompt (confirma que o mecanismo de `PROPOSTAS` já é genérico o bastante pra cobrir campos novos automaticamente), aceitei as duas sugestões pela UI e confirmei a persistência via API. Roteiro de teste apagado do banco de dev ao final.
+
+## Fatia: Cartão de Gênero & Promessa (Fase D, 2/3)
+
+**O que foi construído:** `frontend/src/quadro/GeneroCard.tsx` — `ChipsField` (multi-seleção) com os mesmos 6 gêneros já usados no onboarding (`GENEROS` de `onboarding/script.ts`), reaproveitando o componente já usado pro Antagonista, e `EditableField` pra Promessa emocional. Decisão de escopo: duplicar a lista de 6 strings em vez de criar um módulo compartilhado entre `onboarding/` e `quadro/` — mesmo padrão já usado pra `NIVEIS_OPCOES` do Antagonista (constante pequena, local ao componente que a usa). `Genero` virou interface nomeada em `tipos.ts`, igual `Mundo` na fatia anterior. Nenhuma mudança de backend — `generos` (campo de lista) já estava na lista de campos proibidos de proposta (`CAMPOS_PROIBIDOS` em `propostas.ts`) desde uma fatia anterior, então o agente já não tenta propor valor pra ele, só pra `promessa` (texto livre).
+
+**Por quê:** segundo item da fórmula da Fase D.
+
+**O que ficou pra depois:** só a fatia 3/3 da Fase D (Elenco de Apoio, campo de texto livre dentro do cartão de Antagonista — não é cartão próprio, é P2 como entidade modelada).
+
+**Smoke test:** `npm run build`/lint limpos em frontend. Ponta a ponta via Playwright contra o agente real: criei roteiro de teste, cliquei no chip "Mistério" (persistiu), pedi ao agente a promessa emocional de uma história de mistério — ele propôs só `promessa`, confirmando que `generos` continua protegido mesmo com o campo novo na UI; aceitei a sugestão pela UI e confirmei a persistência via API. Roteiro de teste apagado do banco de dev ao final.

@@ -5,6 +5,7 @@ import { ProtagonistaCardCompleto } from "./ProtagonistaCardCompleto";
 import { AntagonistaCard } from "./AntagonistaCard";
 import { IdeiaControladoraCard } from "./IdeiaControladoraCard";
 import { MundoCard } from "./MundoCard";
+import { GeneroCard } from "./GeneroCard";
 import { AgenteChat } from "./AgenteChat";
 import { aplicarAtualizacoes } from "./imutavel";
 import {
@@ -177,6 +178,11 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
             mundo={data.assets.mundo}
             onSalvar={(campo, valor) => salvar([{ path: ["assets", "mundo", campo], value: valor }])}
             sugestaoPara={(campo) => sugestaoDoPath(["assets", "mundo", campo])}
+          />
+          <GeneroCard
+            genero={data.assets.genero}
+            onSalvar={(campo, valor) => salvar([{ path: ["assets", "genero", campo], value: valor }])}
+            sugestaoPara={(campo) => sugestaoDoPath(["assets", "genero", campo])}
           />
         </div>
         <AgenteChat

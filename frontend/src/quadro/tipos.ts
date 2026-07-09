@@ -43,6 +43,12 @@ export interface Mundo {
   status: string;
 }
 
+export interface Genero {
+  generos: string[];
+  promessa: string;
+  status: string;
+}
+
 export interface EspinhaNo {
   id: string;
   tipo: string;
@@ -63,7 +69,7 @@ export interface RoteiroData {
     antagonista: Antagonista;
     ideia_controladora: IdeiaControladora;
     mundo: Mundo;
-    genero: { generos: string[]; promessa: string; status: string };
+    genero: Genero;
     elenco_notas: { texto_livre: string };
   };
 }
