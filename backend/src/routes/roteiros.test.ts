@@ -1,4 +1,4 @@
-import { describe, it, expect, afterAll, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from "vitest";
 import express from "express";
 import request from "supertest";
 import { pool } from "../db.js";
@@ -11,7 +11,17 @@ app.use("/roteiros", roteirosRouter);
 const hasDb = !!process.env.DATABASE_URL;
 
 describe.skipIf(!hasDb)("roteirosRouter", () => {
+  let inicioSuite: Date;
+
+  beforeAll(async () => {
+    const agora = await pool.query("SELECT now() AS agora");
+    inicioSuite = agora.rows[0].agora;
+  });
+
   afterAll(async () => {
+    // limpa só os roteiros criados durante esta suíte (e eventos/propostas em cascata) —
+    // evita poluir um DATABASE_URL apontado pro Postgres de dev com dado real do usuário
+    await pool.query("DELETE FROM roteiros WHERE created_at >= $1", [inicioSuite]);
     await pool.end();
   });
 
