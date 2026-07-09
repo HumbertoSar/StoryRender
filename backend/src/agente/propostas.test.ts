@@ -21,18 +21,18 @@ describe("extrairPropostas", () => {
     expect(propostas).toHaveLength(2);
   });
 
-  it("ignora o bloco e devolve o texto bruto se o JSON for inválido", () => {
+  it("tira o bloco do texto mesmo se o JSON for inválido — nunca vaza JSON bruto pro chat", () => {
     const bruta = `Resposta.\nPROPOSTAS: [{path sem aspas}]`;
     const { texto, propostas } = extrairPropostas(bruta);
-    expect(texto).toBe(bruta.trim());
+    expect(texto).toBe("Resposta.");
     expect(propostas).toEqual([]);
   });
 
-  it("ignora o bloco se um item não bater com o schema (sem path)", () => {
-    const bruta = `Resposta.\nPROPOSTAS: [{"valor": "sem path"}]`;
+  it("descarta só o item que não bate com o schema, mantendo os outros válidos da mesma resposta", () => {
+    const bruta = `Resposta.\nPROPOSTAS: [{"valor": "sem path"}, {"path": ["a"], "valor": "válida"}]`;
     const { texto, propostas } = extrairPropostas(bruta);
-    expect(texto).toBe(bruta.trim());
-    expect(propostas).toEqual([]);
+    expect(texto).toBe("Resposta.");
+    expect(propostas).toEqual([{ path: ["a"], valor: "válida" }]);
   });
 
   it("filtra propostas pro campo status, mesmo que o modelo ignore a instrução", () => {

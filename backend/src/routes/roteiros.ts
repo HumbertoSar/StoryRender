@@ -1,7 +1,14 @@
 import { Router } from "express";
 import { z } from "zod";
 import { pool } from "../db.js";
-import { adicionarComplicacao, applyUpdates, excluirComplicacao, moverComplicacao, roteiroMckeeVazio } from "../roteiro.js";
+import {
+  adicionarComplicacao,
+  applyUpdates,
+  excluirComplicacao,
+  moverComplicacao,
+  reordenarComplicacao,
+  roteiroMckeeVazio,
+} from "../roteiro.js";
 import { chamarAgente, type MensagemChat } from "../agente/openrouter.js";
 import { montarSystemPrompt } from "../agente/prompt.js";
 import { extrairPropostas } from "../agente/propostas.js";
@@ -242,16 +249,26 @@ roteirosRouter.post("/:id/mensagens", async (req, res) => {
     const { texto, acoes } = extrairAcoes(semPropostas);
 
     let dados = existente.rows[0].data;
+    let algumaAcaoAplicada = false;
     const indicesNovasComplicacoes: number[] = [];
     for (const acao of acoes) {
-      if (acao.tipo === "criar_complicacao") {
-        dados = adicionarComplicacao(dados, acao.posicao);
-        indicesNovasComplicacoes.push((dados as { espinha: unknown[] }).espinha.length - 1);
+      try {
+        if (acao.tipo === "criar_complicacao") {
+          dados = adicionarComplicacao(dados, acao.posicao);
+          indicesNovasComplicacoes.push((dados as { espinha: unknown[] }).espinha.length - 1);
+          algumaAcaoAplicada = true;
+        } else if (acao.tipo === "reordenar_complicacao") {
+          dados = reordenarComplicacao(dados, acao.id_complicacao, acao.nova_posicao);
+          algumaAcaoAplicada = true;
+        }
+      } catch {
+        // ação estruturalmente válida mas não aplicável agora (ex: id_complicacao
+        // não existe mais) — ignora essa ação e segue com as outras da resposta
       }
     }
 
     let roteiroAtualizado;
-    if (acoes.length > 0) {
+    if (algumaAcaoAplicada) {
       const atualizado = await pool.query(
         "UPDATE roteiros SET data = $1, updated_at = now() WHERE id = $2 RETURNING id, data, created_at, updated_at",
         [dados, parsedParams.data.id],

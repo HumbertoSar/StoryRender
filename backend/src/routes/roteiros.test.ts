@@ -456,6 +456,68 @@ describe.skipIf(!hasDb)("roteirosRouter", () => {
       expect(res.body.propostas).toEqual([]);
       expect(res.body.roteiro).toBeUndefined();
     });
+
+    it("ACOES reordenar_complicacao move um nó existente pra nova posição", async () => {
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      const created = await request(app).post("/roteiros").send();
+      const id = created.body.id;
+      await request(app).post(`/roteiros/${id}/espinha/complicacoes`).send();
+      await request(app).post(`/roteiros/${id}/espinha/complicacoes`).send();
+
+      const conteudo = `Feito — a complicação 1 agora fica por último.\nACOES: [{"tipo": "reordenar_complicacao", "id_complicacao": "complicacao_1", "nova_posicao": 3}]`;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: conteudo } }] }) }),
+      );
+
+      const res = await request(app)
+        .post(`/roteiros/${id}/mensagens`)
+        .send({ mensagem: "move a complicação 1 pro final", historico: [] });
+
+      expect(res.status).toBe(200);
+      expect(res.body.resposta).toBe("Feito — a complicação 1 agora fica por último.");
+      const ordenadas = res.body.roteiro.data.espinha
+        .filter((n: { tipo: string }) => n.tipo === "complicacao")
+        .sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
+      expect(ordenadas.map((n: { id: string }) => n.id)).toEqual(["complicacao_2", "complicacao_3", "complicacao_1"]);
+    });
+
+    it("ACOES reordenar_complicacao com id inexistente não quebra a resposta, só ignora a ação", async () => {
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      const created = await request(app).post("/roteiros").send();
+      const id = created.body.id;
+
+      const conteudo = `Ok.\nACOES: [{"tipo": "reordenar_complicacao", "id_complicacao": "complicacao_9", "nova_posicao": 1}]`;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: conteudo } }] }) }),
+      );
+
+      const res = await request(app)
+        .post(`/roteiros/${id}/mensagens`)
+        .send({ mensagem: "reordena a complicação errada", historico: [] });
+
+      expect(res.status).toBe(200);
+      expect(res.body.resposta).toBe("Ok.");
+      expect(res.body.roteiro).toBeUndefined();
+    });
+
+    it("não vaza o bloco ACOES bruto no texto quando o modelo inventa uma ação não suportada", async () => {
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      const conteudo = `Feito — reordenei pra você.\nACOES: [{"tipo": "excluir_complicacao_direto", "id_complicacao": "complicacao_1"}]`;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: conteudo } }] }) }),
+      );
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app)
+        .post(`/roteiros/${created.body.id}/mensagens`)
+        .send({ mensagem: "exclui a complicação 1", historico: [] });
+
+      expect(res.body.resposta).toBe("Feito — reordenei pra você.");
+      expect(res.body.resposta).not.toContain("ACOES");
+      expect(res.body.roteiro).toBeUndefined();
+    });
   });
 
   describe("eventos", () => {

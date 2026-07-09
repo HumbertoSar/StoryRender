@@ -32,14 +32,33 @@ interface EspinhaNo {
 }
 
 /**
+ * Calcula um `ordem` (a chave de ordenação de exibição das complicações,
+ * puramente numérica — não precisa ser inteira) que encaixa uma
+ * complicação na posição de exibição `posicao` (1-based) entre as
+ * complicações de `visiveis` (que NÃO inclui a que está sendo posicionada).
+ * `posicao` omitida ou além do fim vai pro final da lista. Insere entre a
+ * vizinha anterior e a seguinte usando um valor fracionário, pra nunca
+ * precisar renumerar mais ninguém.
+ */
+function calcularOrdemParaPosicao(visiveis: EspinhaNo[], posicao: number | undefined, maiorOrdem: number): number {
+  if (posicao === undefined || posicao > visiveis.length) {
+    return maiorOrdem + 1;
+  }
+  const alvo = Math.max(1, posicao);
+  const anterior = visiveis[alvo - 2];
+  const seguinte = visiveis[alvo - 1];
+  const ordemAnterior = anterior?.ordem ?? 0;
+  const ordemSeguinte = seguinte?.ordem ?? ordemAnterior + 2;
+  return (ordemAnterior + ordemSeguinte) / 2;
+}
+
+/**
  * `posicao` (1-based) é a posição de exibição que a complicação nova deve
  * ocupar entre as complicações visíveis atuais — omitida, ela vai pro fim
  * (mesmo comportamento de sempre). O índice real dela no array `espinha`
  * continua sendo sempre o último elemento (nunca insere no meio do array
- * de verdade — ver o porquê na fatia do nó repetível); o que muda é o
- * campo `ordem`, que é só a chave de ordenação pra exibição. Pra encaixar
- * entre duas complicações vizinhas sem precisar renumerar mais ninguém,
- * usa um `ordem` fracionário entre a vizinha anterior e a seguinte.
+ * de verdade — ver o porquê na fatia do nó repetível); o que muda é só o
+ * campo `ordem`, a chave de ordenação pra exibição.
  */
 export function adicionarComplicacao(data: unknown, posicao?: number): unknown {
   const proximo = structuredClone(data) as { espinha: EspinhaNo[] };
@@ -48,18 +67,7 @@ export function adicionarComplicacao(data: unknown, posicao?: number): unknown {
 
   const visiveis = todasComplicacoes.filter((no) => !no.excluido).sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
   const maiorOrdem = todasComplicacoes.reduce((max, no) => Math.max(max, no.ordem ?? 0), 0);
-
-  let ordem: number;
-  if (posicao === undefined || posicao > visiveis.length) {
-    ordem = maiorOrdem + 1;
-  } else {
-    const alvo = Math.max(1, posicao);
-    const anterior = visiveis[alvo - 2];
-    const seguinte = visiveis[alvo - 1];
-    const ordemAnterior = anterior?.ordem ?? 0;
-    const ordemSeguinte = seguinte?.ordem ?? ordemAnterior + 2;
-    ordem = (ordemAnterior + ordemSeguinte) / 2;
-  }
+  const ordem = calcularOrdemParaPosicao(visiveis, posicao, maiorOrdem);
 
   proximo.espinha.push({
     id: `complicacao_${proximoId}`,
@@ -69,6 +77,30 @@ export function adicionarComplicacao(data: unknown, posicao?: number): unknown {
     status: "vazio",
     conecta_assets: ["antagonista", "protagonista"],
   });
+  return proximo;
+}
+
+/**
+ * Reposiciona uma complicação que já existe pro seu novo lugar de exibição
+ * (1-based), identificada pelo `id` (nunca por índice — o índice real no
+ * array nunca muda). Mesmo cálculo de `ordem` fracionário do
+ * `adicionarComplicacao`, mas contra a lista de vizinhas SEM a própria
+ * complicação que está sendo movida.
+ */
+export function reordenarComplicacao(data: unknown, idComplicacao: string, novaPosicao: number): unknown {
+  const proximo = structuredClone(data) as { espinha: EspinhaNo[] };
+  const no = proximo.espinha.find((n) => n.id === idComplicacao);
+  if (!no || no.tipo !== "complicacao" || no.excluido) {
+    throw new Error(`complicação "${idComplicacao}" não encontrada ou não está visível`);
+  }
+
+  const todasComplicacoes = proximo.espinha.filter((n) => n.tipo === "complicacao");
+  const maiorOrdem = todasComplicacoes.reduce((max, n) => Math.max(max, n.ordem ?? 0), 0);
+  const visiveisSemAlvo = todasComplicacoes
+    .filter((n) => !n.excluido && n.id !== idComplicacao)
+    .sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+
+  no.ordem = calcularOrdemParaPosicao(visiveisSemAlvo, novaPosicao, maiorOrdem);
   return proximo;
 }
 

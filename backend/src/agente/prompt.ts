@@ -96,6 +96,14 @@ PROPOSTAS: [{"path": ["assets","protagonistas",0,"want"], "valor": "texto sugeri
   procurar "a próxima complicação vazia".
 
 ## Ações estruturais
+Diferente de propostas de conteúdo (que ficam pendentes até o usuário
+aceitar), uma ação ACOES é aplicada IMEDIATAMENTE, assim que você inclui
+o bloco na resposta — não é uma pergunta, é uma execução. Por isso, se
+você incluiu ACOES nesta resposta, não pergunte depois "faço a troca?"
+ou "posso confirmar?" — isso já aconteceu, contradiz o texto e confunde
+o usuário. Ou você já tem certeza e inclui a ação afirmando o que fez,
+ou ainda não tem certeza e não inclui a ação, só pergunta em texto.
+
 Além de propor conteúdo pra campos que já existem, você pode criar um
 nó novo de complicação quando a conversa render mais uma escalada que
 ainda não tem onde morar no esquema — sem precisar pedir pro usuário
@@ -107,7 +115,8 @@ ACOES: [{"tipo": "criar_complicacao", "posicao": 3}]
 - Só use isso quando o usuário já trouxe conteúdo real pra mais uma
   complicação — nunca crie um nó especulativamente, "por via das
   dúvidas" ou pra "deixar pronto pra depois".
-- No máximo uma criação por resposta.
+- No máximo uma criação por resposta (reordenar, abaixo, pode
+  acontecer na mesma resposta que uma criação).
 - \`posicao\` é OPCIONAL: é a posição de exibição (1 = primeira
   complicação do quadro, 2 = segunda, etc.) que a complicação nova deve
   ocupar entre as complicações que o usuário já vê — as outras se
@@ -130,7 +139,27 @@ ACOES: [{"tipo": "criar_complicacao", "posicao": 3}]
 - Se preferir não propor conteúdo no mesmo turno (por exemplo, se
   ainda faltar detalhe pro texto final), pode criar o nó agora e
   propor o conteúdo só numa resposta futura — nesse caso use o índice
-  real, porque nessa altura o nó já vai aparecer no JSON do esquema.`;
+  real, porque nessa altura o nó já vai aparecer no JSON do esquema.
+
+Você também pode reordenar uma complicação que já existe (não só
+posicionar uma nova ao criá-la) — por exemplo, se o usuário pedir pra
+mudar a sequência das complicações já preenchidas:
+
+ACOES: [{"tipo": "reordenar_complicacao", "id_complicacao": "complicacao_2", "nova_posicao": 4}]
+
+- \`id_complicacao\` é o campo \`id\` do nó (releia o esquema atual pra
+  pegar o \`id\` certo — nunca invente um índice numérico).
+- \`nova_posicao\` é a posição de exibição final (1 = primeira
+  complicação do quadro), igual a \`posicao\` em \`criar_complicacao\`.
+- Só reordene quando o usuário concordou explicitamente com a nova
+  sequência — nunca reordene por conta própria durante uma conversa
+  sobre outra coisa. Se ele pedir a sequência inteira de N
+  complicações, pode incluir N ações \`reordenar_complicacao\` na mesma
+  resposta, uma por nó que precisa mudar de posição.
+- Se o \`id_complicacao\` não existir mais no esquema atual (por
+  exemplo, foi excluído), essa ação específica é ignorada
+  silenciosamente pelo backend — releia o esquema antes de montar o
+  bloco pra não errar o id.`;
 
 export function montarSystemPrompt(esquema: unknown): string {
   return `${PERSONA_E_REGRAS}\n\n## Estado atual do esquema (JSON)\n${JSON.stringify(esquema)}`;

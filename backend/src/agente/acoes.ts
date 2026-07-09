@@ -1,22 +1,39 @@
 import { z } from "zod";
 
-const acaoSchema = z.object({
-  tipo: z.enum(["criar_complicacao"]),
-  posicao: z.number().int().min(1).optional(),
-});
+const acaoSchema = z.union([
+  z.object({ tipo: z.literal("criar_complicacao"), posicao: z.number().int().min(1).optional() }),
+  z.object({
+    tipo: z.literal("reordenar_complicacao"),
+    id_complicacao: z.string().min(1),
+    nova_posicao: z.number().int().min(1),
+  }),
+]);
 export type Acao = z.infer<typeof acaoSchema>;
 
 const MARCADOR = /\n?ACOES:\s*(\[[\s\S]*\])\s*$/;
 
+/**
+ * Sempre retira o bloco ACOES do texto mostrado ao usuário, mesmo quando o
+ * conteúdo não é uma ação válida — sem isso, um JSON malformado ou uma
+ * ação que o modelo inventou (que não existe no schema) vaza pro chat como
+ * texto técnico bruto. E cada item da lista é validado individualmente
+ * (não a lista inteira de uma vez): uma ação inválida no meio não deve
+ * derrubar as outras ações válidas da mesma resposta.
+ */
 export function extrairAcoes(respostaBruta: string): { texto: string; acoes: Acao[] } {
   const match = respostaBruta.match(MARCADOR);
   if (!match) return { texto: respostaBruta.trim(), acoes: [] };
 
+  const texto = respostaBruta.slice(0, match.index).trim();
   try {
-    const acoes = z.array(acaoSchema).parse(JSON.parse(match[1]));
-    return { texto: respostaBruta.slice(0, match.index).trim(), acoes };
+    const bruta = z.array(z.unknown()).parse(JSON.parse(match[1]));
+    const acoes = bruta
+      .map((item) => acaoSchema.safeParse(item))
+      .filter((resultado) => resultado.success)
+      .map((resultado) => resultado.data);
+    return { texto, acoes };
   } catch {
-    return { texto: respostaBruta.trim(), acoes: [] };
+    return { texto, acoes: [] };
   }
 }
 
