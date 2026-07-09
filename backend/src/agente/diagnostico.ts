@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { extrairBlocoMarcado } from "./blocoMarcado.js";
 
 const itemSchema = z.object({
   campo: z.string().min(1),
@@ -6,8 +7,6 @@ const itemSchema = z.object({
   severidade: z.enum(["aviso", "critico"]),
 });
 export type ItemDiagnostico = z.infer<typeof itemSchema>;
-
-const MARCADOR = /\n?DIAGNOSTICO:\s*(\[[\s\S]*\])\s*$/;
 
 /**
  * O prompt já instrui "nunca sinalize campo vazio como problema", mas o
@@ -25,17 +24,6 @@ const PADRAO_CAMPO_VAZIO =
  * Qualquer prosa que o modelo insista em incluir é descartada.
  */
 export function extrairDiagnostico(respostaBruta: string): ItemDiagnostico[] {
-  const match = respostaBruta.match(MARCADOR);
-  if (!match) return [];
-
-  try {
-    const bruta = z.array(z.unknown()).parse(JSON.parse(match[1]));
-    return bruta
-      .map((item) => itemSchema.safeParse(item))
-      .filter((resultado) => resultado.success)
-      .map((resultado) => resultado.data)
-      .filter((item) => !PADRAO_CAMPO_VAZIO.test(item.problema));
-  } catch {
-    return [];
-  }
+  const { itens } = extrairBlocoMarcado(respostaBruta, "DIAGNOSTICO", itemSchema);
+  return itens.filter((item) => !PADRAO_CAMPO_VAZIO.test(item.problema));
 }

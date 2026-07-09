@@ -418,3 +418,21 @@ Cadência periódica do `CLAUDE.md` (fim de fase). Fase D foi só frontend (as 3
 **O que ficou pra depois:** gatilho automático (rascunho→testado) — não pedido nesta fatia, sem referência visual; regra 8 do agente (coerência após edição manual) e `pontos_contato` do Antagonista continuam pendentes, sem relação com esta fatia.
 
 **Smoke test:** 9 testes novos — `diagnostico.test.ts` (parse do bloco, array vazio, múltiplos itens, item com severidade inválida descartado sem derrubar os outros, item sem campo/problema descartado, JSON malformado, prosa antes do bloco ignorada, filtro de "campo vazio" descarta só os itens ofensivos) e 4 em `roteiros.test.ts` (retorna itens do bloco + confirma system prompt correto enviado; array vazio quando sem problema; 404 pra roteiro inexistente; 502 se OpenRouter falhar). Suíte completa do backend com banco real: 81/81 passando. Ponta a ponta contra o OpenRouter real: cliquei "Revisar" na topbar, aba trocou pra Diagnóstico automaticamente, itens renderizaram com cor por severidade (crítico=vinho confirmado visualmente); mandei uma mensagem no chat, troquei pra Diagnóstico e voltei pra Condução — histórico da conversa intacto (confirma que o `AgenteChat` não desmonta ao trocar de aba). Roteiros de teste apagados do banco de dev ao final. `npm run build`/lint limpos em frontend e backend.
+
+## Revisão de código + simplificação — Modo Diagnóstico
+
+Cadência periódica do `CLAUDE.md`. Fatia grande (arquitetura de agente nova), cobrindo `backend/src/agente/*` e `frontend/src/quadro/{Quadro,AgentePanel,AgenteChat,DiagnosticoPainel}.tsx`.
+
+**Review de código — achados:**
+- A fatia fez exatamente o escopo combinado: só gatilho manual, sem gatilho automático (não pedido, sem referência visual).
+- Dos dois modos previstos desde o início do projeto (seção 7 do MVP doc, "agente único, dois modos"), os dois agora existem de verdade — Condução e Diagnóstico. O gap de arquitetura de agente que resta é só a regra 8 (verificar coerência após edição manual do usuário), ainda documentada como pendência, sem mudança nesta fatia.
+- Caminhos de erro: 404 (roteiro inexistente) e 502 (OpenRouter fora do ar) tratados e testados na rota nova, mesmo padrão das outras rotas de agente.
+
+**Simplificação — achados e ações:**
+- `propostas.ts`, `acoes.ts` e `diagnostico.ts` chegaram a ter a mesma lógica de extração duplicada 3 vezes: regex de marcador, corte do texto antes do try/catch, parse item-a-item com `safeParse`. Essa duplicação já tinha causado um bug real antes (o fix de "sempre cortar o marcador do texto, mesmo com JSON inválido" precisou ser aplicado separadamente em `propostas.ts` e `acoes.ts`, numa fatia anterior) — com uma terceira ocorrência confirmando o padrão, extraí `blocoMarcado.ts` (`extrairBlocoMarcado<T>`, genérico por schema Zod) e os 3 módulos viraram wrappers finos por cima dele. Verificado sem regressão: os 81 testes existentes (que já cobrem os casos de borda de cada um dos 3 formatos) continuam passando inalterados, sem precisar reescrever nenhuma asserção.
+- `Quadro.tsx` está em 221 linhas — cresceu mas continua organizado em seções claras por responsabilidade (estado, handlers de propostas, handlers de ações da espinha, `revisar`). `revisar()` não se encaixa no helper `aplicarAcaoDeEspinha` (formato genuinamente diferente: mexe em 3 pedaços de estado, não só dado+evento) — decisão de não forçar. Vale revisitar com um hook próprio (`usePropostas`/`useDiagnostico`) se o arquivo continuar crescendo, mas dividir agora seria extrair estrutura sem necessidade real ainda.
+- Nenhuma abstração "pra usar depois" sem uso encontrada.
+
+**Conclusão:** uma simplificação real aplicada (`blocoMarcado.ts`), motivada por um padrão de bug já visto na prática, não especulativo. `Quadro.tsx` sinalizado como "observar", sem ação — dividir agora seria prematuro.
+
+**Smoke test:** `npm run build`/lint limpos em frontend e backend; suíte completa do backend com banco real 81/81 passando depois do refactor de extração compartilhada — nenhum teste precisou mudar, confirmando que o comportamento externo de `extrairPropostas`/`extrairAcoes`/`extrairDiagnostico` ficou idêntico.
