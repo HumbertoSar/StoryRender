@@ -270,6 +270,16 @@
   gap: 3px;
 }
 
+.sr-card__linha {
+  display: flex;
+  gap: 14px;
+}
+
+.sr-card__linha > * {
+  flex: 1;
+  min-width: 0;
+}
+
 .sr-field__label {
   font-family: var(--sr-font-mono);
   font-size: 8px;

@@ -36,6 +36,13 @@ export interface IdeiaControladora {
   status: string;
 }
 
+export interface Mundo {
+  epoca: string;
+  local: string;
+  regras_custo: string;
+  status: string;
+}
+
 export interface EspinhaNo {
   id: string;
   tipo: string;
@@ -55,7 +62,7 @@ export interface RoteiroData {
     protagonistas: Protagonista[];
     antagonista: Antagonista;
     ideia_controladora: IdeiaControladora;
-    mundo: { epoca: string; local: string; regras_custo: string; status: string };
+    mundo: Mundo;
     genero: { generos: string[]; promessa: string; status: string };
     elenco_notas: { texto_livre: string };
   };
