@@ -436,3 +436,24 @@ Cadência periódica do `CLAUDE.md`. Fatia grande (arquitetura de agente nova), 
 **Conclusão:** uma simplificação real aplicada (`blocoMarcado.ts`), motivada por um padrão de bug já visto na prática, não especulativo. `Quadro.tsx` sinalizado como "observar", sem ação — dividir agora seria prematuro.
 
 **Smoke test:** `npm run build`/lint limpos em frontend e backend; suíte completa do backend com banco real 81/81 passando depois do refactor de extração compartilhada — nenhum teste precisou mudar, confirmando que o comportamento externo de `extrairPropostas`/`extrairAcoes`/`extrairDiagnostico` ficou idêntico.
+
+## Marco: MVP declarado pronto (2026-07-09)
+
+O usuário revisou a checklist da seção 9 do `STORY_RENDER_MVP_MCKEE.md` ("Critério de pronto pro MVP") junto comigo e decidiu fechar o MVP nesse ponto.
+
+**Estado de cada critério da seção 9 no momento da decisão:**
+- ✅ Modo Condução cobre os 3 cartões P0 sem exigir Diagnóstico pra funcionar.
+- ✅ Esquema persiste — reload não perde nada.
+- ✅ Edição direta e edição via chat ficam sincronizadas sem duplicar conteúdo.
+- ⚠️ Ao menos 1 usuário completa a espinha inteira (Fase A→D) — quase lá: o roteiro do Tonico tem Mundo da História inteiro preenchido e os 3 roteiros reais (Fernando, Joana, Tonico) têm gênero selecionado, mas nenhum tem Promessa emocional nem "Outros personagens relevantes" preenchidos ainda (cartões de Fase D só existem desde a sessão anterior).
+- ❓ Testado com 3–5 usuários reais nas Fases A–C — 3 usuários reais (Fernando, Joana, Tonico) passaram pelo produto e geraram bugs reais que viraram fix; bate o mínimo do critério, mas é uma validação de experiência que só o usuário podia confirmar, não algo que eu construo.
+
+**P1 (seção 1) que ficou de fora, deliberadamente, na decisão de fechar:**
+- Divisão visual em Atos/Partes na espinha.
+- Pontos de contato do Antagonista (campo existe no schema, sem UI).
+- Regra 8 do agente (verificar coerência após edição manual do usuário).
+- Gatilho automático do Modo Diagnóstico (rascunho→testado) — só o botão manual "Revisar" existe.
+
+**P0 está 100% fechado.** P2 e os não-objetivos explícitos (seção 1) continuam corretamente de fora, nunca construídos.
+
+**O que isso significa daqui pra frente:** o `CLAUDE.md` continua valendo como processo (fatias pequenas, loop de scope→implementar→testar→documentar→commit), mas o projeto deixa de ser "MVP em construção" e vira "produto com MVP fechado, com uma lista conhecida de P1 pendentes e possíveis próximos passos" (retomar os P1 acima, abrir um novo template além de McKee, ou validação com mais usuários reais — nenhuma dessas direções foi decidida ainda).
