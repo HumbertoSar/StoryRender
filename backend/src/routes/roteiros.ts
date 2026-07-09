@@ -5,6 +5,7 @@ import { adicionarComplicacao, applyUpdates, excluirComplicacao, moverComplicaca
 import { chamarAgente, type MensagemChat } from "../agente/openrouter.js";
 import { montarSystemPrompt } from "../agente/prompt.js";
 import { extrairPropostas } from "../agente/propostas.js";
+import { extrairAcoes, remapearNovasComplicacoes } from "../agente/acoes.js";
 
 export const roteirosRouter = Router();
 
@@ -237,9 +238,30 @@ roteirosRouter.post("/:id/mensagens", async (req, res) => {
 
   try {
     const respostaBruta = await chamarAgente(mensagens);
-    const { texto, propostas } = extrairPropostas(respostaBruta);
+    const { texto: semPropostas, propostas: propostasBrutas } = extrairPropostas(respostaBruta);
+    const { texto, acoes } = extrairAcoes(semPropostas);
+
+    let dados = existente.rows[0].data;
+    const indicesNovasComplicacoes: number[] = [];
+    for (const acao of acoes) {
+      if (acao === "criar_complicacao") {
+        dados = adicionarComplicacao(dados);
+        indicesNovasComplicacoes.push((dados as { espinha: unknown[] }).espinha.length - 1);
+      }
+    }
+
+    let roteiroAtualizado;
+    if (acoes.length > 0) {
+      const atualizado = await pool.query(
+        "UPDATE roteiros SET data = $1, updated_at = now() WHERE id = $2 RETURNING id, data, created_at, updated_at",
+        [dados, parsedParams.data.id],
+      );
+      roteiroAtualizado = atualizado.rows[0];
+    }
+
+    const propostas = remapearNovasComplicacoes(propostasBrutas, indicesNovasComplicacoes);
     const persistidas = await persistirPropostas(parsedParams.data.id, propostas);
-    res.json({ resposta: texto, propostas: persistidas });
+    res.json({ resposta: texto, propostas: persistidas, roteiro: roteiroAtualizado });
   } catch (err) {
     res.status(502).json({ error: "falha ao chamar o agente", detalhes: (err as Error).message });
   }

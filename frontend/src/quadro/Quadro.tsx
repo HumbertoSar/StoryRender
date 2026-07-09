@@ -86,7 +86,7 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
     adicionarComplicacao(roteiro.id)
       .then((r) => {
         setData(r.data as unknown as RoteiroData);
-        registrarEvento(roteiro.id, "espinha_no_adicionado", { tipo: "complicacao" });
+        registrarEvento(roteiro.id, "espinha_no_adicionado", { tipo: "complicacao", origem: "manual" });
       })
       .catch((err) => {
         registrarEvento(roteiro.id, "erro", { contexto: "adicionar_complicacao", mensagem: (err as Error).message });
@@ -165,7 +165,11 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
             sugestaoPara={(campo) => sugestaoDoPath(["assets", "ideia_controladora", campo])}
           />
         </div>
-        <AgenteChat roteiroId={roteiro.id} onPropostas={receberPropostas} />
+        <AgenteChat
+          roteiroId={roteiro.id}
+          onPropostas={receberPropostas}
+          onRoteiroAtualizado={(r) => setData(r.data as unknown as RoteiroData)}
+        />
       </div>
     </div>
   );

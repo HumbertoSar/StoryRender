@@ -317,6 +317,81 @@ describe.skipIf(!hasDb)("roteirosRouter", () => {
       const res = await request(app).post(`/roteiros/${created.body.id}/mensagens`).send({ mensagem: "oi" });
       expect(res.status).toBe(502);
     });
+
+    it("não inclui roteiro na resposta quando não há ACOES", async () => {
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: "só um papo" } }] }) }),
+      );
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app).post(`/roteiros/${created.body.id}/mensagens`).send({ mensagem: "oi", historico: [] });
+      expect(res.body.roteiro).toBeUndefined();
+    });
+
+    it("ACOES criar_complicacao adiciona o nó e devolve o roteiro atualizado", async () => {
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      const conteudo = `Boa, vou criar uma complicação nova pra isso.\nACOES: ["criar_complicacao"]`;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: conteudo } }] }) }),
+      );
+      const created = await request(app).post("/roteiros").send();
+      const id = created.body.id;
+
+      const res = await request(app)
+        .post(`/roteiros/${id}/mensagens`)
+        .send({ mensagem: "e depois disso ele perde o emprego também", historico: [] });
+
+      expect(res.status).toBe(200);
+      expect(res.body.resposta).toBe("Boa, vou criar uma complicação nova pra isso.");
+      expect(res.body.propostas).toEqual([]);
+      expect(res.body.roteiro.data.espinha).toHaveLength(6);
+      expect(res.body.roteiro.data.espinha[5].id).toBe("complicacao_2");
+
+      const fetched = await request(app).get(`/roteiros/${id}`);
+      expect(fetched.body.data.espinha).toHaveLength(6);
+    });
+
+    it("ACOES + PROPOSTAS no mesmo turno propõe conteúdo pro nó recém-criado via placeholder nova_0", async () => {
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      const conteudo = `Beleza.\nACOES: ["criar_complicacao"]\nPROPOSTAS: [{"path": ["espinha","nova_0","conteudo"], "valor": "ele perde o emprego"}]`;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: conteudo } }] }) }),
+      );
+      const created = await request(app).post("/roteiros").send();
+      const id = created.body.id;
+
+      const res = await request(app)
+        .post(`/roteiros/${id}/mensagens`)
+        .send({ mensagem: "ele perde o emprego também", historico: [] });
+
+      expect(res.status).toBe(200);
+      expect(res.body.roteiro.data.espinha).toHaveLength(6);
+      expect(res.body.propostas).toEqual([
+        { id: expect.any(String), path: ["espinha", 5, "conteudo"], valor: "ele perde o emprego" },
+      ]);
+
+      const pendentes = await request(app).get(`/roteiros/${id}/propostas`);
+      expect(pendentes.body[0].path).toEqual(["espinha", 5, "conteudo"]);
+    });
+
+    it("descarta proposta com placeholder nova_N sem ação correspondente", async () => {
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      const conteudo = `Ok.\nPROPOSTAS: [{"path": ["espinha","nova_0","conteudo"], "valor": "não devia existir"}]`;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: conteudo } }] }) }),
+      );
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app)
+        .post(`/roteiros/${created.body.id}/mensagens`)
+        .send({ mensagem: "oi", historico: [] });
+
+      expect(res.body.propostas).toEqual([]);
+      expect(res.body.roteiro).toBeUndefined();
+    });
   });
 
   describe("eventos", () => {

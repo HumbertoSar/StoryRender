@@ -62,6 +62,7 @@ export interface PropostaCampo {
 export interface RespostaAgente {
   resposta: string;
   propostas: PropostaCampo[];
+  roteiro?: RoteiroResponse;
 }
 
 export async function enviarMensagemAgente(
@@ -76,7 +77,11 @@ export async function enviarMensagemAgente(
   });
   if (!res.ok) throw new Error(`Falha ao falar com o agente: ${res.status}`);
   const json = await res.json();
-  return { resposta: json.resposta as string, propostas: (json.propostas as PropostaCampo[]) ?? [] };
+  return {
+    resposta: json.resposta as string,
+    propostas: (json.propostas as PropostaCampo[]) ?? [],
+    roteiro: json.roteiro as RoteiroResponse | undefined,
+  };
 }
 
 export async function listarPropostasPendentes(roteiroId: string): Promise<PropostaCampo[]> {

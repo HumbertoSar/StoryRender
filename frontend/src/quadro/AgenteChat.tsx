@@ -1,12 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { enviarMensagemAgente, registrarEvento, type HistoricoMensagem, type PropostaCampo } from "../api";
+import {
+  enviarMensagemAgente,
+  registrarEvento,
+  type HistoricoMensagem,
+  type PropostaCampo,
+  type RoteiroResponse,
+} from "../api";
 
 export function AgenteChat({
   roteiroId,
   onPropostas,
+  onRoteiroAtualizado,
 }: {
   roteiroId: string;
   onPropostas: (propostas: PropostaCampo[]) => void;
+  onRoteiroAtualizado: (roteiro: RoteiroResponse) => void;
 }) {
   const [mensagens, setMensagens] = useState<HistoricoMensagem[]>([
     { from: "agente", texto: "Estou vendo o esquema inteiro. Pergunta, peça uma revisão, ou edite os cartões direto — o que fizer sentido." },
@@ -31,10 +39,14 @@ export function AgenteChat({
     registrarEvento(roteiroId, "mensagem_agente", { direcao: "usuario", texto: mensagem });
     setEnviando(true);
     try {
-      const { resposta, propostas } = await enviarMensagemAgente(roteiroId, mensagem, historicoAtual);
+      const { resposta, propostas, roteiro } = await enviarMensagemAgente(roteiroId, mensagem, historicoAtual);
       setMensagens((prev) => [...prev, { from: "agente", texto: resposta }]);
       registrarEvento(roteiroId, "mensagem_agente", { direcao: "agente", texto: resposta });
       if (propostas.length > 0) onPropostas(propostas);
+      if (roteiro) {
+        onRoteiroAtualizado(roteiro);
+        registrarEvento(roteiroId, "espinha_no_adicionado", { tipo: "complicacao", origem: "agente" });
+      }
     } catch (err) {
       setErro((err as Error).message);
       registrarEvento(roteiroId, "erro", { contexto: "chat_agente", mensagem: (err as Error).message });
