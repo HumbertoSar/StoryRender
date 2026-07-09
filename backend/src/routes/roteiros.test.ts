@@ -520,6 +520,62 @@ describe.skipIf(!hasDb)("roteirosRouter", () => {
     });
   });
 
+  describe("POST /:id/diagnostico", () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      delete process.env.OPENROUTER_API_KEY;
+    });
+
+    it("retorna os itens extraídos do bloco DIAGNOSTICO", async () => {
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      const conteudo = `DIAGNOSTICO: [{"campo": "Aposta do Protagonista", "problema": "ainda vaga", "severidade": "aviso"}]`;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: conteudo } }] }) }),
+      );
+
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app).post(`/roteiros/${created.body.id}/diagnostico`).send();
+
+      expect(res.status).toBe(200);
+      expect(res.body.itens).toEqual([
+        { campo: "Aposta do Protagonista", problema: "ainda vaga", severidade: "aviso" },
+      ]);
+
+      const corpoEnviado = JSON.parse((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body);
+      expect(corpoEnviado.messages[0].role).toBe("system");
+      expect(corpoEnviado.messages[0].content).toContain("Modo Diagnóstico");
+      expect(corpoEnviado.messages).toHaveLength(2);
+    });
+
+    it("retorna itens vazios quando o agente não encontra problema", async () => {
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: "DIAGNOSTICO: []" } }] }) }),
+      );
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app).post(`/roteiros/${created.body.id}/diagnostico`).send();
+      expect(res.status).toBe(200);
+      expect(res.body.itens).toEqual([]);
+    });
+
+    it("retorna 404 pra roteiro inexistente", async () => {
+      const res = await request(app)
+        .post("/roteiros/00000000-0000-0000-0000-000000000000/diagnostico")
+        .send();
+      expect(res.status).toBe(404);
+    });
+
+    it("retorna 502 se o OpenRouter falhar", async () => {
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500, text: async () => "erro" }));
+      const created = await request(app).post("/roteiros").send();
+      const res = await request(app).post(`/roteiros/${created.body.id}/diagnostico`).send();
+      expect(res.status).toBe(502);
+    });
+  });
+
   describe("eventos", () => {
     it("registra um evento e devolve na ordem em que foram criados", async () => {
       const created = await request(app).post("/roteiros").send();

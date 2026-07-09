@@ -43,6 +43,28 @@
   border: 1px solid rgba(156, 122, 60, 0.5);
 }
 
+.sr-topbar__revisar {
+  font-family: var(--sr-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sr-paper);
+  border: 1px solid var(--sr-accent);
+  background: var(--sr-accent);
+  border-radius: 3px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.sr-topbar__revisar:hover:not(:disabled) {
+  background: #8f3737;
+}
+
+.sr-topbar__revisar:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .sr-rail {
   width: 210px;
   flex: none;
@@ -485,11 +507,35 @@
   flex: 1;
 }
 
-.sr-chat__contador {
+.sr-chat__abas {
+  display: flex;
+  border: 1px solid rgba(240, 233, 216, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+  flex: none;
+}
+
+.sr-chat__aba {
   font-family: var(--sr-font-mono);
   font-size: 8px;
   letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 4px 9px;
   color: rgba(240, 233, 216, 0.45);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.sr-chat__aba--ativa {
+  background: var(--sr-accent);
+  color: var(--sr-paper);
+}
+
+.sr-agente-chat__corpo {
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
 }
 
 .sr-chat__mensagens {
@@ -499,6 +545,62 @@
   flex-direction: column;
   gap: 16px;
   overflow-y: auto;
+}
+
+.sr-diagnostico {
+  flex: 1;
+  min-height: 0;
+  padding: 20px 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sr-diagnostico__estado {
+  font-family: var(--sr-font-sans);
+  font-size: 13px;
+  font-style: italic;
+  color: rgba(240, 233, 216, 0.45);
+  text-align: center;
+  margin-top: 20px;
+}
+
+.sr-diagnostico__item {
+  border-radius: 3px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sr-diagnostico__item--aviso {
+  border: 1px solid rgba(156, 122, 60, 0.5);
+  background: rgba(156, 122, 60, 0.08);
+}
+
+.sr-diagnostico__item--critico {
+  border: 1px solid rgba(122, 46, 46, 0.5);
+  background: rgba(122, 46, 46, 0.1);
+}
+
+.sr-diagnostico__campo {
+  font-family: var(--sr-font-mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sr-brass);
+}
+
+.sr-diagnostico__item--critico .sr-diagnostico__campo {
+  color: #e0a0a0;
+}
+
+.sr-diagnostico__problema {
+  font-family: var(--sr-font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--sr-paper);
 }
 
 .sr-msg {

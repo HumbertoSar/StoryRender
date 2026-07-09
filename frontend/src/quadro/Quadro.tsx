@@ -6,16 +6,18 @@ import { AntagonistaCard } from "./AntagonistaCard";
 import { IdeiaControladoraCard } from "./IdeiaControladoraCard";
 import { MundoCard } from "./MundoCard";
 import { GeneroCard } from "./GeneroCard";
-import { AgenteChat } from "./AgenteChat";
+import { AgentePanel, type AbaAgente } from "./AgentePanel";
 import { aplicarAtualizacoes } from "./imutavel";
 import {
   adicionarComplicacao,
   atualizarRoteiro,
+  buscarDiagnostico,
   excluirComplicacao,
   listarPropostasPendentes,
   moverComplicacao,
   registrarEvento,
   resolverProposta,
+  type ItemDiagnostico,
   type PropostaCampo,
   type RoteiroResponse,
   type RoteiroUpdate,
@@ -25,6 +27,10 @@ import type { RoteiroData, SugestaoCampo } from "./tipos";
 export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
   const [data, setData] = useState<RoteiroData>(roteiro.data as unknown as RoteiroData);
   const [propostas, setPropostas] = useState<PropostaCampo[]>([]);
+  const [abaAgente, setAbaAgente] = useState<AbaAgente>("conducao");
+  const [diagnostico, setDiagnostico] = useState<ItemDiagnostico[] | null>(null);
+  const [diagnosticoCarregando, setDiagnosticoCarregando] = useState(false);
+  const [diagnosticoErro, setDiagnosticoErro] = useState<string | null>(null);
 
   useEffect(() => {
     registrarEvento(roteiro.id, "tela", { tela: "quadro" });
@@ -136,6 +142,22 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
     );
   }
 
+  function revisar() {
+    setAbaAgente("diagnostico");
+    setDiagnosticoCarregando(true);
+    setDiagnosticoErro(null);
+    buscarDiagnostico(roteiro.id)
+      .then((itens) => {
+        setDiagnostico(itens);
+        registrarEvento(roteiro.id, "diagnostico", { quantidade: itens.length });
+      })
+      .catch((err) => {
+        setDiagnosticoErro((err as Error).message);
+        registrarEvento(roteiro.id, "erro", { contexto: "diagnostico", mensagem: (err as Error).message });
+      })
+      .finally(() => setDiagnosticoCarregando(false));
+  }
+
   const protagonista = data.assets.protagonistas[0];
 
   return (
@@ -151,6 +173,9 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
             </span>
           ))}
         </div>
+        <button className="sr-topbar__revisar" type="button" onClick={revisar} disabled={diagnosticoCarregando}>
+          Revisar
+        </button>
       </div>
       <div className="sr-quadro-corpo">
         <EspinhaColuna
@@ -180,10 +205,15 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
           <MundoCard mundo={data.assets.mundo} {...assetHandlers("mundo")} />
           <GeneroCard genero={data.assets.genero} {...assetHandlers("genero")} />
         </div>
-        <AgenteChat
+        <AgentePanel
           roteiroId={roteiro.id}
+          aba={abaAgente}
+          onAbaChange={setAbaAgente}
           onPropostas={receberPropostas}
           onRoteiroAtualizado={(r) => setData(r.data as unknown as RoteiroData)}
+          diagnostico={diagnostico}
+          diagnosticoCarregando={diagnosticoCarregando}
+          diagnosticoErro={diagnosticoErro}
         />
       </div>
     </div>

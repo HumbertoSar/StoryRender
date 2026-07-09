@@ -133,6 +133,19 @@ export async function moverComplicacao(
   return res.json();
 }
 
+export interface ItemDiagnostico {
+  campo: string;
+  problema: string;
+  severidade: "aviso" | "critico";
+}
+
+export async function buscarDiagnostico(roteiroId: string): Promise<ItemDiagnostico[]> {
+  const res = await fetch(`${API_URL}/roteiros/${roteiroId}/diagnostico`, { method: "POST" });
+  if (!res.ok) throw new Error(`Falha ao revisar o roteiro: ${res.status}`);
+  const json = await res.json();
+  return json.itens as ItemDiagnostico[];
+}
+
 export function registrarEvento(roteiroId: string, tipo: string, detalhes: Record<string, unknown> = {}): void {
   fetch(`${API_URL}/roteiros/${roteiroId}/eventos`, {
     method: "POST",

@@ -11,10 +11,12 @@ export function AgenteChat({
   roteiroId,
   onPropostas,
   onRoteiroAtualizado,
+  visivel = true,
 }: {
   roteiroId: string;
   onPropostas: (propostas: PropostaCampo[]) => void;
   onRoteiroAtualizado: (roteiro: RoteiroResponse) => void;
+  visivel?: boolean;
 }) {
   const [mensagens, setMensagens] = useState<HistoricoMensagem[]>([
     { from: "agente", texto: "Estou vendo o esquema inteiro. Pergunta, peça uma revisão, ou edite os cartões direto — o que fizer sentido." },
@@ -56,12 +58,7 @@ export function AgenteChat({
   }
 
   return (
-    <div className="sr-agente-chat">
-      <div className="sr-chat__header">
-        <div className="sr-chat__avatar">S</div>
-        <div className="sr-chat__titulo">Agente</div>
-        <div className="sr-chat__contador">condução</div>
-      </div>
+    <div className="sr-agente-chat__corpo" style={{ display: visivel ? "flex" : "none" }}>
       <div className="sr-chat__mensagens" ref={mensagensRef}>
         {mensagens.map((m, i) => (
           <div key={i} className={`sr-msg sr-msg--${m.from}`}>

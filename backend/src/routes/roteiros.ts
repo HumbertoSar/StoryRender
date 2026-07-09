@@ -10,9 +10,10 @@ import {
   roteiroMckeeVazio,
 } from "../roteiro.js";
 import { chamarAgente, type MensagemChat } from "../agente/openrouter.js";
-import { montarSystemPrompt } from "../agente/prompt.js";
+import { montarSystemPrompt, montarSystemPromptDiagnostico } from "../agente/prompt.js";
 import { extrairPropostas } from "../agente/propostas.js";
 import { extrairAcoes, remapearNovasComplicacoes } from "../agente/acoes.js";
+import { extrairDiagnostico } from "../agente/diagnostico.js";
 
 export const roteirosRouter = Router();
 
@@ -255,6 +256,27 @@ roteirosRouter.post("/:id/mensagens", async (req, res) => {
     const propostas = remapearNovasComplicacoes(propostasBrutas, indicesNovasComplicacoes);
     const persistidas = await persistirPropostas(parsedParams.id, propostas);
     res.json({ resposta: texto, propostas: persistidas, roteiro: roteiroAtualizado });
+  } catch (err) {
+    res.status(502).json({ error: "falha ao chamar o agente", detalhes: (err as Error).message });
+  }
+});
+
+roteirosRouter.post("/:id/diagnostico", async (req, res) => {
+  const parsedParams = parseParamsOu400(idParamSchema, req, res, "id inválido");
+  if (!parsedParams) return;
+
+  const data = await buscarDataOu404(parsedParams.id, res);
+  if (data === undefined) return;
+
+  const mensagens: MensagemChat[] = [
+    { role: "system", content: montarSystemPromptDiagnostico(data) },
+    { role: "user", content: "Revise o esquema atual e liste os problemas encontrados." },
+  ];
+
+  try {
+    const respostaBruta = await chamarAgente(mensagens);
+    const itens = extrairDiagnostico(respostaBruta);
+    res.json({ itens });
   } catch (err) {
     res.status(502).json({ error: "falha ao chamar o agente", detalhes: (err as Error).message });
   }
