@@ -385,3 +385,22 @@ Cadência periódica do `CLAUDE.md` (fim de fase). Fase C acumulou bastante cois
 **Smoke test:** `npm run build`/lint limpos em frontend. Ponta a ponta via Playwright: criei roteiro de teste, editei "Outros personagens relevantes" direto no cartão (persistiu). Testei o agente com uma mensagem listando personagens secundários com conflitos concretos — ele decidiu (corretamente, é uma decisão de conteúdo válida) que aquilo era material pra 3 complicações novas, não pro campo de elenco, e usou a autonomia estrutural (`ACOES criar_complicacao`) pra criar os 3 nós e propor conteúdo pra cada um — validação incidental de que a fatia de autonomia do agente continua funcionando bem numa conversa natural. Roteiro de teste apagado do banco de dev ao final.
 
 **Marco:** com essa fatia, a fórmula completa da seção 4 do MVP doc (14 itens, Fase A→D) está com UI funcional de ponta a ponta.
+
+## Revisão de código + simplificação — fim da Fase D
+
+Cadência periódica do `CLAUDE.md` (fim de fase). Fase D foi só frontend (as 3 fatias reaproveitaram schema e mecanismo de propostas já existentes, zero mudança de backend) — cobrindo `frontend/src/quadro/*`.
+
+**Review de código — achados:**
+- As 3 fatias fizeram exatamente o que o escopo dizia: cada cartão replica o layout do protótipo, sem campo extra nem faltando nenhum dos listados na seção 3.4/3.5/3.6 do MVP doc.
+- Elenco de Apoio implementado como campo simples dentro do Antagonista, não como cartão próprio — consistente com a classificação P2 (seção 1) e a exceção explícita de v1 documentada na seção 3.6. Nenhum vazamento de escopo P2.
+- Nenhum caminho de erro novo introduzido — os 3 cartões reusam `salvar`/`sugestaoDoPath` já testados nas fatias anteriores, sem lógica nova de tratamento de erro pra revisar.
+- Gaps de arquitetura de agente (regra 8, Modo Diagnóstico) continuam os mesmos da revisão da Fase C — Fase D não mexeu nisso, nem precisava.
+
+**Simplificação — achados e ações:**
+- Com 5 cartões no Quadro, o padrão de wiring em `Quadro.tsx` (`onSalvar`/`sugestaoPara` construindo o mesmo path `["assets", chave, campo]`) virou duplicação de verdade — 4 dos 5 cartões (Antagonista, Ideia Controladora, Mundo, Gênero) repetiam o mesmo par de closures trocando só a chave do asset. Extraído `assetHandlers(chave)` (retorna `{ onSalvar, sugestaoPara }` via closure sobre `salvar`/`sugestaoDoPath`), usado via spread nos 4 cartões — cortou ~15 linhas de repetição textual idêntica. Protagonista ficou de fora do helper porque indexa um array (`protagonistas[0]`), path genuinamente diferente (e o MVP doc já prevê múltiplos protagonistas no futuro).
+- Reconsiderei a decisão da revisão da Fase C de não genericizar a estrutura JSX dos cartões (header + `StatusSelect` + campos) — com 5 cartões agora, ainda decido não fazer isso: os campos continuam genuinamente diferentes entre cartões (chips em dois deles, nota de rodapé em dois outros, layout de duas colunas só no Mundo), e o ganho de uma abstração de template seria pequeno frente à perda de legibilidade direta. Only a camada de *wiring* (dados→handlers) tinha duplicação real; a camada de *apresentação* (JSX) não tem.
+- Nenhuma abstração "pra usar depois" sem uso encontrada.
+
+**Conclusão:** uma simplificação aplicada (`assetHandlers` em `Quadro.tsx`), verificada sem regressão via build/lint limpos e teste manual de edição em campo depois do refactor (persistiu certo). Os dois gaps de agente conhecidos seguem registrados, sem ação — não são bloqueio pra nada que vem a seguir.
+
+**Smoke test:** `npm run build`/lint limpos em frontend; suíte completa do backend 68/68 (não deveria ter mudado, e não mudou — Fase D não tocou backend). Fluxo manual no navegador (recarreguei o Quadro com os 5 cartões, editei um campo do Mundo depois do refactor de `assetHandlers`) confirmou persistência idêntica ao comportamento anterior. Roteiro de teste apagado do banco de dev ao final.

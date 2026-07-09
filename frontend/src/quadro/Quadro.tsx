@@ -76,6 +76,13 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
     };
   }
 
+  function assetHandlers(chave: keyof RoteiroData["assets"]) {
+    return {
+      onSalvar: (campo: string, valor: unknown) => salvar([{ path: ["assets", chave, campo], value: valor }]),
+      sugestaoPara: (campo: string) => sugestaoDoPath(["assets", chave, campo]),
+    };
+  }
+
   function receberPropostas(novas: PropostaCampo[]) {
     for (const p of novas) registrarEvento(roteiro.id, "sugestao", { acao: "recebida", path: p.path });
     setPropostas((prev) => {
@@ -164,29 +171,14 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
           />
           <AntagonistaCard
             antagonista={data.assets.antagonista}
-            onSalvar={(campo, valor) => salvar([{ path: ["assets", "antagonista", campo], value: valor }])}
-            sugestaoPara={(campo) => sugestaoDoPath(["assets", "antagonista", campo])}
+            {...assetHandlers("antagonista")}
             elencoNotas={data.assets.elenco_notas.texto_livre}
             onSalvarElenco={(valor) => salvar([{ path: ["assets", "elenco_notas", "texto_livre"], value: valor }])}
             sugestaoElenco={sugestaoDoPath(["assets", "elenco_notas", "texto_livre"])}
           />
-          <IdeiaControladoraCard
-            ideia={data.assets.ideia_controladora}
-            onSalvar={(campo, valor) =>
-              salvar([{ path: ["assets", "ideia_controladora", campo], value: valor }])
-            }
-            sugestaoPara={(campo) => sugestaoDoPath(["assets", "ideia_controladora", campo])}
-          />
-          <MundoCard
-            mundo={data.assets.mundo}
-            onSalvar={(campo, valor) => salvar([{ path: ["assets", "mundo", campo], value: valor }])}
-            sugestaoPara={(campo) => sugestaoDoPath(["assets", "mundo", campo])}
-          />
-          <GeneroCard
-            genero={data.assets.genero}
-            onSalvar={(campo, valor) => salvar([{ path: ["assets", "genero", campo], value: valor }])}
-            sugestaoPara={(campo) => sugestaoDoPath(["assets", "genero", campo])}
-          />
+          <IdeiaControladoraCard ideia={data.assets.ideia_controladora} {...assetHandlers("ideia_controladora")} />
+          <MundoCard mundo={data.assets.mundo} {...assetHandlers("mundo")} />
+          <GeneroCard genero={data.assets.genero} {...assetHandlers("genero")} />
         </div>
         <AgenteChat
           roteiroId={roteiro.id}
