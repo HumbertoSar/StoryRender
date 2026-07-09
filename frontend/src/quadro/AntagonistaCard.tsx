@@ -7,10 +7,16 @@ export function AntagonistaCard({
   antagonista,
   onSalvar,
   sugestaoPara,
+  elencoNotas,
+  onSalvarElenco,
+  sugestaoElenco,
 }: {
   antagonista: Antagonista;
   onSalvar: (campo: keyof Antagonista, valor: string | string[]) => void;
   sugestaoPara: (campo: keyof Antagonista) => SugestaoCampo | undefined;
+  elencoNotas: string;
+  onSalvarElenco: (valor: string) => void;
+  sugestaoElenco: SugestaoCampo | undefined;
 }) {
   return (
     <div className="sr-card">
@@ -47,6 +53,12 @@ export function AntagonistaCard({
         value={antagonista.poder_relativo}
         onSave={(v) => onSalvar("poder_relativo", v)}
         sugestao={sugestaoPara("poder_relativo")}
+      />
+      <EditableField
+        label="Outros personagens relevantes"
+        value={elencoNotas}
+        onSave={onSalvarElenco}
+        sugestao={sugestaoElenco}
       />
     </div>
   );

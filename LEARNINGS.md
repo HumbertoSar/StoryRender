@@ -373,3 +373,15 @@ Cadência periódica do `CLAUDE.md` (fim de fase). Fase C acumulou bastante cois
 **O que ficou pra depois:** só a fatia 3/3 da Fase D (Elenco de Apoio, campo de texto livre dentro do cartão de Antagonista — não é cartão próprio, é P2 como entidade modelada).
 
 **Smoke test:** `npm run build`/lint limpos em frontend. Ponta a ponta via Playwright contra o agente real: criei roteiro de teste, cliquei no chip "Mistério" (persistiu), pedi ao agente a promessa emocional de uma história de mistério — ele propôs só `promessa`, confirmando que `generos` continua protegido mesmo com o campo novo na UI; aceitei a sugestão pela UI e confirmei a persistência via API. Roteiro de teste apagado do banco de dev ao final.
+
+## Fatia: Elenco de Apoio (Fase D, 3/3) — fecha a fórmula da Fase D
+
+**O que foi construído:** campo "Outros personagens relevantes" (texto livre) adicionado ao `AntagonistaCard` existente — não um cartão novo. Decisão direto da seção 3.6 do MVP doc: Elenco de Apoio & Subtramas como entidade modelada própria é **P2** ("arquitetura já prevê, mas não se constrói agora"), mas o próprio doc já resolve isso explicitamente pro v1 — "campo de texto livre dentro do cartão de Antagonista ('outros personagens relevantes'). Vira cartão próprio quando o core loop... estiver validado com usuários reais." `AntagonistaCard` ganhou 3 props novas (`elencoNotas`, `onSalvarElenco`, `sugestaoElenco`) em vez de reusar `onSalvar`/`sugestaoPara` do antagonista, porque `elenco_notas` é um asset irmão (`assets.elenco_notas.texto_livre`), não um campo do antagonista — path diferente, então precisa de um canal próprio no componente.
+
+**Por quê:** terceiro e último item da fórmula da Fase D (seção 4 do MVP doc) — com essa fatia, os 14 itens da fórmula completa (Fase A→D) têm todos UI própria.
+
+**O que ficou pra depois:** nada específico desta fatia. Zero mudança de backend de novo — `elenco_notas.texto_livre` não estava em `CAMPOS_PROIBIDOS`, então já era proponível pelo agente sem ajuste algum (confirmado por leitura de código, não forcei uma proposta ao vivo especificamente pra esse campo porque o teste natural da conversa divergiu pra outra coisa — ver smoke test).
+
+**Smoke test:** `npm run build`/lint limpos em frontend. Ponta a ponta via Playwright: criei roteiro de teste, editei "Outros personagens relevantes" direto no cartão (persistiu). Testei o agente com uma mensagem listando personagens secundários com conflitos concretos — ele decidiu (corretamente, é uma decisão de conteúdo válida) que aquilo era material pra 3 complicações novas, não pro campo de elenco, e usou a autonomia estrutural (`ACOES criar_complicacao`) pra criar os 3 nós e propor conteúdo pra cada um — validação incidental de que a fatia de autonomia do agente continua funcionando bem numa conversa natural. Roteiro de teste apagado do banco de dev ao final.
+
+**Marco:** com essa fatia, a fórmula completa da seção 4 do MVP doc (14 itens, Fase A→D) está com UI funcional de ponta a ponta.

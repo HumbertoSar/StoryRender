@@ -166,6 +166,9 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
             antagonista={data.assets.antagonista}
             onSalvar={(campo, valor) => salvar([{ path: ["assets", "antagonista", campo], value: valor }])}
             sugestaoPara={(campo) => sugestaoDoPath(["assets", "antagonista", campo])}
+            elencoNotas={data.assets.elenco_notas.texto_livre}
+            onSalvarElenco={(valor) => salvar([{ path: ["assets", "elenco_notas", "texto_livre"], value: valor }])}
+            sugestaoElenco={sugestaoDoPath(["assets", "elenco_notas", "texto_livre"])}
           />
           <IdeiaControladoraCard
             ideia={data.assets.ideia_controladora}
