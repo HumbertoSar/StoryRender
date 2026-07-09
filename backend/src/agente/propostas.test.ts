@@ -46,4 +46,10 @@ describe("extrairPropostas", () => {
     const { propostas } = extrairPropostas(bruta);
     expect(propostas).toEqual([]);
   });
+
+  it("filtra propostas pro campo conecta_assets (sem UI pra mostrar sugestão pendente nele)", () => {
+    const bruta = `Ok.\nPROPOSTAS: [{"path": ["espinha", 1, "conecta_assets"], "valor": ["antagonista"]}, {"path": ["espinha", 1, "conteudo"], "valor": "algo"}]`;
+    const { propostas } = extrairPropostas(bruta);
+    expect(propostas).toEqual([{ path: ["espinha", 1, "conteudo"], valor: "algo" }]);
+  });
 });

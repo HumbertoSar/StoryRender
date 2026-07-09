@@ -12,7 +12,7 @@ const propostaSchema = z.object({
 
 const MARCADOR = /\n?PROPOSTAS:\s*(\[[\s\S]*\])\s*$/;
 
-const CAMPOS_PROIBIDOS = new Set(["status", "niveis", "generos"]);
+const CAMPOS_PROIBIDOS = new Set(["status", "niveis", "generos", "conecta_assets"]);
 
 function ehCampoLivre(p: PropostaCampo): boolean {
   const ultimo = p.path.at(-1);

@@ -244,8 +244,8 @@ roteirosRouter.post("/:id/mensagens", async (req, res) => {
     let dados = existente.rows[0].data;
     const indicesNovasComplicacoes: number[] = [];
     for (const acao of acoes) {
-      if (acao === "criar_complicacao") {
-        dados = adicionarComplicacao(dados);
+      if (acao.tipo === "criar_complicacao") {
+        dados = adicionarComplicacao(dados, acao.posicao);
         indicesNovasComplicacoes.push((dados as { espinha: unknown[] }).espinha.length - 1);
       }
     }

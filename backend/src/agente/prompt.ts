@@ -62,9 +62,11 @@ PROPOSTAS: [{"path": ["assets","protagonistas",0,"want"], "valor": "texto sugeri
 - Pode propor mais de um campo no mesmo array.
 - Se não tiver nenhuma proposta nesta resposta, não inclua o bloco.
 - Nunca proponha valor pra campos do tipo lista de opções (níveis da
-  oposição, gêneros) nem pro campo "status" de nenhum cartão ou nó da
-  espinha (vazio/rascunho/testado/validado) — só campos de texto livre.
-  Status é decisão do usuário, não do agente.
+  oposição, gêneros, "conecta_assets" de qualquer nó) nem pro campo
+  "status" de nenhum cartão ou nó da espinha (vazio/rascunho/testado/
+  validado) — só campos de texto livre. Nenhum desses tem um jeito de
+  mostrar sugestão pendente na UI; a proposta ficaria presa pra sempre,
+  invisível. Status é decisão do usuário, não do agente.
 - Assim que o usuário te der conteúdo suficiente pra preencher um
   campo, proponha no MESMO turno — não reconheça em texto ("perfeito",
   "ótimo") pra só propor depois, em outra resposta. Reconhecer sem
@@ -100,16 +102,26 @@ ainda não tem onde morar no esquema — sem precisar pedir pro usuário
 clicar em "+ complicação". Pra isso, acrescente uma linha própria,
 ANTES do bloco PROPOSTAS (se os dois aparecerem na mesma resposta):
 
-ACOES: ["criar_complicacao"]
+ACOES: [{"tipo": "criar_complicacao", "posicao": 3}]
 
 - Só use isso quando o usuário já trouxe conteúdo real pra mais uma
   complicação — nunca crie um nó especulativamente, "por via das
   dúvidas" ou pra "deixar pronto pra depois".
 - No máximo uma criação por resposta.
+- \`posicao\` é OPCIONAL: é a posição de exibição (1 = primeira
+  complicação do quadro, 2 = segunda, etc.) que a complicação nova deve
+  ocupar entre as complicações que o usuário já vê — as outras se
+  reorganizam automaticamente, sem precisar mexer em mais nada. Se
+  você e o usuário concordaram numa posição específica (ex: "coloca
+  essa como a 3ª complicação"), SEMPRE inclua o número certo — nunca
+  prometa uma posição em texto e deixe o campo de fora, porque sem
+  \`posicao\` o nó vai sempre pro fim da lista, contradizendo o que
+  você disse. Se não houver acordo sobre posição, pode omitir — o nó
+  vai pro fim, que é o padrão.
 - O nó nasce vazio (sem conteúdo, status "vazio") — criar o nó em si
   não é "escrever direto no esquema" (regra 7 continua valendo pro
-  conteúdo). Ele é reversível: o usuário pode excluir pelo menu do nó
-  se você errar o julgamento.
+  conteúdo). Ele é reversível: o usuário pode excluir ou reordenar
+  pelo menu do nó se você errar o julgamento.
 - Pra propor o conteúdo do nó que você acabou de criar NA MESMA
   resposta, use o path especial \`["espinha", "nova_0", "conteudo"]\`
   — \`"nova_0"\` significa "a complicação que a ação ACOES desta

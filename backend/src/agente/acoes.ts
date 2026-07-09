@@ -1,7 +1,9 @@
 import { z } from "zod";
 
-const ACOES_SUPORTADAS = ["criar_complicacao"] as const;
-const acaoSchema = z.enum(ACOES_SUPORTADAS);
+const acaoSchema = z.object({
+  tipo: z.enum(["criar_complicacao"]),
+  posicao: z.number().int().min(1).optional(),
+});
 export type Acao = z.infer<typeof acaoSchema>;
 
 const MARCADOR = /\n?ACOES:\s*(\[[\s\S]*\])\s*$/;

@@ -31,14 +31,40 @@ interface EspinhaNo {
   excluido?: boolean;
 }
 
-export function adicionarComplicacao(data: unknown): unknown {
+/**
+ * `posicao` (1-based) é a posição de exibição que a complicação nova deve
+ * ocupar entre as complicações visíveis atuais — omitida, ela vai pro fim
+ * (mesmo comportamento de sempre). O índice real dela no array `espinha`
+ * continua sendo sempre o último elemento (nunca insere no meio do array
+ * de verdade — ver o porquê na fatia do nó repetível); o que muda é o
+ * campo `ordem`, que é só a chave de ordenação pra exibição. Pra encaixar
+ * entre duas complicações vizinhas sem precisar renumerar mais ninguém,
+ * usa um `ordem` fracionário entre a vizinha anterior e a seguinte.
+ */
+export function adicionarComplicacao(data: unknown, posicao?: number): unknown {
   const proximo = structuredClone(data) as { espinha: EspinhaNo[] };
-  const complicacoes = proximo.espinha.filter((no) => no.tipo === "complicacao");
-  const proximaOrdem = complicacoes.length + 1;
+  const todasComplicacoes = proximo.espinha.filter((no) => no.tipo === "complicacao");
+  const proximoId = todasComplicacoes.length + 1;
+
+  const visiveis = todasComplicacoes.filter((no) => !no.excluido).sort((a, b) => (a.ordem ?? 0) - (b.ordem ?? 0));
+  const maiorOrdem = todasComplicacoes.reduce((max, no) => Math.max(max, no.ordem ?? 0), 0);
+
+  let ordem: number;
+  if (posicao === undefined || posicao > visiveis.length) {
+    ordem = maiorOrdem + 1;
+  } else {
+    const alvo = Math.max(1, posicao);
+    const anterior = visiveis[alvo - 2];
+    const seguinte = visiveis[alvo - 1];
+    const ordemAnterior = anterior?.ordem ?? 0;
+    const ordemSeguinte = seguinte?.ordem ?? ordemAnterior + 2;
+    ordem = (ordemAnterior + ordemSeguinte) / 2;
+  }
+
   proximo.espinha.push({
-    id: `complicacao_${proximaOrdem}`,
+    id: `complicacao_${proximoId}`,
     tipo: "complicacao",
-    ordem: proximaOrdem,
+    ordem,
     conteudo: "",
     status: "vazio",
     conecta_assets: ["antagonista", "protagonista"],

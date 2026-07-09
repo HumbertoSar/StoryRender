@@ -331,7 +331,7 @@ describe.skipIf(!hasDb)("roteirosRouter", () => {
 
     it("ACOES criar_complicacao adiciona o nó e devolve o roteiro atualizado", async () => {
       process.env.OPENROUTER_API_KEY = "chave-de-teste";
-      const conteudo = `Boa, vou criar uma complicação nova pra isso.\nACOES: ["criar_complicacao"]`;
+      const conteudo = `Boa, vou criar uma complicação nova pra isso.\nACOES: [{"tipo": "criar_complicacao"}]`;
       vi.stubGlobal(
         "fetch",
         vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: conteudo } }] }) }),
@@ -355,7 +355,7 @@ describe.skipIf(!hasDb)("roteirosRouter", () => {
 
     it("ACOES + PROPOSTAS no mesmo turno propõe conteúdo pro nó recém-criado via placeholder nova_0", async () => {
       process.env.OPENROUTER_API_KEY = "chave-de-teste";
-      const conteudo = `Beleza.\nACOES: ["criar_complicacao"]\nPROPOSTAS: [{"path": ["espinha","nova_0","conteudo"], "valor": "ele perde o emprego"}]`;
+      const conteudo = `Beleza.\nACOES: [{"tipo": "criar_complicacao"}]\nPROPOSTAS: [{"path": ["espinha","nova_0","conteudo"], "valor": "ele perde o emprego"}]`;
       vi.stubGlobal(
         "fetch",
         vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: conteudo } }] }) }),
@@ -375,6 +375,70 @@ describe.skipIf(!hasDb)("roteirosRouter", () => {
 
       const pendentes = await request(app).get(`/roteiros/${id}/propostas`);
       expect(pendentes.body[0].path).toEqual(["espinha", 5, "conteudo"]);
+    });
+
+    it("ACOES criar_complicacao com posicao insere entre as complicações existentes sem afetar as outras", async () => {
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      const created = await request(app).post("/roteiros").send();
+      const id = created.body.id;
+      await request(app).post(`/roteiros/${id}/espinha/complicacoes`).send();
+      await request(app).post(`/roteiros/${id}/espinha/complicacoes`).send();
+
+      const conteudo = `Vou colocar como a 3ª complicação.\nACOES: [{"tipo": "criar_complicacao", "posicao": 3}]`;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: conteudo } }] }) }),
+      );
+
+      const res = await request(app)
+        .post(`/roteiros/${id}/mensagens`)
+        .send({ mensagem: "quero inserir uma complicação aqui, na 3ª posição", historico: [] });
+
+      expect(res.status).toBe(200);
+      const espinha = res.body.roteiro.data.espinha;
+      expect(espinha).toHaveLength(8);
+
+      const novoNo = espinha[7];
+      expect(novoNo.tipo).toBe("complicacao");
+      expect(novoNo.ordem).toBe(2.5);
+
+      const outrasComplicacoes = espinha.filter((n: { tipo: string; id: string }) => n.tipo === "complicacao" && n.id !== novoNo.id);
+      expect(outrasComplicacoes.map((n: { ordem: number }) => n.ordem).sort()).toEqual([1, 2, 3]);
+
+      const ordenadas = espinha
+        .filter((n: { tipo: string }) => n.tipo === "complicacao")
+        .sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
+      expect(ordenadas.map((n: { id: string }) => n.id)).toEqual([
+        "complicacao_1",
+        "complicacao_2",
+        novoNo.id,
+        "complicacao_3",
+      ]);
+    });
+
+    it("ACOES criar_complicacao com posicao 1 insere antes de todas as complicações existentes", async () => {
+      process.env.OPENROUTER_API_KEY = "chave-de-teste";
+      const created = await request(app).post("/roteiros").send();
+      const id = created.body.id;
+
+      const conteudo = `Ok.\nACOES: [{"tipo": "criar_complicacao", "posicao": 1}]`;
+      vi.stubGlobal(
+        "fetch",
+        vi.fn().mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: conteudo } }] }) }),
+      );
+
+      const res = await request(app)
+        .post(`/roteiros/${id}/mensagens`)
+        .send({ mensagem: "quero uma complicação antes da que já existe", historico: [] });
+
+      const espinha = res.body.roteiro.data.espinha;
+      const novoNo = espinha[5];
+      expect(novoNo.ordem).toBeLessThan(1);
+
+      const ordenadas = espinha
+        .filter((n: { tipo: string }) => n.tipo === "complicacao")
+        .sort((a: { ordem: number }, b: { ordem: number }) => a.ordem - b.ordem);
+      expect(ordenadas.map((n: { id: string }) => n.id)).toEqual(["complicacao_2", "complicacao_1"]);
     });
 
     it("descarta proposta com placeholder nova_N sem ação correspondente", async () => {

@@ -9,16 +9,28 @@ describe("extrairAcoes", () => {
   });
 
   it("separa o texto do bloco ACOES e faz parse do JSON", () => {
-    const bruta = `Beleza, vou criar uma complicação nova.\nACOES: ["criar_complicacao"]`;
+    const bruta = `Beleza, vou criar uma complicação nova.\nACOES: [{"tipo": "criar_complicacao"}]`;
     const { texto, acoes } = extrairAcoes(bruta);
     expect(texto).toBe("Beleza, vou criar uma complicação nova.");
-    expect(acoes).toEqual(["criar_complicacao"]);
+    expect(acoes).toEqual([{ tipo: "criar_complicacao" }]);
+  });
+
+  it("aceita o campo posicao opcional", () => {
+    const bruta = `Ok.\nACOES: [{"tipo": "criar_complicacao", "posicao": 3}]`;
+    const { acoes } = extrairAcoes(bruta);
+    expect(acoes).toEqual([{ tipo: "criar_complicacao", posicao: 3 }]);
   });
 
   it("ignora silenciosamente uma ação não suportada (fail soft)", () => {
-    const bruta = `Ok.\nACOES: ["excluir_tudo"]`;
+    const bruta = `Ok.\nACOES: [{"tipo": "excluir_tudo"}]`;
     const { texto, acoes } = extrairAcoes(bruta);
     expect(texto).toBe(bruta.trim());
+    expect(acoes).toEqual([]);
+  });
+
+  it("ignora silenciosamente posicao inválida (zero ou negativa)", () => {
+    const bruta = `Ok.\nACOES: [{"tipo": "criar_complicacao", "posicao": 0}]`;
+    const { acoes } = extrairAcoes(bruta);
     expect(acoes).toEqual([]);
   });
 
