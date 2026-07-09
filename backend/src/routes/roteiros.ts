@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request, type Response } from "express";
 import { z } from "zod";
 import { pool } from "../db.js";
 import {
@@ -17,6 +17,8 @@ import { extrairAcoes, remapearNovasComplicacoes } from "../agente/acoes.js";
 export const roteirosRouter = Router();
 
 const idParamSchema = z.object({ id: z.uuid() });
+const indiceParamSchema = z.object({ id: z.uuid(), indice: z.coerce.number().int().min(0) });
+const propostaParamSchema = z.object({ id: z.uuid(), propostaId: z.uuid() });
 
 const mensagemBodySchema = z.object({
   mensagem: z.string().min(1),
@@ -47,9 +49,47 @@ const patchBodySchema = z.object({
 });
 
 const resolverPropostaBodySchema = z.object({ acao: z.enum(["aceitar", "rejeitar"]) });
-
-const indiceParamSchema = z.object({ id: z.uuid(), indice: z.coerce.number().int().min(0) });
 const moverBodySchema = z.object({ direcao: z.enum(["cima", "baixo"]) });
+
+function parseParamsOu400<T extends z.ZodTypeAny>(
+  schema: T,
+  req: Request,
+  res: Response,
+  erro: string,
+): z.infer<T> | undefined {
+  const parsed = schema.safeParse(req.params);
+  if (!parsed.success) {
+    res.status(400).json({ error: erro });
+    return undefined;
+  }
+  return parsed.data;
+}
+
+function parseBodyOu400<T extends z.ZodTypeAny>(schema: T, req: Request, res: Response): z.infer<T> | undefined {
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "body inválido", detalhes: parsed.error.issues });
+    return undefined;
+  }
+  return parsed.data;
+}
+
+async function buscarDataOu404(id: string, res: Response): Promise<unknown> {
+  const existente = await pool.query("SELECT data FROM roteiros WHERE id = $1", [id]);
+  if (existente.rows.length === 0) {
+    res.status(404).json({ error: "roteiro não encontrado" });
+    return undefined;
+  }
+  return existente.rows[0].data;
+}
+
+async function salvarRoteiro(id: string, data: unknown) {
+  const result = await pool.query(
+    "UPDATE roteiros SET data = $1, updated_at = now() WHERE id = $2 RETURNING id, data, created_at, updated_at",
+    [data, id],
+  );
+  return result.rows[0];
+}
 
 async function persistirPropostas(roteiroId: string, propostas: { path: (string | number)[]; valor: unknown }[]) {
   const persistidas = [];
@@ -87,15 +127,12 @@ roteirosRouter.post("/", async (_req, res) => {
 });
 
 roteirosRouter.get("/:id", async (req, res) => {
-  const parsed = idParamSchema.safeParse(req.params);
-  if (!parsed.success) {
-    res.status(400).json({ error: "id inválido" });
-    return;
-  }
+  const parsedParams = parseParamsOu400(idParamSchema, req, res, "id inválido");
+  if (!parsedParams) return;
 
   const result = await pool.query(
     "SELECT id, data, created_at, updated_at FROM roteiros WHERE id = $1",
-    [parsed.data.id],
+    [parsedParams.id],
   );
   if (result.rows.length === 0) {
     res.status(404).json({ error: "roteiro não encontrado" });
@@ -105,142 +142,88 @@ roteirosRouter.get("/:id", async (req, res) => {
 });
 
 roteirosRouter.patch("/:id", async (req, res) => {
-  const parsedParams = idParamSchema.safeParse(req.params);
-  if (!parsedParams.success) {
-    res.status(400).json({ error: "id inválido" });
-    return;
-  }
-  const parsedBody = patchBodySchema.safeParse(req.body);
-  if (!parsedBody.success) {
-    res.status(400).json({ error: "body inválido", detalhes: parsedBody.error.issues });
-    return;
-  }
+  const parsedParams = parseParamsOu400(idParamSchema, req, res, "id inválido");
+  if (!parsedParams) return;
+  const parsedBody = parseBodyOu400(patchBodySchema, req, res);
+  if (!parsedBody) return;
 
-  const existente = await pool.query("SELECT data FROM roteiros WHERE id = $1", [parsedParams.data.id]);
-  if (existente.rows.length === 0) {
-    res.status(404).json({ error: "roteiro não encontrado" });
-    return;
-  }
+  const data = await buscarDataOu404(parsedParams.id, res);
+  if (data === undefined) return;
 
-  const novaData = applyUpdates(existente.rows[0].data, parsedBody.data.updates);
-  const result = await pool.query(
-    "UPDATE roteiros SET data = $1, updated_at = now() WHERE id = $2 RETURNING id, data, created_at, updated_at",
-    [novaData, parsedParams.data.id],
-  );
-  res.json(result.rows[0]);
+  const novaData = applyUpdates(data, parsedBody.updates);
+  res.json(await salvarRoteiro(parsedParams.id, novaData));
 });
 
 roteirosRouter.post("/:id/espinha/complicacoes", async (req, res) => {
-  const parsedParams = idParamSchema.safeParse(req.params);
-  if (!parsedParams.success) {
-    res.status(400).json({ error: "id inválido" });
-    return;
-  }
+  const parsedParams = parseParamsOu400(idParamSchema, req, res, "id inválido");
+  if (!parsedParams) return;
 
-  const existente = await pool.query("SELECT data FROM roteiros WHERE id = $1", [parsedParams.data.id]);
-  if (existente.rows.length === 0) {
-    res.status(404).json({ error: "roteiro não encontrado" });
-    return;
-  }
+  const data = await buscarDataOu404(parsedParams.id, res);
+  if (data === undefined) return;
 
-  const novaData = adicionarComplicacao(existente.rows[0].data);
-  const result = await pool.query(
-    "UPDATE roteiros SET data = $1, updated_at = now() WHERE id = $2 RETURNING id, data, created_at, updated_at",
-    [novaData, parsedParams.data.id],
-  );
-  res.status(201).json(result.rows[0]);
+  const novaData = adicionarComplicacao(data);
+  res.status(201).json(await salvarRoteiro(parsedParams.id, novaData));
 });
 
 roteirosRouter.post("/:id/espinha/complicacoes/:indice/excluir", async (req, res) => {
-  const parsedParams = indiceParamSchema.safeParse(req.params);
-  if (!parsedParams.success) {
-    res.status(400).json({ error: "id ou índice inválido" });
-    return;
-  }
+  const parsedParams = parseParamsOu400(indiceParamSchema, req, res, "id ou índice inválido");
+  if (!parsedParams) return;
 
-  const existente = await pool.query("SELECT data FROM roteiros WHERE id = $1", [parsedParams.data.id]);
-  if (existente.rows.length === 0) {
-    res.status(404).json({ error: "roteiro não encontrado" });
-    return;
-  }
+  const data = await buscarDataOu404(parsedParams.id, res);
+  if (data === undefined) return;
 
   let novaData;
   try {
-    novaData = excluirComplicacao(existente.rows[0].data, parsedParams.data.indice);
+    novaData = excluirComplicacao(data, parsedParams.indice);
   } catch (err) {
     res.status(400).json({ error: (err as Error).message });
     return;
   }
 
-  const result = await pool.query(
-    "UPDATE roteiros SET data = $1, updated_at = now() WHERE id = $2 RETURNING id, data, created_at, updated_at",
-    [novaData, parsedParams.data.id],
-  );
+  const roteiroAtualizado = await salvarRoteiro(parsedParams.id, novaData);
   await pool.query(
     `UPDATE propostas SET status = 'rejeitada', resolvida_em = now()
      WHERE roteiro_id = $1 AND status = 'pendente' AND path->>0 = 'espinha' AND (path->>1)::int = $2`,
-    [parsedParams.data.id, parsedParams.data.indice],
+    [parsedParams.id, parsedParams.indice],
   );
-  res.json(result.rows[0]);
+  res.json(roteiroAtualizado);
 });
 
 roteirosRouter.post("/:id/espinha/complicacoes/:indice/mover", async (req, res) => {
-  const parsedParams = indiceParamSchema.safeParse(req.params);
-  if (!parsedParams.success) {
-    res.status(400).json({ error: "id ou índice inválido" });
-    return;
-  }
-  const parsedBody = moverBodySchema.safeParse(req.body);
-  if (!parsedBody.success) {
-    res.status(400).json({ error: "body inválido", detalhes: parsedBody.error.issues });
-    return;
-  }
+  const parsedParams = parseParamsOu400(indiceParamSchema, req, res, "id ou índice inválido");
+  if (!parsedParams) return;
+  const parsedBody = parseBodyOu400(moverBodySchema, req, res);
+  if (!parsedBody) return;
 
-  const existente = await pool.query("SELECT data FROM roteiros WHERE id = $1", [parsedParams.data.id]);
-  if (existente.rows.length === 0) {
-    res.status(404).json({ error: "roteiro não encontrado" });
-    return;
-  }
+  const data = await buscarDataOu404(parsedParams.id, res);
+  if (data === undefined) return;
 
   let novaData;
   try {
-    novaData = moverComplicacao(existente.rows[0].data, parsedParams.data.indice, parsedBody.data.direcao);
+    novaData = moverComplicacao(data, parsedParams.indice, parsedBody.direcao);
   } catch (err) {
     res.status(400).json({ error: (err as Error).message });
     return;
   }
 
-  const result = await pool.query(
-    "UPDATE roteiros SET data = $1, updated_at = now() WHERE id = $2 RETURNING id, data, created_at, updated_at",
-    [novaData, parsedParams.data.id],
-  );
-  res.json(result.rows[0]);
+  res.json(await salvarRoteiro(parsedParams.id, novaData));
 });
 
 roteirosRouter.post("/:id/mensagens", async (req, res) => {
-  const parsedParams = idParamSchema.safeParse(req.params);
-  if (!parsedParams.success) {
-    res.status(400).json({ error: "id inválido" });
-    return;
-  }
-  const parsedBody = mensagemBodySchema.safeParse(req.body);
-  if (!parsedBody.success) {
-    res.status(400).json({ error: "body inválido", detalhes: parsedBody.error.issues });
-    return;
-  }
+  const parsedParams = parseParamsOu400(idParamSchema, req, res, "id inválido");
+  if (!parsedParams) return;
+  const parsedBody = parseBodyOu400(mensagemBodySchema, req, res);
+  if (!parsedBody) return;
 
-  const existente = await pool.query("SELECT data FROM roteiros WHERE id = $1", [parsedParams.data.id]);
-  if (existente.rows.length === 0) {
-    res.status(404).json({ error: "roteiro não encontrado" });
-    return;
-  }
+  const data = await buscarDataOu404(parsedParams.id, res);
+  if (data === undefined) return;
 
   const mensagens: MensagemChat[] = [
-    { role: "system", content: montarSystemPrompt(existente.rows[0].data) },
-    ...parsedBody.data.historico.map(
+    { role: "system", content: montarSystemPrompt(data) },
+    ...parsedBody.historico.map(
       (m): MensagemChat => ({ role: m.from === "agente" ? "assistant" : "user", content: m.texto }),
     ),
-    { role: "user", content: parsedBody.data.mensagem },
+    { role: "user", content: parsedBody.mensagem },
   ];
 
   try {
@@ -248,7 +231,7 @@ roteirosRouter.post("/:id/mensagens", async (req, res) => {
     const { texto: semPropostas, propostas: propostasBrutas } = extrairPropostas(respostaBruta);
     const { texto, acoes } = extrairAcoes(semPropostas);
 
-    let dados = existente.rows[0].data;
+    let dados: unknown = data;
     let algumaAcaoAplicada = false;
     const indicesNovasComplicacoes: number[] = [];
     for (const acao of acoes) {
@@ -267,17 +250,10 @@ roteirosRouter.post("/:id/mensagens", async (req, res) => {
       }
     }
 
-    let roteiroAtualizado;
-    if (algumaAcaoAplicada) {
-      const atualizado = await pool.query(
-        "UPDATE roteiros SET data = $1, updated_at = now() WHERE id = $2 RETURNING id, data, created_at, updated_at",
-        [dados, parsedParams.data.id],
-      );
-      roteiroAtualizado = atualizado.rows[0];
-    }
+    const roteiroAtualizado = algumaAcaoAplicada ? await salvarRoteiro(parsedParams.id, dados) : undefined;
 
     const propostas = remapearNovasComplicacoes(propostasBrutas, indicesNovasComplicacoes);
-    const persistidas = await persistirPropostas(parsedParams.data.id, propostas);
+    const persistidas = await persistirPropostas(parsedParams.id, propostas);
     res.json({ resposta: texto, propostas: persistidas, roteiro: roteiroAtualizado });
   } catch (err) {
     res.status(502).json({ error: "falha ao chamar o agente", detalhes: (err as Error).message });
@@ -285,21 +261,15 @@ roteirosRouter.post("/:id/mensagens", async (req, res) => {
 });
 
 roteirosRouter.post("/:id/eventos", async (req, res) => {
-  const parsedParams = idParamSchema.safeParse(req.params);
-  if (!parsedParams.success) {
-    res.status(400).json({ error: "id inválido" });
-    return;
-  }
-  const parsedBody = eventoBodySchema.safeParse(req.body);
-  if (!parsedBody.success) {
-    res.status(400).json({ error: "body inválido", detalhes: parsedBody.error.issues });
-    return;
-  }
+  const parsedParams = parseParamsOu400(idParamSchema, req, res, "id inválido");
+  if (!parsedParams) return;
+  const parsedBody = parseBodyOu400(eventoBodySchema, req, res);
+  if (!parsedBody) return;
 
   try {
     const result = await pool.query(
       "INSERT INTO eventos (roteiro_id, tipo, detalhes) VALUES ($1, $2, $3) RETURNING id, tipo, detalhes, criado_em",
-      [parsedParams.data.id, parsedBody.data.tipo, parsedBody.data.detalhes],
+      [parsedParams.id, parsedBody.tipo, parsedBody.detalhes],
     );
     res.status(201).json(result.rows[0]);
   } catch {
@@ -308,74 +278,62 @@ roteirosRouter.post("/:id/eventos", async (req, res) => {
 });
 
 roteirosRouter.get("/:id/eventos", async (req, res) => {
-  const parsedParams = idParamSchema.safeParse(req.params);
-  if (!parsedParams.success) {
-    res.status(400).json({ error: "id inválido" });
-    return;
-  }
+  const parsedParams = parseParamsOu400(idParamSchema, req, res, "id inválido");
+  if (!parsedParams) return;
 
   const result = await pool.query(
     "SELECT id, tipo, detalhes, criado_em FROM eventos WHERE roteiro_id = $1 ORDER BY criado_em ASC",
-    [parsedParams.data.id],
+    [parsedParams.id],
   );
   res.json(result.rows);
 });
 
 roteirosRouter.get("/:id/propostas", async (req, res) => {
-  const parsedParams = idParamSchema.safeParse(req.params);
-  if (!parsedParams.success) {
-    res.status(400).json({ error: "id inválido" });
-    return;
-  }
+  const parsedParams = parseParamsOu400(idParamSchema, req, res, "id inválido");
+  if (!parsedParams) return;
   const status = typeof req.query.status === "string" ? req.query.status : "pendente";
 
   const result = await pool.query(
     "SELECT id, path, valor, status, criado_em FROM propostas WHERE roteiro_id = $1 AND status = $2 ORDER BY criado_em ASC",
-    [parsedParams.data.id, status],
+    [parsedParams.id, status],
   );
   res.json(result.rows);
 });
 
 roteirosRouter.post("/:id/propostas/:propostaId/resolver", async (req, res) => {
-  const parsedParams = z.object({ id: z.uuid(), propostaId: z.uuid() }).safeParse(req.params);
-  if (!parsedParams.success) {
-    res.status(400).json({ error: "id inválido" });
-    return;
-  }
-  const parsedBody = resolverPropostaBodySchema.safeParse(req.body);
-  if (!parsedBody.success) {
-    res.status(400).json({ error: "body inválido", detalhes: parsedBody.error.issues });
-    return;
-  }
+  const parsedParams = parseParamsOu400(propostaParamSchema, req, res, "id inválido");
+  if (!parsedParams) return;
+  const parsedBody = parseBodyOu400(resolverPropostaBodySchema, req, res);
+  if (!parsedBody) return;
 
   const proposta = await pool.query(
     "SELECT id, path, valor FROM propostas WHERE id = $1 AND roteiro_id = $2 AND status = 'pendente'",
-    [parsedParams.data.propostaId, parsedParams.data.id],
+    [parsedParams.propostaId, parsedParams.id],
   );
   if (proposta.rows.length === 0) {
     res.status(404).json({ error: "proposta pendente não encontrada" });
     return;
   }
 
-  if (parsedBody.data.acao === "aceitar") {
-    const roteiro = await pool.query("SELECT data FROM roteiros WHERE id = $1", [parsedParams.data.id]);
+  if (parsedBody.acao === "aceitar") {
+    const roteiro = await pool.query("SELECT data FROM roteiros WHERE id = $1", [parsedParams.id]);
     const novaData = applyUpdates(roteiro.rows[0].data, [
       { path: proposta.rows[0].path, value: proposta.rows[0].valor },
     ]);
     await pool.query("UPDATE roteiros SET data = $1, updated_at = now() WHERE id = $2", [
       novaData,
-      parsedParams.data.id,
+      parsedParams.id,
     ]);
   }
 
-  const novoStatus = parsedBody.data.acao === "aceitar" ? "aceita" : "rejeitada";
+  const novoStatus = parsedBody.acao === "aceitar" ? "aceita" : "rejeitada";
   const propostaAtualizada = await pool.query(
     "UPDATE propostas SET status = $1, resolvida_em = now() WHERE id = $2 RETURNING id, path, valor, status, criado_em, resolvida_em",
-    [novoStatus, parsedParams.data.propostaId],
+    [novoStatus, parsedParams.propostaId],
   );
   const roteiroAtualizado = await pool.query(
     "SELECT id, data, created_at, updated_at FROM roteiros WHERE id = $1",
-    [parsedParams.data.id],
+    [parsedParams.id],
   );
 
   res.json({ proposta: propostaAtualizada.rows[0], roteiro: roteiroAtualizado.rows[0] });

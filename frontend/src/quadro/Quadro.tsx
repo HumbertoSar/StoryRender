@@ -82,41 +82,49 @@ export function Quadro({ roteiro }: { roteiro: RoteiroResponse }) {
     });
   }
 
+  function aplicarAcaoDeEspinha(
+    promessa: Promise<RoteiroResponse>,
+    aoSucesso: (roteiro: RoteiroResponse) => void,
+    contextoErro: string,
+  ) {
+    promessa.then(aoSucesso).catch((err) => {
+      registrarEvento(roteiro.id, "erro", { contexto: contextoErro, mensagem: (err as Error).message });
+      console.error(`Falha ao ${contextoErro}:`, err);
+    });
+  }
+
   function adicionarNovaComplicacao() {
-    adicionarComplicacao(roteiro.id)
-      .then((r) => {
+    aplicarAcaoDeEspinha(
+      adicionarComplicacao(roteiro.id),
+      (r) => {
         setData(r.data as unknown as RoteiroData);
         registrarEvento(roteiro.id, "espinha_no_adicionado", { tipo: "complicacao", origem: "manual" });
-      })
-      .catch((err) => {
-        registrarEvento(roteiro.id, "erro", { contexto: "adicionar_complicacao", mensagem: (err as Error).message });
-        console.error("Falha ao adicionar complicação:", err);
-      });
+      },
+      "adicionar_complicacao",
+    );
   }
 
   function excluirComplicacaoDaEspinha(indice: number) {
-    excluirComplicacao(roteiro.id, indice)
-      .then((r) => {
+    aplicarAcaoDeEspinha(
+      excluirComplicacao(roteiro.id, indice),
+      (r) => {
         setData(r.data as unknown as RoteiroData);
         setPropostas((prev) => prev.filter((p) => !(p.path[0] === "espinha" && p.path[1] === indice)));
         registrarEvento(roteiro.id, "espinha_no_excluido", { indice });
-      })
-      .catch((err) => {
-        registrarEvento(roteiro.id, "erro", { contexto: "excluir_complicacao", mensagem: (err as Error).message });
-        console.error("Falha ao excluir complicação:", err);
-      });
+      },
+      "excluir_complicacao",
+    );
   }
 
   function moverComplicacaoNaEspinha(indice: number, direcao: "cima" | "baixo") {
-    moverComplicacao(roteiro.id, indice, direcao)
-      .then((r) => {
+    aplicarAcaoDeEspinha(
+      moverComplicacao(roteiro.id, indice, direcao),
+      (r) => {
         setData(r.data as unknown as RoteiroData);
         registrarEvento(roteiro.id, "espinha_no_movido", { indice, direcao });
-      })
-      .catch((err) => {
-        registrarEvento(roteiro.id, "erro", { contexto: "mover_complicacao", mensagem: (err as Error).message });
-        console.error("Falha ao mover complicação:", err);
-      });
+      },
+      "mover_complicacao",
+    );
   }
 
   const protagonista = data.assets.protagonistas[0];
