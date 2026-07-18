@@ -9,6 +9,7 @@ from ag_ui_langgraph import LangGraphAgent, add_langgraph_fastapi_endpoint
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from langchain_openai import ChatOpenAI
+from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, MessagesState, StateGraph
 
 load_dotenv()
@@ -37,7 +38,10 @@ grafo.add_edge("conversar", END)
 app = FastAPI(title="Story Render Agent")
 add_langgraph_fastapi_endpoint(
     app,
-    LangGraphAgent(name="story_agent", graph=grafo.compile()),
+    # O adaptador AG-UI consulta aget_state entre turnos — o grafo PRECISA de
+    # checkpointer, senão "ValueError: No checkpointer set" em toda chamada.
+    # Em memória por enquanto; persistência real é fatia da Fase 1.
+    LangGraphAgent(name="story_agent", graph=grafo.compile(checkpointer=MemorySaver())),
     "/agent",
 )
 

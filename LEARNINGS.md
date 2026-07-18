@@ -479,3 +479,18 @@ Decisão do usuário: transformar o Story Render em projeto de aprendizado de Ge
 **O que ficou pra depois:** frontend (fatia 0.2), chave real no `.env` (não existe neste dispositivo), system prompt/domínio, persistência.
 
 **Smoke test manual:** `uv run uvicorn main:app --port 8000` → `/health` responde `{"ok":true}`, `/openapi.json` lista rotas `/agent` e `/agent/health`. Fluxo com LLM real só na fatia 0.3 (precisa da chave).
+
+## Fatia 0.2: web/ — Next.js + CopilotKit ligado ao agente via AG-UI
+
+**O que foi construído:** `web/` (create-next-app, TS, app router): route handler `/api/copilotkit` com `CopilotRuntime` + `LangGraphHttpAgent` apontando pro Python (`AGENT_URL`, default `127.0.0.1:8000/agent`) e `ExperimentalEmptyAdapter` (todo LLM roda no agente); página única com `<CopilotKit agent="story_agent">` + `<CopilotChat>`.
+
+**Por quê:** segunda metade da fundação Fase 0 — a ponte AG-UI browser→runtime→Python, sem nenhum domínio ainda.
+
+**Gotchas/achados:**
+- **O grafo LangGraph PRECISA de checkpointer** — o adaptador `LangGraphAgent` (ag-ui-langgraph) chama `aget_state` a cada run e explode com `ValueError: No checkpointer set` (e o cliente vê só um 200 de stream vazio, erro nenhum). `MemorySaver` resolve na Fase 0; Postgres checkpointer é fatia da Fase 1.
+- O runtime 1.63 **não fala mais GraphQL** — protocolo novo por método JSON (`{"method":"info"}`) + SSE. O `info` expõe os agentes registrados e as flags `a2uiEnabled`/`openGenerativeUIEnabled` (caminho oficial pras Fases 2 e 3).
+- `CopilotChat` não aceita `style` (só `className`/labels) nessa versão.
+
+**O que ficou pra depois:** fatia 0.3 (smoke test E2E com chave real do OpenRouter — não existe `.env` neste dispositivo), CLAUDE.md refletindo o pivô.
+
+**Smoke test manual (sem chave):** POST AG-UI direto no Python flui `RUN_STARTED → STEP_STARTED(conversar) → on_chat_model_start` e morre no 401 do OpenRouter (exatamente onde deveria); `curl -X POST localhost:3000/api/copilotkit -d '{"method":"info"}'` responde com `story_agent` registrado, `mode: sse`. `npm run build` limpo.
