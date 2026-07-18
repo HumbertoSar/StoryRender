@@ -1,33 +1,37 @@
 # CLAUDE.md — Story Render
 
 ## O que é
-Produto onde escritores escolhem um método de estrutura narrativa (MVP: só McKee) e recebem um esquema visual — espinha macro + cartões de profundidade — com um agente ajudando a preencher via chat ou edição direta.
+**Laboratório de Generative UI** construído sobre o Story Render: escritores preenchem um esquema visual de estrutura narrativa (método McKee) com um agente — e o projeto existe pra testar, na prática, os três níveis de Generative UI da taxonomia CopilotKit (2026), em fases:
 
-Fase atual: MVP, ainda sem código. Este arquivo governa **processo** (como construir). Não duplica **conteúdo/UX** — isso já está decidido nestes três documentos, que são fonte de verdade e devem ser lidos antes de qualquer fatia:
+- **Fase 0 (feita)** — fundação: chat streamando via AG-UI
+- **Fase 1 — nível controlled**: roteiro como estado compartilhado agente↔quadro, tools reais, propostas como human-in-the-loop nativo, cartões pré-construídos invocados no chat
+- **Fase 2 — nível declarative**: agente compõe o layout do quadro via A2UI/Open-JSON-UI dentro do design system do brief
+- **Fase 3 — nível open-ended**: agente gera visualizações HTML/SVG completas (MCP Apps, iframe sandboxed)
 
-- `STORY_RENDER_MVP_MCKEE.md` — escopo P0/P1/P2, campos de cada cartão, ordem de preenchimento, mapa de conexões, modelo de dados, arquitetura de agentes (agente único, modos Condução/Diagnóstico) e o rascunho de instrução do agente
-- `STORY_RENDER_BRIEF_PROTOTIPO.md` — gramática visual já validada (cor, tipografia, layout de cartão)
-- `STORY_RENDER_BRIEF_JORNADA_ONBOARDING.md` — fluxo de onboarding já validado (Fase A/B, revelação ao vivo)
+O produto de verdade é o `LEARNINGS.md`: registrar onde cada nível acerta e quebra. Plano completo em `.claude/plans/synthetic-juggling-hamster.md`.
 
-Se uma fatia exigir uma decisão que nenhum desses três cobre: **parar e perguntar**, não inventar escopo.
+O domínio (campos dos cartões, ordem, modos Condução/Diagnóstico do agente) e a gramática visual continuam decididos nos docs, fonte de verdade antes de qualquer fatia:
+
+- `docs/STORY_RENDER_MVP_MCKEE.md` — campos de cada cartão, modelo de dados, arquitetura do agente e rascunho de instrução
+- `docs/STORY_RENDER_BRIEF_PROTOTIPO.md` — gramática visual (cor, tipografia, layout de cartão)
+- `docs/STORY_RENDER_BRIEF_JORNADA_ONBOARDING.md` — onboarding (fora de escopo do laboratório por ora)
+
+Se uma fatia exigir uma decisão que nem os docs nem o plano cobrem: **parar e perguntar**, não inventar escopo.
 
 ## Stack
-Decidido na fatia de setup: frontend React + Vite + TypeScript (`frontend/`), canvas custom em CSS/SVG (sem tldraw — o layout do brief é restrito o bastante pra não precisar de motor de canvas infinito). Backend Node + Express + TypeScript (`backend/`), persistência em Postgres (schema do roteiro como `jsonb`, seção 6 do MVP doc). Postgres local via Docker Compose. Agente chama a OpenRouter (`OPENROUTER_API_KEY`/`OPENROUTER_MODEL` em `backend/.env`) em vez da API da Anthropic direto — permite trocar de modelo por env var sem mudar código.
+- `web/` — Next.js + TypeScript + CopilotKit (`@copilotkit/react-core`, `react-ui`, `runtime`). Route handler `/api/copilotkit` faz ponte AG-UI pro agente Python (`LangGraphHttpAgent`, `ExperimentalEmptyAdapter` — todo LLM roda no agente).
+- `agent/` — Python 3.12 via **uv**, LangGraph servido por FastAPI com `ag-ui-langgraph` (rota `/agent`). O grafo PRECISA de checkpointer (o adaptador AG-UI consulta estado a cada run). LLM via OpenRouter (`OPENROUTER_API_KEY`/`OPENROUTER_MODEL` em `agent/.env`) — troca de modelo por env var.
+- `frontend/` e `backend/` — **legado** (MVP pré-pivô, React+Vite / Express). Referência de domínio pra portar (`backend/src/roteiro.ts`, `backend/src/agente/prompt.ts`, cartões e CSS de `frontend/src/quadro/`); não evoluir. Arquivar após paridade da Fase 1.
+- Postgres (Docker Compose) — entra na fatia de persistência da Fase 1.
 
 ```
-# Postgres local
-Setup:  docker compose up -d
+# Agente (em agent/)
+Dev:    uv run uvicorn main:app --port 8000
+Health: curl localhost:8000/health
 
-# Backend (em backend/)
+# Web (em web/)
+Dev:    npm run dev         # next, porta 3000
 Build:  npm run build
-Test:   npm run test
-Lint:   npm run lint
-Dev:    npm run dev        # tsx watch, porta 3001
-Health: curl localhost:3001/health
-
-# Frontend (em frontend/)
-Build:  npm run build
-Dev:    npm run dev         # vite, porta 5173
 Lint:   npm run lint
 ```
 
@@ -43,11 +47,11 @@ Antes de codar qualquer fatia: escrever 2-3 frases dizendo o que entra nela e o 
 4. **Documentar** — comentário onde a lógica não for óbvia + entrada no `LEARNINGS.md` (o que foi construído, por quê, o que ficou pra depois)
 5. **Commit pequeno** — 1 fatia, 1 commit, mensagem que descreve o quê e o porquê
 
-## Cadência periódica — não a cada fatia, ao fim de cada Fase (A/B/C/D) ou cartão completo
+## Cadência periódica — não a cada fatia, ao fim de cada Fase (0–3) ou cartão completo
 
 **a) Review de código**
 - A fatia faz exatamente o que o escopo dizia — nem mais, nem menos?
-- As regras do bloco de instrução do agente (`STORY_RENDER_MVP_MCKEE.md`, seção 7) estão implementadas de fato, ou só documentadas?
+- As regras do bloco de instrução do agente (`docs/STORY_RENDER_MVP_MCKEE.md`, seção 7) estão implementadas de fato, ou só documentadas?
 - Os caminhos de erro óbvios têm tratamento?
 
 **b) Simplificação**
@@ -64,6 +68,7 @@ Registrar o resultado das duas — mesmo "nada a simplificar" — como entrada n
 - A partir do Claude Code v2.1.59, existe memória automática (liga por padrão) — Claude guarda sozinho o que aprende no caminho. Não substitui o `LEARNINGS.md`, complementa: automática é o que o agente achou relevante lembrar, `LEARNINGS.md` é o que você decidiu que precisa ficar visível.
 
 ## Não fazer
-- Não implementar Fase C ou D antes da Fase B estar de pé (ordem em `STORY_RENDER_MVP_MCKEE.md`, seção 4)
-- Não construir nada marcado P2 sem perguntar antes
+- Não implementar um nível de GenUI antes do anterior estar de pé (ordem: Fase 1 → 2 → 3; o plano diz o que entra em cada uma)
+- Não evoluir `frontend/`/`backend/` legados — só portar deles
+- Não construir onboarding nem deploy sem perguntar antes
 - Não marcar fatia como pronta só porque compilou ou rodou uma vez sem erro
