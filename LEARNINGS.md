@@ -457,3 +457,25 @@ O usuário revisou a checklist da seção 9 do `STORY_RENDER_MVP_MCKEE.md` ("Cri
 **P0 está 100% fechado.** P2 e os não-objetivos explícitos (seção 1) continuam corretamente de fora, nunca construídos.
 
 **O que isso significa daqui pra frente:** o `CLAUDE.md` continua valendo como processo (fatias pequenas, loop de scope→implementar→testar→documentar→commit), mas o projeto deixa de ser "MVP em construção" e vira "produto com MVP fechado, com uma lista conhecida de P1 pendentes e possíveis próximos passos" (retomar os P1 acima, abrir um novo template além de McKee, ou validação com mais usuários reais — nenhuma dessas direções foi decidida ainda).
+
+---
+
+# PIVÔ: Laboratório de Generative UI (CopilotKit) — jul/2026
+
+Decisão do usuário: transformar o Story Render em projeto de aprendizado de Generative UI, testando os 3 níveis da taxonomia CopilotKit (controlled/AG-UI → declarative/A2UI → open-ended/MCP Apps). App novo (`web/` + `agent/`) reaproveitando o núcleo (schema jsonb, mutações de `backend/src/roteiro.ts`, prompts McKee, gramática visual); `frontend/`/`backend/` viram legado de referência até a paridade do nível 1. Agente em LangGraph Python. Plano completo em `.claude/plans/synthetic-juggling-hamster.md`.
+
+## Fatia 0.1: agent/ — grafo mínimo servido via AG-UI
+
+**O que foi construído:** `agent/` (uv, Python 3.12): LangGraph de um nó (`conversar`) chamando OpenRouter via `ChatOpenAI(base_url=openrouter)`, exposto por FastAPI com `add_langgraph_fastapi_endpoint` do pacote `ag-ui-langgraph` (rota `/agent`), mais `/health`.
+
+**Por quê:** fundação da Fase 0 — provar o caminho AG-UI antes de qualquer domínio. O pacote `ag-ui-langgraph` traduz o stream do LangGraph em eventos AG-UI automaticamente (evita codificar `TextMessageContentEvent` etc. na mão, como fazem os tutoriais mais antigos).
+
+**Achados:**
+- `ag_ui_langgraph` já exporta suporte nativo a **A2UI** (`a2ui_tool`, `get_a2ui_tools`, `A2UIGuidelines`, `StateStreamingMiddleware`) — a Fase 2 (nível declarativo) tem caminho pavimentado no próprio pacote.
+- O CLI oficial `npx copilotkit create` agora exige login em workspace CopilotKit (Ops/Clerk) + licença — evitado de propósito; scaffold manual com pacotes open-source.
+- `ChatOpenAI` recusa `api_key=""` na construção (não só na chamada) — placeholder `"sem-chave"` permite boot sem credencial (testes/CI); a chamada real dá 401 claro.
+- Python do sistema é 3.9; `uv` (via brew) gerencia o 3.12 do projeto.
+
+**O que ficou pra depois:** frontend (fatia 0.2), chave real no `.env` (não existe neste dispositivo), system prompt/domínio, persistência.
+
+**Smoke test manual:** `uv run uvicorn main:app --port 8000` → `/health` responde `{"ok":true}`, `/openapi.json` lista rotas `/agent` e `/agent/health`. Fluxo com LLM real só na fatia 0.3 (precisa da chave).
