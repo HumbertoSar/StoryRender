@@ -494,3 +494,13 @@ Decisão do usuário: transformar o Story Render em projeto de aprendizado de Ge
 **O que ficou pra depois:** fatia 0.3 (smoke test E2E com chave real do OpenRouter — não existe `.env` neste dispositivo), CLAUDE.md refletindo o pivô.
 
 **Smoke test manual (sem chave):** POST AG-UI direto no Python flui `RUN_STARTED → STEP_STARTED(conversar) → on_chat_model_start` e morre no 401 do OpenRouter (exatamente onde deveria); `curl -X POST localhost:3000/api/copilotkit -d '{"method":"info"}'` responde com `story_agent` registrado, `mode: sse`. `npm run build` limpo.
+
+## Fatia 0.3: smoke test E2E com chave real — Fase 0 fechada
+
+**O que foi feito:** nenhum código novo — só o teste que faltava, com `agent/.env` criado pelo usuário. (1) POST AG-UI direto no Python: resposta real do `anthropic/claude-sonnet-4.5` streamada token a token (`TEXT_MESSAGE_START/CONTENT` com deltas). (2) No browser (`localhost:3000`): mensagem no CopilotChat → resposta correta renderizada, atravessando browser → runtime Next → AG-UI → LangGraph → OpenRouter.
+
+**Achado:** o stream AG-UI repassa eventos `RAW` do LangGraph inteiros (cada delta vem embrulhado no evento `on_chat_model_stream` completo, com metadata) — verboso; se virar problema de payload, investigar como suprimir os RAW no adaptador.
+
+**Cosmético pendente (não bloqueia):** o `CopilotChat` não ocupa a altura toda da tela — sobra um vão abaixo. Ajustar via `className`/CSS quando a UI do quadro entrar na Fase 1.
+
+**Fase 0 completa.** Próxima fatia: CLAUDE.md refletindo o pivô; depois, Fase 1 (estado compartilhado do roteiro + cartão de Protagonista).
