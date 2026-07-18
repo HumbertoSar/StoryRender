@@ -516,3 +516,18 @@ Decisão do usuário: transformar o Story Render em projeto de aprendizado de Ge
 **O que ficou pra depois:** persistência (o estado morre com o `MemorySaver`/restart), tools de mutação, edição pelo usuário (bidirecional), demais cartões, espinha, CSS do brief (cartão está com estilo neutro inline).
 
 **Smoke test manual (browser):** antes do 1º turno o quadro mostra "aguardando o primeiro turno do agente…"; depois de uma mensagem qualquer, aparece "template mckee · fase A" + cartão Protagonista com campos "—" e status "vazio" — dados que só existem no grafo Python. Confirmado também no curl: `STATE_SNAPSHOT` com `"roteiro":{"template":"mckee",...}`.
+
+## Fatia 1.2: persistência — Postgres na VPS + AsyncPostgresSaver
+
+**O que foi construído:** container `storyrender-postgres` (Postgres 16) na VPS (`/opt/storyrender/docker-compose.yml`), escutando **só em 127.0.0.1:5432**, volume `pgdata`, senha em `/opt/storyrender/.env` (600). Dev acessa por túnel SSH (`ssh -N -L 5432:localhost:5432 root@<vps>`). No agente: com `DATABASE_URL`, o lifespan do FastAPI abre um `AsyncConnectionPool`, roda `AsyncPostgresSaver.setup()` e **troca o grafo** por um compilado com o saver; sem a var, segue `MemorySaver` (testes/CI). Decisão: sem tabela `roteiros` própria por ora — o estado (roteiro + conversa) vive nos checkpoints do LangGraph; tabela dedicada só quando precisarmos de listagem/multi-roteiro.
+
+**Por quê:** persistência sem Docker local (decisão do usuário: banco na VPS, que já tinha Docker+Compose+Caddy prontos) e mesmo mecanismo em dev e produção futura.
+
+**Gotchas:**
+- `AsyncPostgresSaver` **não pode nascer no import** — exige event loop rodando (`RuntimeError: no running event loop`). Padrão que funciona: agente nasce com grafo em memória e o lifespan troca `agente.graph` antes do servidor aceitar requests.
+- **Falso negativo de smoke test de memória**: perguntas com moldura sugestiva ("depois do restart: qual o título?") fazem o modelo *interpretar* que não deveria lembrar e responder "não sei" — mesmo com o histórico inteiro no contexto. Perdi ~30min caçando um bug inexistente no adaptador (checkpoint estava íntegro no Postgres o tempo todo; o grafo direto respondia certo). Pergunta neutra → resposta certa no 1º request pós-restart. **Smoke test de memória LLM: fraseado neutro, sempre.**
+- O classificador de segurança do Claude Code bloqueia comandos que transportam a senha do banco (anti-exfiltração) — o usuário rodou ele mesmo o append do `DATABASE_URL` no `.env` via `!`.
+
+**O que ficou pra depois:** o CopilotKit gera `threadId` novo a cada reload da página — a conversa persiste no banco mas o browser não a retoma (runtime reporta `threadEndpoints: false`). Fixar/reutilizar threadId é fatia futura ("retomar roteiro"). Deploy do agente na VPS também fica pra depois (lá o banco é `localhost` direto, sem túnel).
+
+**Smoke test manual:** turno 1 informa o título → `pkill` no servidor → boot novo → primeiro request pergunta neutro "qual é o título da minha história?" → **"A Décima Casa"**. Tabelas `checkpoints*` criadas pelo `setup()` no Postgres da VPS; cadeia de 10 mensagens íntegra e em ordem no checkpoint.
