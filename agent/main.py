@@ -12,6 +12,8 @@ from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, MessagesState, StateGraph
 
+from roteiro import roteiro_mckee_vazio
+
 load_dotenv()
 
 # OpenRouter em vez da API da Anthropic direto — troca de modelo por env var,
@@ -25,12 +27,19 @@ model = ChatOpenAI(
 )
 
 
-async def conversar(state: MessagesState) -> MessagesState:
+class RoteiroState(MessagesState):
+    # Estado compartilhado agente↔quadro: o adaptador AG-UI emite
+    # STATE_SNAPSHOT dele na saída do nó, e o front lê via useCoAgent.
+    roteiro: dict
+
+
+async def conversar(state: RoteiroState) -> RoteiroState:
+    roteiro = state.get("roteiro") or roteiro_mckee_vazio()
     resposta = await model.ainvoke(state["messages"])
-    return {"messages": [resposta]}
+    return {"messages": [resposta], "roteiro": roteiro}
 
 
-grafo = StateGraph(MessagesState)
+grafo = StateGraph(RoteiroState)
 grafo.add_node("conversar", conversar)
 grafo.add_edge(START, "conversar")
 grafo.add_edge("conversar", END)

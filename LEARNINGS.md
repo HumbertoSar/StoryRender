@@ -504,3 +504,15 @@ Decisão do usuário: transformar o Story Render em projeto de aprendizado de Ge
 **Cosmético pendente (não bloqueia):** o `CopilotChat` não ocupa a altura toda da tela — sobra um vão abaixo. Ajustar via `className`/CSS quando a UI do quadro entrar na Fase 1.
 
 **Fase 0 completa.** Próxima fatia: CLAUDE.md refletindo o pivô; depois, Fase 1 (estado compartilhado do roteiro + cartão de Protagonista).
+
+## Fatia 1.1: roteiro como estado compartilhado + cartão de Protagonista (read-only)
+
+**O que foi construído:** `agent/roteiro.py` (porte do schema McKee vazio de `backend/src/roteiro.ts` — só a forma, mutações depois); `RoteiroState(MessagesState)` com chave `roteiro`, inicializada no primeiro turno do nó `conversar`; no web, `web/src/lib/roteiro.ts` (tipos parciais), `ProtagonistaCard` read-only (want/need/aposta/status) e `page.tsx` em layout quadro+chat com `useCoAgent<AgentState>`.
+
+**Por quê:** é a fundação do nível controlled — provar que o estado do grafo flui pro quadro via AG-UI antes de dar tools ao agente.
+
+**Como funciona (aprendizado central da fatia):** o adaptador `ag-ui-langgraph` emite `STATE_SNAPSHOT` com o estado do grafo (menos filtros de schema) na saída de cada nó; o `useCoAgent` do react-core assina isso e re-renderiza. Zero código de sincronização manual — a única obrigação é o estado ser JSON-serializável e a chave existir no schema de output do grafo.
+
+**O que ficou pra depois:** persistência (o estado morre com o `MemorySaver`/restart), tools de mutação, edição pelo usuário (bidirecional), demais cartões, espinha, CSS do brief (cartão está com estilo neutro inline).
+
+**Smoke test manual (browser):** antes do 1º turno o quadro mostra "aguardando o primeiro turno do agente…"; depois de uma mensagem qualquer, aparece "template mckee · fase A" + cartão Protagonista com campos "—" e status "vazio" — dados que só existem no grafo Python. Confirmado também no curl: `STATE_SNAPSHOT` com `"roteiro":{"template":"mckee",...}`.
