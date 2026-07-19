@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 
-import type { Protagonista } from "@/lib/roteiro";
-import type { CampoProtagonista } from "@/lib/useRoteiro";
-
-const CAMPOS: Array<{ chave: CampoProtagonista; rotulo: string }> = [
-  { chave: "want", rotulo: "Want (desejo consciente)" },
-  { chave: "need", rotulo: "Need (necessidade inconsciente)" },
-  { chave: "aposta", rotulo: "Aposta (o que está em jogo)" },
-];
+import type { CartaoDef } from "@/lib/cartoes";
 
 function CampoEditavel({
   rotulo,
@@ -48,12 +41,14 @@ function CampoEditavel({
   );
 }
 
-export function ProtagonistaCard({
-  protagonista,
+export function CartaoAsset({
+  def,
+  dados,
   onSalvar,
 }: {
-  protagonista: Protagonista;
-  onSalvar: (campo: CampoProtagonista, valor: string) => void;
+  def: CartaoDef;
+  dados: Record<string, unknown>;
+  onSalvar: (campo: string, valor: string) => void;
 }) {
   return (
     <section
@@ -64,18 +59,20 @@ export function ProtagonistaCard({
         display: "flex",
         flexDirection: "column",
         gap: 12,
-        minWidth: 320,
+        minWidth: 300,
+        flex: "1 1 300px",
+        maxWidth: 420,
       }}
     >
       <header style={{ display: "flex", justifyContent: "space-between" }}>
-        <strong>Protagonista</strong>
-        <span style={{ fontSize: 12, color: "#888" }}>{protagonista.status}</span>
+        <strong>{def.titulo}</strong>
+        <span style={{ fontSize: 12, color: "#888" }}>{String(dados.status ?? "")}</span>
       </header>
-      {CAMPOS.map(({ chave, rotulo }) => (
+      {def.campos.map(({ chave, rotulo }) => (
         <CampoEditavel
           key={chave}
           rotulo={rotulo}
-          valor={protagonista[chave] as string}
+          valor={String(dados[chave] ?? "")}
           onSalvar={(valor) => onSalvar(chave, valor)}
         />
       ))}

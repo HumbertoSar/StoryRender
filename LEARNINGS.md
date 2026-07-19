@@ -574,3 +574,16 @@ Decisão do usuário: transformar o Story Render em projeto de aprendizado de Ge
 **O que ficou pra depois:** caminho de REJEIÇÃO ainda não smoke-testado no browser (só o aceite); propostas pra nós da espinha e demais cartões; clique pré-hidratação do Next perde o primeiro input no teste via Chrome (irritante em automação, invisível pra humano).
 
 **Smoke test manual (browser):** "me proponha um want pra ela" → agente chama `propor_campo`, card com valor + justificativa aparece no chat, quadro intocado → "Aceitar" → Want preenchido no cartão (status `rascunho`), card "Proposta aceita", e o agente recebe a decisão e responde em cima ("O want da sua protagonista está definido…"). Via curl, confirmado `TOOL_CALL_START` + `RUN_FINISHED` limpo (frontend tool não passa pelo ToolNode).
+
+## Fatias 1.6 + 1.7: todos os cartões (genérico) + Modo Diagnóstico como genUI
+
+**O que foi construído (1.6):** config de cartões (`web/src/lib/cartoes.ts`) + componente genérico `CartaoAsset` substituindo os 5 componentes de cartão do legado; `useRoteiro.salvarCampo(asset, campo, valor)` genérico; `propor_campo` ganhou o parâmetro `asset`; `resumo_assets` no agente espelha a config (fonte: seções de cartões do MVP doc). Campos de lista (níveis do antagonista, gêneros, pontos de contato) ficaram de fora — fatia futura.
+
+**O que foi construído (1.7):** Modo Diagnóstico portado como frontend action `mostrar_diagnostico(itens)` com render de lista (badges aviso/critico) — os 10 testes de coerência do prompt legado condensados na INSTRUCAO. Não é mais um segundo prompt+endpoint como no legado: é o mesmo agente entregando o resultado como UI em vez de prosa.
+
+**Gotchas:**
+- `useCopilotAction` com só `render` (sem handler) é **configuração inválida** no 1.63 ("Invalid action configuration" — quebra o build no prerender!). Precisa de `handler` (ainda que trivial), `renderAndWait*` ou `available`.
+- **História repetida do legado, confirmada no laboratório:** o prompt proíbe flagar campo vazio como inconsistência, e o modelo desobedece do mesmo jeito (flagou "ideia_controladora: sem valor nem causa" com o cartão vazio). A defesa do legado — filtro regex `PADRAO_CAMPO_VAZIO` — foi portada pro `DiagnosticoCard`. Aprendizado de GenUI: **instrução no prompt não substitui validação na borda da UI**; o lugar da validação mudou (era backend, agora é o componente), mas a necessidade não.
+- Resposta vazia ocasional do OpenRouter (AIMessage sem conteúdo nem tool_calls) — 1 ocorrência; o chat fica sem resposta e o usuário precisa reenviar. Se repetir, vale retry no nó `conversar`.
+
+**Smoke test manual (browser):** os 5 cartões renderizam; "me proponha a época do mundo da história" → proposta rotulada "Mundo da História · Época" → **Rejeitar** → campo intocado, card "Proposta rejeitada", agente pergunta o que ajustar (regra do prompt cumprida). Want + aposta "tudo" digitados no quadro → "faz um diagnóstico" → `DiagnosticoCard` renderiza com badges; itens de campo-vazio agora são filtrados pelo regex portado.

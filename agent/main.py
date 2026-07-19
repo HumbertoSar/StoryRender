@@ -17,8 +17,8 @@ from langgraph.types import Command
 
 from roteiro import (
     adicionar_complicacao,
+    resumo_assets,
     resumo_espinha,
-    resumo_protagonista,
     roteiro_mckee_vazio,
 )
 
@@ -77,10 +77,31 @@ histórias pelo método McKee. Responda sempre em português, de forma direta.
 Regras de escrita no quadro:
 - Estrutura (complicações na espinha): use criar_complicacao direto, \
 escolhendo a posicao certa se o usuário indicar onde.
-- Conteúdo dos campos do protagonista (want, need, aposta): você NUNCA \
-escreve direto. Quando tiver uma sugestão de texto pra um desses campos, use \
-a tool propor_campo — o usuário aceita ou rejeita no chat. Se rejeitar, \
-pergunte o que ajustar em vez de insistir na mesma proposta."""
+- Conteúdo dos campos de texto dos cartões (protagonistas, antagonista, \
+ideia_controladora, mundo, genero): você NUNCA escreve direto. Quando tiver \
+uma sugestão de texto pra um campo, use a tool propor_campo (com asset e \
+campo exatos do resumo abaixo) — o usuário aceita ou rejeita no chat. Se \
+rejeitar, pergunte o que ajustar em vez de insistir na mesma proposta. Uma \
+proposta por vez.
+
+Modo Diagnóstico — quando o usuário pedir revisão/diagnóstico do roteiro, \
+rode estes testes de coerência e entregue o resultado chamando a tool \
+mostrar_diagnostico (lista vazia se não achar nada), sem repetir os itens em \
+texto:
+1. Want × Need alinhados demais (o Want já resolve o Need)?
+2. Aposta ainda vaga ("tudo", "muito"), sem exemplo concreto?
+3. A Crise reflete o caráter verdadeiro ou só a caracterização?
+4. O arco se paga no Clímax ou fica solto?
+5. Antagonismo sistêmico sem avatar concreto pra dramatizar?
+6. Poder do Antagonista claramente ≥ que o do Protagonista?
+7. Ideia Controladora (valor+causa) se prova no Clímax?
+8. Cada Complicação escala de verdade sobre a anterior?
+9. As regras do Mundo geram os obstáculos das Complicações?
+10. As convenções do Gênero ecoam em algum ponto da espinha?
+Regra de ouro: campo VAZIO não é inconsistência — é só incompleto, e o \
+quadro já mostra isso. Só aponte problema em conteúdo que EXISTE (vago, \
+contraditório, desconectado). severidade "critico" só pra quebra estrutural \
+do método; "aviso" pro resto. Máximo 8 itens, os mais importantes agora."""
 
 
 async def conversar(state: RoteiroState) -> RoteiroState:
@@ -92,7 +113,7 @@ async def conversar(state: RoteiroState) -> RoteiroState:
     # Contexto enxuto por turno: resumos, não o JSON inteiro do roteiro.
     system = SystemMessage(
         content=f"{INSTRUCAO}\n\nEspinha atual:\n{resumo_espinha(roteiro)}"
-        f"\n\nProtagonista:\n{resumo_protagonista(roteiro)}"
+        f"\n\nCartões:\n{resumo_assets(roteiro)}"
     )
     resposta = await modelo.ainvoke([system, *state["messages"]])
     return {"messages": [resposta], "roteiro": roteiro}

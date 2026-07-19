@@ -25,6 +25,13 @@ export interface EspinhaNo {
   excluido?: boolean;
 }
 
+// Assets além do protagonista têm campos de texto + listas; o cartão genérico
+// só toca os campos de texto (config em cartoes.ts), então a forma fica solta.
+export interface AssetBase {
+  status: Status;
+  [campo: string]: unknown;
+}
+
 export interface RoteiroData {
   template: string;
   titulo: string;
@@ -32,6 +39,11 @@ export interface RoteiroData {
   espinha: EspinhaNo[];
   assets: {
     protagonistas: Protagonista[];
+    antagonista: AssetBase;
+    ideia_controladora: AssetBase;
+    mundo: AssetBase;
+    genero: AssetBase;
+    elenco_notas: { texto_livre: string };
   };
 }
 

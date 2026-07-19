@@ -42,10 +42,29 @@ def adicionar_complicacao(data: dict, conteudo: str, posicao: int | None = None)
     return proximo
 
 
-def resumo_protagonista(data: dict) -> str:
-    prot = data["assets"]["protagonistas"][0]
-    campos = ["want", "need", "aposta"]
-    return "\n".join(f"- {c}: {prot.get(c) or '(vazio)'}" for c in campos)
+# Espelho da config de cartões do frontend (web/src/lib/cartoes.ts) — os
+# campos de texto que o agente enxerga e pode propor via propor_campo.
+CAMPOS_CARTOES: dict[str, list[str]] = {
+    "protagonistas": ["want", "need", "aposta"],
+    "antagonista": ["fonte_oposicao", "logica_interna", "avatar", "poder_relativo"],
+    "ideia_controladora": ["valor", "causa", "contraideia"],
+    "mundo": ["epoca", "local", "regras_custo"],
+    "genero": ["promessa"],
+}
+
+
+def _asset(data: dict, asset: str) -> dict:
+    alvo = data["assets"][asset]
+    return alvo[0] if asset == "protagonistas" else alvo
+
+
+def resumo_assets(data: dict) -> str:
+    linhas = []
+    for asset, campos in CAMPOS_CARTOES.items():
+        alvo = _asset(data, asset)
+        linhas.append(f"[{asset}] (status: {alvo.get('status', '?')})")
+        linhas.extend(f"- {c}: {alvo.get(c) or '(vazio)'}" for c in campos)
+    return "\n".join(linhas)
 
 
 def resumo_espinha(data: dict) -> str:
