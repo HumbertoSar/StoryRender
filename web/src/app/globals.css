@@ -57,3 +57,10 @@ a {
 .copilotKitMessages {
   min-height: 0;
 }
+
+/* A toolbar da mensagem (regenerar/copiar/curtir) é position:absolute logo
+   abaixo do texto e sobrepunha o bloco seguinte (ex.: card de proposta).
+   Reserva o espaço que ela ocupa. */
+.copilotKitMessage.copilotKitAssistantMessage {
+  margin-bottom: 2.2rem;
+}
