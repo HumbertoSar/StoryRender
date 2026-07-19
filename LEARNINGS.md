@@ -615,3 +615,22 @@ Decisão do usuário: transformar o Story Render em projeto de aprendizado de Ge
 - O `web/AGENTS.md` avisa que este Next tem breaking changes vs treino — `output: "standalone"` confirmado válido nos docs bundled antes de usar.
 
 **Smoke test (produção):** containers up; `POST /api/copilotkit {"method":"info"}` responde com `story_agent`; turno real de LLM dentro do container respondeu "PROD OK"; thread `t-prod` com 3 checkpoints no Postgres (rede interna, sem túnel). **Pendente:** registro DNS `storyrender.mvpsardenberg.cloud → 2.24.108.121` (ação do usuário; Caddy emite TLS sozinho quando resolver).
+
+---
+
+# FASE 2 — Nível declarative (A2UI)
+
+## Fatia 2.1: agente compõe superfícies A2UI renderizadas no chat
+
+**O que foi construído:** `get_a2ui_tools({"model": model})` no grafo (tool `generate_a2ui` de backend — um SUBAGENTE compõe a superfície A2UI v0.9 e ela streama pro wire como tool-call interna `render_a2ui`); `a2ui: {}` no `CopilotRuntime` (liga o middleware que converte as operações em activities `a2ui-surface`); prop `a2ui={{catalog: basicCatalog}}` no provider; e **chat trocado pro `CopilotChat` do `@copilotkit/react-core/v2`**. Regra no prompt: pedido visual → `generate_a2ui`, sem desenhar em markdown.
+
+**A jornada de descoberta (o aprendizado da fatia):**
+1. O pacote `ag-ui-langgraph` já traz o gerador completo (arquitetura de subagente: o modelo principal decide QUANDO, um segundo modelo compõe O QUÊ — streamando deltas pra pintura progressiva).
+2. Primeiro sintoma: backend perfeito (envelope `a2ui_operations` no ToolMessage) e NADA pintando. Middleware do runtime funcionava (113 `ACTIVITY_SNAPSHOT` via curl com `a2uiCatalogAvailable: true`).
+3. Causa raiz: **o `CopilotChat` clássico do `@copilotkit/react-ui` não renderiza activity messages** — só texto e tool-calls. O renderer A2UI (`createA2UIMessageRenderer`) monta no provider, mas quem consome activities é o chat v2 (`@copilotkit/react-core/v2`). No stack clássico, superfícies A2UI **nunca** pintariam.
+4. O pacote `@copilotkit/a2ui-renderer` embarca um SKILL.md com o setup canônico (runtime `a2ui: {}` + prop `a2ui` no provider; "não passe renderActivityMessages na mão") — achado meta: pacotes começando a embarcar documentação-para-agentes.
+5. Becos sem saída evitados: CLI oficial exige workspace; `@a2ui/react` standalone (instalei e removi — o renderer embutido do CopilotKit basta e o provider clássico repassa o prop `a2ui` pro v2 por baixo).
+
+**Resultado no browser:** "me mostra um painel visual da história" → superfície composta pelo agente no chat: título, subtítulo, divisor e 4 Cards de personagem (Juíza/Assassino/Filho/Chantagista) — estrutura que NINGUÉM pré-desenhou; a hierarquia veio da interpretação da história. Regressão zero: HITL (propor_campo com aceitar/rejeitar), quadro reativo e revelação progressiva seguem funcionando no chat v2.
+
+**O que ficou pra depois:** catálogo CUSTOM com os widgets do design system do brief (cartão de asset, nó de espinha) via `createCatalog` — hoje é o catálogo básico genérico; `A2UIGuidelines` (generation/design/composition) pra dirigir o estilo; superfície no QUADRO (não só no chat); latência da geração (~20-40s, subagente) merece skeleton melhor; comparação com Open-JSON-UI (flag `openGenerativeUI` existe no mesmo runtime — investigar na fatia da Fase 3).

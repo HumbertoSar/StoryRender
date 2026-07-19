@@ -4,7 +4,7 @@ import os
 from contextlib import asynccontextmanager
 from typing import Annotated, Optional
 
-from ag_ui_langgraph import LangGraphAgent, add_langgraph_fastapi_endpoint
+from ag_ui_langgraph import LangGraphAgent, add_langgraph_fastapi_endpoint, get_a2ui_tools
 from dotenv import load_dotenv
 from fastapi import FastAPI
 from langchain_core.messages import SystemMessage, ToolMessage
@@ -71,7 +71,12 @@ def criar_complicacao(
     })
 
 
-TOOLS = [criar_complicacao]
+# Nível 2 (declarative): generate_a2ui delega a um SUBAGENTE a composição de
+# uma superfície A2UI v0.9 (streamada pro chat via tool-call interna
+# render_a2ui, que o CopilotKit pinta com o catálogo do provider).
+a2ui = get_a2ui_tools({"model": model})
+
+TOOLS = [criar_complicacao, a2ui]
 BACKEND_TOOL_NAMES = {t.name for t in TOOLS}
 
 INSTRUCAO = """Você é o agente do Story Render: ajuda escritores a estruturar \
@@ -96,6 +101,11 @@ uma sugestão de texto pra um campo, use a tool propor_campo (com asset e \
 campo exatos do resumo abaixo) — o usuário aceita ou rejeita no chat. Se \
 rejeitar, pergunte o que ajustar em vez de insistir na mesma proposta. Uma \
 proposta por vez.
+
+Visualizações — quando o usuário pedir uma visão VISUAL da história (painel, \
+resumo visual, linha do tempo, mapa da estrutura), use a tool generate_a2ui: \
+descreva no intent o que mostrar a partir do estado atual do roteiro. Não \
+tente desenhar em texto/markdown o que a tool pode renderizar.
 
 Modo Diagnóstico — quando o usuário pedir revisão/diagnóstico do roteiro, \
 rode estes testes de coerência e entregue o resultado chamando a tool \

@@ -14,6 +14,9 @@ const runtime = new CopilotRuntime({
       url: process.env.AGENT_URL ?? "http://127.0.0.1:8000/agent",
     }),
   },
+  // Nível declarative: liga o middleware A2UI (converte as operações emitidas
+  // pelo agente em activities `a2ui-surface` que o chat v2 renderiza).
+  a2ui: {},
 });
 
 export const POST = async (req: NextRequest) => {

@@ -1,8 +1,11 @@
 "use client";
 
+import { basicCatalog } from "@copilotkit/a2ui-renderer";
 import { CopilotKit, useCopilotAction } from "@copilotkit/react-core";
-import { CopilotChat } from "@copilotkit/react-ui";
-import "@copilotkit/react-ui/styles.css";
+// Chat v2: é ele quem renderiza as activities A2UI (o CopilotChat clássico
+// do react-ui ignora activity messages — superfícies nunca pintariam).
+import { CopilotChat } from "@copilotkit/react-core/v2";
+import "@copilotkit/react-core/v2/styles.css";
 
 import { EspinhaColuna } from "@/components/EspinhaColuna";
 import { CartaoAsset } from "@/components/CartaoAsset";
@@ -132,16 +135,13 @@ function Quadro() {
 
 export default function Home() {
   return (
-    <CopilotKit runtimeUrl="/api/copilotkit" agent="story_agent">
+    // a2ui.catalog ativa o nível declarative: o CopilotKit registra o render
+    // da tool-call render_a2ui (superfícies compostas pelo agente) no chat.
+    <CopilotKit runtimeUrl="/api/copilotkit" agent="story_agent" a2ui={{ catalog: basicCatalog }}>
       <main style={{ height: "100vh", display: "flex" }}>
         <Quadro />
-        <div style={{ width: 420, borderLeft: "1px solid #ddd", height: "100%" }}>
-          <CopilotChat
-            labels={{
-              title: "Story Render",
-              initial: "Fase 1: o roteiro agora é estado compartilhado agente↔quadro.",
-            }}
-          />
+        <div style={{ width: 440, borderLeft: "1px solid #ddd", height: "100%" }}>
+          <CopilotChat agentId="story_agent" />
         </div>
       </main>
     </CopilotKit>
