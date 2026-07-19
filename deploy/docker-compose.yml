@@ -1,0 +1,44 @@
+# Compose de produção — vive em /opt/storyrender/ na VPS, com o repo clonado
+# em /opt/storyrender/src. Segredos em /opt/storyrender/.env (POSTGRES_PASSWORD,
+# OPENROUTER_API_KEY, OPENROUTER_MODEL).
+services:
+  postgres:
+    image: postgres:16
+    container_name: storyrender-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: storyrender
+      POSTGRES_USER: storyrender
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      # Só localhost: dev acessa por túnel SSH; containers usam a rede interna.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  agent:
+    build: ./src/agent
+    container_name: storyrender-agent
+    restart: unless-stopped
+    environment:
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-anthropic/claude-sonnet-4.5}
+      DATABASE_URL: postgresql://storyrender:${POSTGRES_PASSWORD}@postgres:5432/storyrender
+    depends_on:
+      - postgres
+    # Sem ports: só o web fala com ele, pela rede do compose.
+
+  web:
+    build: ./src/web
+    container_name: storyrender-web
+    restart: unless-stopped
+    environment:
+      AGENT_URL: http://agent:8000/agent
+    ports:
+      # Caddy (no host) faz o reverse proxy de storyrender.mvpsardenberg.cloud.
+      - "127.0.0.1:3002:3000"
+    depends_on:
+      - agent
+
+volumes:
+  pgdata:

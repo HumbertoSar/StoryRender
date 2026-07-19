@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Imagem Docker mínima (deploy na VPS): só runtime + arquivos necessários.
+  output: "standalone",
 };
 
 export default nextConfig;
