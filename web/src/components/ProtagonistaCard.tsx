@@ -1,12 +1,59 @@
+import { useEffect, useState } from "react";
+
 import type { Protagonista } from "@/lib/roteiro";
 
-const CAMPOS: Array<{ chave: keyof Protagonista; rotulo: string }> = [
+const CAMPOS: Array<{ chave: keyof Protagonista & string; rotulo: string }> = [
   { chave: "want", rotulo: "Want (desejo consciente)" },
   { chave: "need", rotulo: "Need (necessidade inconsciente)" },
   { chave: "aposta", rotulo: "Aposta (o que está em jogo)" },
 ];
 
-export function ProtagonistaCard({ protagonista }: { protagonista: Protagonista }) {
+function CampoEditavel({
+  rotulo,
+  valor,
+  onSalvar,
+}: {
+  rotulo: string;
+  valor: string;
+  onSalvar: (valor: string) => void;
+}) {
+  // Rascunho local enquanto digita; sincroniza quando o agente muda o valor.
+  const [texto, setTexto] = useState(valor);
+  useEffect(() => setTexto(valor), [valor]);
+
+  return (
+    <div>
+      <div style={{ fontSize: 12, color: "#888" }}>{rotulo}</div>
+      <textarea
+        value={texto}
+        placeholder="—"
+        onChange={(e) => setTexto(e.target.value)}
+        onBlur={() => {
+          if (texto !== valor) onSalvar(texto);
+        }}
+        rows={2}
+        style={{
+          width: "100%",
+          resize: "vertical",
+          font: "inherit",
+          background: "transparent",
+          color: "inherit",
+          border: "1px solid transparent",
+          borderRadius: 4,
+          padding: 4,
+        }}
+      />
+    </div>
+  );
+}
+
+export function ProtagonistaCard({
+  protagonista,
+  onSalvar,
+}: {
+  protagonista: Protagonista;
+  onSalvar: (campo: keyof Protagonista & string, valor: string) => void;
+}) {
   return (
     <section
       style={{
@@ -16,6 +63,7 @@ export function ProtagonistaCard({ protagonista }: { protagonista: Protagonista 
         display: "flex",
         flexDirection: "column",
         gap: 12,
+        minWidth: 320,
       }}
     >
       <header style={{ display: "flex", justifyContent: "space-between" }}>
@@ -23,10 +71,12 @@ export function ProtagonistaCard({ protagonista }: { protagonista: Protagonista 
         <span style={{ fontSize: 12, color: "#888" }}>{protagonista.status}</span>
       </header>
       {CAMPOS.map(({ chave, rotulo }) => (
-        <div key={chave}>
-          <div style={{ fontSize: 12, color: "#888" }}>{rotulo}</div>
-          <div>{protagonista[chave] || "—"}</div>
-        </div>
+        <CampoEditavel
+          key={chave}
+          rotulo={rotulo}
+          valor={protagonista[chave] as string}
+          onSalvar={(valor) => onSalvar(chave, valor)}
+        />
       ))}
     </section>
   );

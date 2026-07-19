@@ -11,12 +11,26 @@ import type { AgentState } from "@/lib/roteiro";
 function Quadro() {
   // Estado compartilhado com o grafo LangGraph: chega via STATE_SNAPSHOT
   // (AG-UI) depois do primeiro turno; antes disso, roteiro é null.
-  const { state } = useCoAgent<AgentState>({
+  const { state, setState } = useCoAgent<AgentState>({
     name: "story_agent",
     initialState: { roteiro: null },
   });
 
   const protagonista = state.roteiro?.assets?.protagonistas?.[0];
+
+  // Volta do ciclo (quadro → agente): setState grava no estado compartilhado
+  // e o CopilotKit envia esse estado junto do próximo turno.
+  const salvarCampoProtagonista = (campo: string, valor: string) => {
+    if (!state.roteiro) return;
+    const roteiro = structuredClone(state.roteiro);
+    const prot = roteiro.assets.protagonistas[0];
+    roteiro.assets.protagonistas[0] = {
+      ...prot,
+      [campo]: valor,
+      status: prot.status === "vazio" ? "rascunho" : prot.status,
+    };
+    setState({ ...state, roteiro });
+  };
 
   return (
     <div style={{ flex: 1, padding: 24, overflowY: "auto" }}>
@@ -30,7 +44,9 @@ function Quadro() {
       </div>
       <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
         {state.roteiro && <EspinhaColuna espinha={state.roteiro.espinha} />}
-        {protagonista && <ProtagonistaCard protagonista={protagonista} />}
+        {protagonista && (
+          <ProtagonistaCard protagonista={protagonista} onSalvar={salvarCampoProtagonista} />
+        )}
       </div>
     </div>
   );

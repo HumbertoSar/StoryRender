@@ -42,6 +42,12 @@ def adicionar_complicacao(data: dict, conteudo: str, posicao: int | None = None)
     return proximo
 
 
+def resumo_protagonista(data: dict) -> str:
+    prot = data["assets"]["protagonistas"][0]
+    campos = ["want", "need", "aposta"]
+    return "\n".join(f"- {c}: {prot.get(c) or '(vazio)'}" for c in campos)
+
+
 def resumo_espinha(data: dict) -> str:
     """Resumo compacto da espinha em ordem de exibição, com as posições
     1-based das complicações — é o que o modelo usa pra escolher `posicao`."""

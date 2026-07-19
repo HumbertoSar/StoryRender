@@ -548,3 +548,15 @@ Decisão do usuário: transformar o Story Render em projeto de aprendizado de Ge
 **O que ficou pra depois:** reordenar/excluir complicação, edição pelo usuário (bidirecional), HITL, demais cartões, CSS do brief.
 
 **Smoke test manual:** browser — "crie uma complicação: a perita descobre que o laudo que assinou há dez anos condenou um inocente" → espinha renderiza Complicação 2 com o texto e status `rascunho`, ao vivo. Curl — segunda complicação "ANTES dessa" → snapshot final com `complicacao_3 ordem=1.5` entre `complicacao_1` (1) e `complicacao_2` (2).
+
+## Fatia 1.4: edição bidirecional — quadro → agente
+
+**O que foi construído:** campos want/need/aposta do `ProtagonistaCard` viram `CampoEditavel` (textarea, salva no blur, `vazio`→`rascunho`); o `Quadro` grava a edição no estado compartilhado com o `setState` do `useCoAgent`; `resumo_protagonista` entra no system prompt do agente.
+
+**Por quê:** fechar a volta do ciclo — até aqui só o agente escrevia (1.1/1.3); agora o usuário edita o quadro e o agente enxerga no turno seguinte.
+
+**Como funciona:** o `setState` atualiza o estado local, e o CopilotKit envia esse estado no `RunAgentInput.state` do próximo turno; o adaptador faz merge no estado do grafo (reducer padrão = last-write-wins pro canal `roteiro`). Nenhum endpoint de PATCH, nenhum optimistic-update manual como no legado — a sincronização é o próprio protocolo.
+
+**Risco anotado:** last-write-wins significa que o estado do CLIENTE sobrescreve o canal `roteiro` inteiro a cada turno. Com uma aba só, ok; com duas abas no mesmo thread (futuro), edições podem se atropelar. Se virar problema real, o caminho é reducer custom no canal ou granularizar o estado.
+
+**Smoke test manual (browser):** digitei "provar que é a melhor perita forense do estado" no Want direto no cartão (blur salvou, status → `rascunho`), perguntei no chat "o que você sabe sobre o want da minha protagonista?" → o agente respondeu citando o texto exato e apontando que need/aposta continuam vazios.

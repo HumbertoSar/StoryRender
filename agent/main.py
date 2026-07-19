@@ -15,7 +15,12 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import InjectedState, ToolNode, tools_condition
 from langgraph.types import Command
 
-from roteiro import adicionar_complicacao, resumo_espinha, roteiro_mckee_vazio
+from roteiro import (
+    adicionar_complicacao,
+    resumo_espinha,
+    resumo_protagonista,
+    roteiro_mckee_vazio,
+)
 
 load_dotenv()
 
@@ -72,7 +77,10 @@ async def conversar(state: RoteiroState) -> RoteiroState:
     roteiro = state.get("roteiro") or roteiro_mckee_vazio()
     # Contexto enxuto por turno: só a espinha atual (posições 1-based), não o
     # JSON inteiro do roteiro — o modelo precisa disso pra escolher `posicao`.
-    system = SystemMessage(content=f"{INSTRUCAO}\n\nEspinha atual:\n{resumo_espinha(roteiro)}")
+    system = SystemMessage(
+        content=f"{INSTRUCAO}\n\nEspinha atual:\n{resumo_espinha(roteiro)}"
+        f"\n\nProtagonista:\n{resumo_protagonista(roteiro)}"
+    )
     resposta = await model_com_tools.ainvoke([system, *state["messages"]])
     return {"messages": [resposta], "roteiro": roteiro}
 
