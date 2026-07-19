@@ -1,6 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { CartaoDef } from "@/lib/cartoes";
+
+// Porte do legado (frontend/src/quadro/campos.tsx): o campo cresce sozinho
+// pra caber o texto (ex.: proposta aceita); o usuário ainda pode encolher
+// pelo resize do textarea se quiser.
+function useAutoAltura(valor: string) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [valor]);
+
+  return ref;
+}
 
 function CampoEditavel({
   rotulo,
@@ -14,11 +30,13 @@ function CampoEditavel({
   // Rascunho local enquanto digita; sincroniza quando o agente muda o valor.
   const [texto, setTexto] = useState(valor);
   useEffect(() => setTexto(valor), [valor]);
+  const ref = useAutoAltura(texto);
 
   return (
     <div>
       <div style={{ fontSize: 12, color: "#888" }}>{rotulo}</div>
       <textarea
+        ref={ref}
         value={texto}
         placeholder="—"
         onChange={(e) => setTexto(e.target.value)}

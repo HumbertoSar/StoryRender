@@ -47,3 +47,20 @@ a {
     color-scheme: dark;
   }
 }
+
+/* O dist do @copilotkit/react-ui 1.63 traz o height:100% do chat COMENTADO —
+   sem ele o chat cresce junto com o conteúdo e a página inteira rola em vez
+   da lista de mensagens (que já tem overflow-y: scroll). */
+.copilotKitChat {
+  height: 100%;
+}
+.copilotKitMessages {
+  min-height: 0;
+}
+
+/* A toolbar da mensagem (regenerar/copiar/curtir) é position:absolute logo
+   abaixo do texto e sobrepunha o bloco seguinte (ex.: card de proposta).
+   Reserva o espaço que ela ocupa. */
+.copilotKitMessage.copilotKitAssistantMessage {
+  margin-bottom: 2.2rem;
+}

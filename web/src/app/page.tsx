@@ -106,8 +106,15 @@ function Quadro() {
         <div style={{ display: "flex", flexWrap: "wrap", gap: 16, flex: 1 }}>
           {CARTOES.map((def) => {
             const dados = lerAsset(def.asset);
+            // Revelação progressiva: o cartão só existe no quadro quando tem
+            // conteúdo aprovado (campo preenchido ou status mexido) — o
+            // quadro nasce enxuto e cresce junto com a história.
+            const temConteudo =
+              dados &&
+              (def.campos.some(({ chave }) => Boolean(dados[chave])) ||
+                dados.status !== "vazio");
             return (
-              dados && (
+              temConteudo && (
                 <CartaoAsset
                   key={def.asset}
                   def={def}
