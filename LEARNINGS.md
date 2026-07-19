@@ -587,3 +587,16 @@ Decisão do usuário: transformar o Story Render em projeto de aprendizado de Ge
 - Resposta vazia ocasional do OpenRouter (AIMessage sem conteúdo nem tool_calls) — 1 ocorrência; o chat fica sem resposta e o usuário precisa reenviar. Se repetir, vale retry no nó `conversar`.
 
 **Smoke test manual (browser):** os 5 cartões renderizam; "me proponha a época do mundo da história" → proposta rotulada "Mundo da História · Época" → **Rejeitar** → campo intocado, card "Proposta rejeitada", agente pergunta o que ajustar (regra do prompt cumprida). Want + aposta "tudo" digitados no quadro → "faz um diagnóstico" → `DiagnosticoCard` renderiza com badges; itens de campo-vazio agora são filtrados pelo regex portado.
+
+## Cadência de fim de Fase 1: review + simplificação
+
+**Review (8 ângulos, achados aplicados):**
+- **Tool calls mistos** (bug real): resposta com tool de backend + frontend juntas fazia o roteador encerrar o run sem responder a de backend → thread quebrado no turno seguinte (API exige tool_result). Fix: `parallel_tool_calls=False` no bind — uma tool por resposta elimina o caso misto na origem.
+- **Asset inválido vindo do modelo** derrubava o clique de Aceitar (`alvo[campo]` em undefined). Fix: guarda em `salvarCampo`.
+- **Roteiro malformado vindo do cliente** podia derrubar o run (`_asset`/`resumo_espinha` com KeyError). Fix: acessos defensivos — o estado que chega do cliente é входные data, não invariante.
+- **Boot com túnel/banco fora** abortava o startup apesar do "fallback". Fix: try/except no lifespan → cai pra memória com aviso alto.
+- Refutados com evidência: a troca de `agente.graph` no lifespan funciona (teste empírico do título pós-restart leu do Postgres); o fallback de roteiro em `criar_complicacao` nunca dispara (conversar povoa antes).
+
+**Simplificação (aplicada):** helper único `alvoDoAsset` (a regra "protagonistas é lista" estava em 2 lugares); `AssetComCampos` duplicava `AssetBase` — removido; `deepcopy` do roteiro inteiro virou cópia rasa + append (nada mais é mutado); `roteiro_do_estado` centraliza o fallback de roteiro vazio; `conversar` só grava o canal `roteiro` quando ele nasce (antes reemitia snapshot redundante a cada turno de conversa).
+
+**Pendências conhecidas (deliberadas):** last-write-wins entre abas (anotado na 1.4); campos de lista dos cartões; CSS/gramática visual do brief ainda não portada (estilo neutro); retomada de thread após reload; resposta vazia ocasional do OpenRouter (1 caso — retry se virar padrão).

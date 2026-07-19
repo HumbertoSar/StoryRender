@@ -45,6 +45,10 @@ class RoteiroState(MessagesState):
     tools: list
 
 
+def roteiro_do_estado(state: dict) -> dict:
+    return state.get("roteiro") or roteiro_mckee_vazio()
+
+
 @tool
 def criar_complicacao(
     conteudo: str,
@@ -59,8 +63,7 @@ def criar_complicacao(
         posicao: posição de exibição 1-based entre as complicações existentes;
             omitida, a complicação vai pro fim.
     """
-    roteiro = state.get("roteiro") or roteiro_mckee_vazio()
-    novo = adicionar_complicacao(roteiro, conteudo, posicao)
+    novo = adicionar_complicacao(roteiro_do_estado(state), conteudo, posicao)
     criada = novo["espinha"][-1]
     return Command(update={
         "roteiro": novo,
@@ -105,18 +108,25 @@ do método; "aviso" pro resto. Máximo 8 itens, os mais importantes agora."""
 
 
 async def conversar(state: RoteiroState) -> RoteiroState:
-    roteiro = state.get("roteiro") or roteiro_mckee_vazio()
+    roteiro = roteiro_do_estado(state)
     # Tools do frontend (ex.: propor_campo) chegam via RunAgentInput.tools e o
     # adaptador as põe em state["tools"] como dicts JSON-schema — o bind aceita.
+    # parallel_tool_calls=False: uma tool por resposta — evita o caso misto
+    # (backend+frontend juntos) que o roteador abaixo não tem como atender.
     tools_do_front = state.get("tools") or []
-    modelo = model.bind_tools([*TOOLS, *tools_do_front])
+    modelo = model.bind_tools([*TOOLS, *tools_do_front], parallel_tool_calls=False)
     # Contexto enxuto por turno: resumos, não o JSON inteiro do roteiro.
     system = SystemMessage(
         content=f"{INSTRUCAO}\n\nEspinha atual:\n{resumo_espinha(roteiro)}"
         f"\n\nCartões:\n{resumo_assets(roteiro)}"
     )
     resposta = await modelo.ainvoke([system, *state["messages"]])
-    return {"messages": [resposta], "roteiro": roteiro}
+    update: dict = {"messages": [resposta]}
+    if not state.get("roteiro"):
+        # Só grava o canal quando o roteiro nasce aqui; nos demais turnos o
+        # canal já está correto (cliente/ToolNode) e reescrever é redundante.
+        update["roteiro"] = roteiro
+    return update
 
 
 def rotear_apos_conversar(state: RoteiroState) -> str:
@@ -159,15 +169,23 @@ async def lifespan(app: FastAPI):
         from psycopg.rows import dict_row
         from psycopg_pool import AsyncConnectionPool
 
-        _pool = AsyncConnectionPool(
-            DATABASE_URL,
-            open=False,
-            kwargs={"autocommit": True, "row_factory": dict_row},
-        )
-        await _pool.open()
-        saver = AsyncPostgresSaver(_pool)
-        await saver.setup()  # cria as tabelas de checkpoint se não existem
-        agente.graph = grafo.compile(checkpointer=saver)
+        try:
+            _pool = AsyncConnectionPool(
+                DATABASE_URL,
+                open=False,
+                timeout=10,
+                kwargs={"autocommit": True, "row_factory": dict_row},
+            )
+            await _pool.open(wait=True, timeout=10)
+            saver = AsyncPostgresSaver(_pool)
+            await saver.setup()  # cria as tabelas de checkpoint se não existem
+            agente.graph = grafo.compile(checkpointer=saver)
+            print("checkpointer: Postgres")
+        except Exception as e:  # túnel/banco fora não pode impedir o dev local
+            print(f"AVISO: Postgres indisponível ({e!r}) — usando checkpointer em MEMÓRIA; estado NÃO sobrevive a restart")
+            if _pool is not None:
+                await _pool.close()
+                _pool = None
     yield
     if _pool is not None:
         await _pool.close()

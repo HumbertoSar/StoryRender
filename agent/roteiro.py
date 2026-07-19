@@ -1,7 +1,5 @@
 """Schema e mutações do roteiro McKee — porte de backend/src/roteiro.ts (legado)."""
 
-import copy
-
 
 def calcular_ordem_para_posicao(visiveis: list[dict], posicao: int | None, maior_ordem: float) -> float:
     """Encaixa uma complicação na posição de exibição `posicao` (1-based) com
@@ -22,8 +20,7 @@ def adicionar_complicacao(data: dict, conteudo: str, posicao: int | None = None)
     índice real nunca muda); a posição de exibição é só o campo `ordem`.
     Diferença deliberada do laboratório: recebe `conteudo` direto (no legado
     a ação criava vazio e o conteúdo vinha por proposta)."""
-    proximo = copy.deepcopy(data)
-    todas = [no for no in proximo["espinha"] if no["tipo"] == "complicacao"]
+    todas = [no for no in data["espinha"] if no["tipo"] == "complicacao"]
     proximo_id = len(todas) + 1
     visiveis = sorted(
         (no for no in todas if not no.get("excluido")),
@@ -31,15 +28,17 @@ def adicionar_complicacao(data: dict, conteudo: str, posicao: int | None = None)
     )
     maior_ordem = max((no.get("ordem", 0) or 0 for no in todas), default=0)
     ordem = calcular_ordem_para_posicao(visiveis, posicao, maior_ordem)
-    proximo["espinha"].append({
+    novo = {
         "id": f"complicacao_{proximo_id}",
         "tipo": "complicacao",
         "ordem": ordem,
         "conteudo": conteudo,
         "status": "rascunho",
         "conecta_assets": ["antagonista", "protagonista"],
-    })
-    return proximo
+    }
+    # Cópia rasa basta: só o array espinha muda (append); os nós existentes
+    # e os assets não são mutados — não precisa de deepcopy do roteiro todo.
+    return {**data, "espinha": [*data["espinha"], novo]}
 
 
 # Espelho da config de cartões do frontend (web/src/lib/cartoes.ts) — os
@@ -54,8 +53,12 @@ CAMPOS_CARTOES: dict[str, list[str]] = {
 
 
 def _asset(data: dict, asset: str) -> dict:
-    alvo = data["assets"][asset]
-    return alvo[0] if asset == "protagonistas" else alvo
+    # Defensivo: o roteiro pode vir do estado enviado pelo CLIENTE a cada
+    # turno — uma forma malformada não pode derrubar o run inteiro.
+    alvo = (data.get("assets") or {}).get(asset)
+    if asset == "protagonistas":
+        alvo = alvo[0] if alvo else None
+    return alvo if isinstance(alvo, dict) else {}
 
 
 def resumo_assets(data: dict) -> str:
@@ -76,7 +79,7 @@ def resumo_espinha(data: dict) -> str:
         return {"incidente_incitante": 0, "crise": 2, "climax": 3, "resolucao": 4}.get(no["id"], 99)
 
     visiveis = sorted(
-        (no for no in data["espinha"] if not no.get("excluido")),
+        (no for no in data.get("espinha") or [] if not no.get("excluido")),
         key=chave,
     )
     linhas = []

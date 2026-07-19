@@ -13,8 +13,8 @@ const PADRAO_CAMPO_VAZIO =
   /\b(vazi[oa]s?|n[ãa]o\s+(?:foi|foram)?\s*preenchid|falta\s+preencher|sem\s+preencher|n[ãa]o\s+estabelecid|n[ãa]o\s+definid)/i;
 
 export function DiagnosticoCard({ itens: itensBrutos }: { itens: ItemDiagnostico[] }) {
-  const itens = (itensBrutos ?? []).filter((i) => !PADRAO_CAMPO_VAZIO.test(i.problema));
-  if (!itens?.length) {
+  const itens = (itensBrutos ?? []).filter((i) => !PADRAO_CAMPO_VAZIO.test(i?.problema ?? ""));
+  if (itens.length === 0) {
     return (
       <div style={{ border: "1px solid #2aa198", borderRadius: 8, padding: 12, margin: "4px 0" }}>
         Diagnóstico: nenhuma inconsistência encontrada nos testes de coerência.
