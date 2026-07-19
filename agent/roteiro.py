@@ -1,8 +1,70 @@
-"""Schema do roteiro McKee — porte de backend/src/roteiro.ts (legado).
+"""Schema e mutações do roteiro McKee — porte de backend/src/roteiro.ts (legado)."""
 
-Só a forma vazia por enquanto; as mutações (applyUpdates, complicações)
-entram nas fatias de tools da Fase 1.
-"""
+import copy
+
+
+def calcular_ordem_para_posicao(visiveis: list[dict], posicao: int | None, maior_ordem: float) -> float:
+    """Encaixa uma complicação na posição de exibição `posicao` (1-based) com
+    `ordem` fracionária — insere entre as vizinhas sem renumerar ninguém.
+    Omitida ou além do fim, vai pro final."""
+    if posicao is None or posicao > len(visiveis):
+        return maior_ordem + 1
+    alvo = max(1, posicao)
+    anterior = visiveis[alvo - 2] if alvo >= 2 else None
+    seguinte = visiveis[alvo - 1] if alvo - 1 < len(visiveis) else None
+    ordem_anterior = (anterior or {}).get("ordem", 0) or 0
+    ordem_seguinte = seguinte.get("ordem", ordem_anterior + 2) if seguinte else ordem_anterior + 2
+    return (ordem_anterior + ordem_seguinte) / 2
+
+
+def adicionar_complicacao(data: dict, conteudo: str, posicao: int | None = None) -> dict:
+    """Como no legado, o nó novo vai sempre pro FIM do array `espinha` (o
+    índice real nunca muda); a posição de exibição é só o campo `ordem`.
+    Diferença deliberada do laboratório: recebe `conteudo` direto (no legado
+    a ação criava vazio e o conteúdo vinha por proposta)."""
+    proximo = copy.deepcopy(data)
+    todas = [no for no in proximo["espinha"] if no["tipo"] == "complicacao"]
+    proximo_id = len(todas) + 1
+    visiveis = sorted(
+        (no for no in todas if not no.get("excluido")),
+        key=lambda no: no.get("ordem", 0) or 0,
+    )
+    maior_ordem = max((no.get("ordem", 0) or 0 for no in todas), default=0)
+    ordem = calcular_ordem_para_posicao(visiveis, posicao, maior_ordem)
+    proximo["espinha"].append({
+        "id": f"complicacao_{proximo_id}",
+        "tipo": "complicacao",
+        "ordem": ordem,
+        "conteudo": conteudo,
+        "status": "rascunho",
+        "conecta_assets": ["antagonista", "protagonista"],
+    })
+    return proximo
+
+
+def resumo_espinha(data: dict) -> str:
+    """Resumo compacto da espinha em ordem de exibição, com as posições
+    1-based das complicações — é o que o modelo usa pra escolher `posicao`."""
+    def chave(no: dict) -> float:
+        if no["tipo"] == "complicacao":
+            return 1 + (no.get("ordem", 0) or 0) / 1000
+        return {"incidente_incitante": 0, "crise": 2, "climax": 3, "resolucao": 4}.get(no["id"], 99)
+
+    visiveis = sorted(
+        (no for no in data["espinha"] if not no.get("excluido")),
+        key=chave,
+    )
+    linhas = []
+    pos_complicacao = 0
+    for no in visiveis:
+        if no["tipo"] == "complicacao":
+            pos_complicacao += 1
+            rotulo = f"Complicação (posição {pos_complicacao}, id {no['id']})"
+        else:
+            rotulo = no["id"]
+        conteudo = no.get("conteudo") or "(vazio)"
+        linhas.append(f"- {rotulo}: {conteudo}")
+    return "\n".join(linhas)
 
 
 def espinha_vazia() -> list[dict]:

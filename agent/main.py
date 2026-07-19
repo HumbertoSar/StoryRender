@@ -2,15 +2,20 @@
 
 import os
 from contextlib import asynccontextmanager
+from typing import Annotated, Optional
 
 from ag_ui_langgraph import LangGraphAgent, add_langgraph_fastapi_endpoint
 from dotenv import load_dotenv
 from fastapi import FastAPI
+from langchain_core.messages import SystemMessage, ToolMessage
+from langchain_core.tools import InjectedToolCallId, tool
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, MessagesState, StateGraph
+from langgraph.prebuilt import InjectedState, ToolNode, tools_condition
+from langgraph.types import Command
 
-from roteiro import roteiro_mckee_vazio
+from roteiro import adicionar_complicacao, resumo_espinha, roteiro_mckee_vazio
 
 load_dotenv()
 
@@ -31,16 +36,54 @@ class RoteiroState(MessagesState):
     roteiro: dict
 
 
+@tool
+def criar_complicacao(
+    conteudo: str,
+    posicao: Optional[int] = None,
+    state: Annotated[dict, InjectedState] = None,
+    tool_call_id: Annotated[str, InjectedToolCallId] = "",
+) -> Command:
+    """Cria uma complicação nova na espinha dramática do roteiro.
+
+    Args:
+        conteudo: o texto da complicação (o evento que intensifica o conflito).
+        posicao: posição de exibição 1-based entre as complicações existentes;
+            omitida, a complicação vai pro fim.
+    """
+    roteiro = state.get("roteiro") or roteiro_mckee_vazio()
+    novo = adicionar_complicacao(roteiro, conteudo, posicao)
+    criada = novo["espinha"][-1]
+    return Command(update={
+        "roteiro": novo,
+        "messages": [ToolMessage(f"complicação criada ({criada['id']})", tool_call_id=tool_call_id)],
+    })
+
+
+TOOLS = [criar_complicacao]
+model_com_tools = model.bind_tools(TOOLS)
+
+INSTRUCAO = """Você é o agente do Story Render: ajuda escritores a estruturar \
+histórias pelo método McKee. Responda sempre em português, de forma direta. \
+Quando o usuário descrever ou pedir uma complicação nova pra espinha, use a \
+tool criar_complicacao (escolhendo a posicao certa se ele indicar onde)."""
+
+
 async def conversar(state: RoteiroState) -> RoteiroState:
     roteiro = state.get("roteiro") or roteiro_mckee_vazio()
-    resposta = await model.ainvoke(state["messages"])
+    # Contexto enxuto por turno: só a espinha atual (posições 1-based), não o
+    # JSON inteiro do roteiro — o modelo precisa disso pra escolher `posicao`.
+    system = SystemMessage(content=f"{INSTRUCAO}\n\nEspinha atual:\n{resumo_espinha(roteiro)}")
+    resposta = await model_com_tools.ainvoke([system, *state["messages"]])
     return {"messages": [resposta], "roteiro": roteiro}
 
 
 grafo = StateGraph(RoteiroState)
 grafo.add_node("conversar", conversar)
+grafo.add_node("tools", ToolNode(TOOLS))
 grafo.add_edge(START, "conversar")
-grafo.add_edge("conversar", END)
+# tools_condition roteia pra "tools" quando a resposta tem tool_calls, senão END.
+grafo.add_conditional_edges("conversar", tools_condition)
+grafo.add_edge("tools", "conversar")
 
 # O adaptador AG-UI consulta aget_state entre turnos — o grafo PRECISA de
 # checkpointer, senão "ValueError: No checkpointer set" em toda chamada.

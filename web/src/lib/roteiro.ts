@@ -15,13 +15,38 @@ export interface Protagonista {
   status: Status;
 }
 
+export interface EspinhaNo {
+  id: string;
+  tipo: "no_fixo" | "complicacao";
+  conteudo: string;
+  status: Status;
+  conecta_assets: string[];
+  ordem?: number;
+  excluido?: boolean;
+}
+
 export interface RoteiroData {
   template: string;
   titulo: string;
   fase_atual: "A" | "B" | "C" | "D";
+  espinha: EspinhaNo[];
   assets: {
     protagonistas: Protagonista[];
   };
+}
+
+// Mesma chave de exibição do legado (frontend/src/quadro/EspinhaColuna.tsx):
+// nós fixos têm rank fixo; complicações se espalham entre incidente e crise.
+const ORDEM_FIXA: Record<string, number> = {
+  incidente_incitante: 0,
+  crise: 2,
+  climax: 3,
+  resolucao: 4,
+};
+
+export function chaveOrdenacao(no: EspinhaNo): number {
+  if (no.tipo === "complicacao") return 1 + (no.ordem ?? 0) / 1000;
+  return ORDEM_FIXA[no.id] ?? 99;
 }
 
 // Forma do estado compartilhado do grafo LangGraph (menos `messages`).

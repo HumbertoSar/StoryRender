@@ -531,3 +531,20 @@ Decisão do usuário: transformar o Story Render em projeto de aprendizado de Ge
 **O que ficou pra depois:** o CopilotKit gera `threadId` novo a cada reload da página — a conversa persiste no banco mas o browser não a retoma (runtime reporta `threadEndpoints: false`). Fixar/reutilizar threadId é fatia futura ("retomar roteiro"). Deploy do agente na VPS também fica pra depois (lá o banco é `localhost` direto, sem túnel).
 
 **Smoke test manual:** turno 1 informa o título → `pkill` no servidor → boot novo → primeiro request pergunta neutro "qual é o título da minha história?" → **"A Décima Casa"**. Tabelas `checkpoints*` criadas pelo `setup()` no Postgres da VPS; cadeia de 10 mensagens íntegra e em ordem no checkpoint.
+
+## Fatia 1.3: primeira tool de mutação (criar_complicacao) + espinha no quadro
+
+**O que foi construído:** porte das mutações `calcular_ordem_para_posicao`/`adicionar_complicacao` (ordem fracionária) e `resumo_espinha` pro `agent/roteiro.py`; tool `criar_complicacao(conteudo, posicao?)` que muta o estado via `Command(update={"roteiro": ...})` (padrão `InjectedState` + `InjectedToolCallId`); grafo vira o ciclo clássico `conversar → tools_condition → ToolNode → conversar`; system prompt mínimo com o resumo da espinha (posições 1-based) por turno. No web: `EspinhaColuna` read-only (chave de ordenação portada pra `lib/roteiro.ts`).
+
+**Por quê:** primeiro momento "generative" do nível controlled — o agente muta o estado com tool de verdade (adeus blocos `ACOES:` parseados por regex do legado) e o quadro reage ao vivo.
+
+**Desvio deliberado do legado:** a tool recebe `conteudo` direto e escreve no quadro (status `rascunho`) — no produto original o agente só *propõe* e o usuário aceita. A regra volta na fatia de HITL (propostas); aqui o ponto é exercitar mutação direta.
+
+**Aprendizados:**
+- O adaptador AG-UI emite `STATE_SNAPSHOT` **a cada saída de nó** — o quadro atualiza no instante em que o `ToolNode` roda, antes da resposta final do agente. O "ao vivo" vem de graça do ciclo do grafo.
+- Contexto enxuto funciona: só o resumo da espinha no system prompt (não o JSON inteiro como o legado injetava) bastou pro modelo escolher `posicao` corretamente ("ANTES dessa do irmão" → `ordem=1.5`, entre 1 e 2).
+- Eventos `TOOL_CALL_START/ARGS/END/RESULT` aparecem no stream — o CopilotKit renderiza a chamada no chat sem nada custom (genUI de tool call é o próximo degrau natural).
+
+**O que ficou pra depois:** reordenar/excluir complicação, edição pelo usuário (bidirecional), HITL, demais cartões, CSS do brief.
+
+**Smoke test manual:** browser — "crie uma complicação: a perita descobre que o laudo que assinou há dez anos condenou um inocente" → espinha renderiza Complicação 2 com o texto e status `rascunho`, ao vivo. Curl — segunda complicação "ANTES dessa" → snapshot final com `complicacao_3 ordem=1.5` entre `complicacao_1` (1) e `complicacao_2` (2).

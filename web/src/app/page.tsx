@@ -4,6 +4,7 @@ import { CopilotKit, useCoAgent } from "@copilotkit/react-core";
 import { CopilotChat } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 
+import { EspinhaColuna } from "@/components/EspinhaColuna";
 import { ProtagonistaCard } from "@/components/ProtagonistaCard";
 import type { AgentState } from "@/lib/roteiro";
 
@@ -27,7 +28,10 @@ function Quadro() {
           ? `template ${state.roteiro.template} · fase ${state.roteiro.fase_atual}`
           : "aguardando o primeiro turno do agente…"}
       </div>
-      {protagonista && <ProtagonistaCard protagonista={protagonista} />}
+      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
+        {state.roteiro && <EspinhaColuna espinha={state.roteiro.espinha} />}
+        {protagonista && <ProtagonistaCard protagonista={protagonista} />}
+      </div>
     </div>
   );
 }
