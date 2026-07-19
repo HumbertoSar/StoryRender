@@ -12,7 +12,7 @@ from langchain_core.tools import InjectedToolCallId, tool
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, MessagesState, StateGraph
-from langgraph.prebuilt import InjectedState, ToolNode, tools_condition
+from langgraph.prebuilt import InjectedState, ToolNode
 from langgraph.types import Command
 
 from roteiro import (
@@ -39,6 +39,10 @@ class RoteiroState(MessagesState):
     # Estado compartilhado agente↔quadro: o adaptador AG-UI emite
     # STATE_SNAPSHOT dele na saída do nó, e o front lê via useCoAgent.
     roteiro: dict
+    # Tools do FRONTEND (useCopilotAction) chegam via RunAgentInput.tools e o
+    # adaptador as injeta no estado — mas o LangGraph descarta chaves fora do
+    # schema, então o canal precisa estar declarado aqui pra elas existirem.
+    tools: list
 
 
 @tool
@@ -65,32 +69,51 @@ def criar_complicacao(
 
 
 TOOLS = [criar_complicacao]
-model_com_tools = model.bind_tools(TOOLS)
+BACKEND_TOOL_NAMES = {t.name for t in TOOLS}
 
 INSTRUCAO = """Você é o agente do Story Render: ajuda escritores a estruturar \
-histórias pelo método McKee. Responda sempre em português, de forma direta. \
-Quando o usuário descrever ou pedir uma complicação nova pra espinha, use a \
-tool criar_complicacao (escolhendo a posicao certa se ele indicar onde)."""
+histórias pelo método McKee. Responda sempre em português, de forma direta.
+
+Regras de escrita no quadro:
+- Estrutura (complicações na espinha): use criar_complicacao direto, \
+escolhendo a posicao certa se o usuário indicar onde.
+- Conteúdo dos campos do protagonista (want, need, aposta): você NUNCA \
+escreve direto. Quando tiver uma sugestão de texto pra um desses campos, use \
+a tool propor_campo — o usuário aceita ou rejeita no chat. Se rejeitar, \
+pergunte o que ajustar em vez de insistir na mesma proposta."""
 
 
 async def conversar(state: RoteiroState) -> RoteiroState:
     roteiro = state.get("roteiro") or roteiro_mckee_vazio()
-    # Contexto enxuto por turno: só a espinha atual (posições 1-based), não o
-    # JSON inteiro do roteiro — o modelo precisa disso pra escolher `posicao`.
+    # Tools do frontend (ex.: propor_campo) chegam via RunAgentInput.tools e o
+    # adaptador as põe em state["tools"] como dicts JSON-schema — o bind aceita.
+    tools_do_front = state.get("tools") or []
+    modelo = model.bind_tools([*TOOLS, *tools_do_front])
+    # Contexto enxuto por turno: resumos, não o JSON inteiro do roteiro.
     system = SystemMessage(
         content=f"{INSTRUCAO}\n\nEspinha atual:\n{resumo_espinha(roteiro)}"
         f"\n\nProtagonista:\n{resumo_protagonista(roteiro)}"
     )
-    resposta = await model_com_tools.ainvoke([system, *state["messages"]])
+    resposta = await modelo.ainvoke([system, *state["messages"]])
     return {"messages": [resposta], "roteiro": roteiro}
+
+
+def rotear_apos_conversar(state: RoteiroState) -> str:
+    """Só tool de backend vai pro ToolNode. Tool do frontend encerra o run:
+    o CopilotKit intercepta a tool call, renderiza a UI (HITL) e manda o
+    resultado de volta num run de continuação."""
+    ultima = state["messages"][-1]
+    calls = getattr(ultima, "tool_calls", None) or []
+    if calls and all(c["name"] in BACKEND_TOOL_NAMES for c in calls):
+        return "tools"
+    return END
 
 
 grafo = StateGraph(RoteiroState)
 grafo.add_node("conversar", conversar)
 grafo.add_node("tools", ToolNode(TOOLS))
 grafo.add_edge(START, "conversar")
-# tools_condition roteia pra "tools" quando a resposta tem tool_calls, senão END.
-grafo.add_conditional_edges("conversar", tools_condition)
+grafo.add_conditional_edges("conversar", rotear_apos_conversar, ["tools", END])
 grafo.add_edge("tools", "conversar")
 
 # O adaptador AG-UI consulta aget_state entre turnos — o grafo PRECISA de

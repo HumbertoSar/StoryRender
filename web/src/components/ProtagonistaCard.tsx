@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 
 import type { Protagonista } from "@/lib/roteiro";
+import type { CampoProtagonista } from "@/lib/useRoteiro";
 
-const CAMPOS: Array<{ chave: keyof Protagonista & string; rotulo: string }> = [
+const CAMPOS: Array<{ chave: CampoProtagonista; rotulo: string }> = [
   { chave: "want", rotulo: "Want (desejo consciente)" },
   { chave: "need", rotulo: "Need (necessidade inconsciente)" },
   { chave: "aposta", rotulo: "Aposta (o que está em jogo)" },
@@ -52,7 +53,7 @@ export function ProtagonistaCard({
   onSalvar,
 }: {
   protagonista: Protagonista;
-  onSalvar: (campo: keyof Protagonista & string, valor: string) => void;
+  onSalvar: (campo: CampoProtagonista, valor: string) => void;
 }) {
   return (
     <section

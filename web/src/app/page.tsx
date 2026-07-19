@@ -1,36 +1,58 @@
 "use client";
 
-import { CopilotKit, useCoAgent } from "@copilotkit/react-core";
+import { CopilotKit, useCopilotAction } from "@copilotkit/react-core";
 import { CopilotChat } from "@copilotkit/react-ui";
 import "@copilotkit/react-ui/styles.css";
 
 import { EspinhaColuna } from "@/components/EspinhaColuna";
+import { PropostaCard } from "@/components/PropostaCard";
 import { ProtagonistaCard } from "@/components/ProtagonistaCard";
-import type { AgentState } from "@/lib/roteiro";
+import { useRoteiro, type CampoProtagonista } from "@/lib/useRoteiro";
 
 function Quadro() {
   // Estado compartilhado com o grafo LangGraph: chega via STATE_SNAPSHOT
   // (AG-UI) depois do primeiro turno; antes disso, roteiro é null.
-  const { state, setState } = useCoAgent<AgentState>({
-    name: "story_agent",
-    initialState: { roteiro: null },
+  const { state, salvarCampoProtagonista } = useRoteiro();
+
+  // HITL: o agente propõe conteúdo de campo e ESPERA a decisão — o card
+  // renderiza no chat e o respond() devolve o resultado pro agente.
+  useCopilotAction({
+    name: "propor_campo",
+    description:
+      "Propõe um texto para um campo do protagonista (want, need ou aposta). " +
+      "O usuário aceita ou rejeita; você recebe a decisão como resultado.",
+    parameters: [
+      {
+        name: "campo",
+        type: "string",
+        description: "Qual campo: want, need ou aposta",
+        required: true,
+      },
+      {
+        name: "valor",
+        type: "string",
+        description: "O texto proposto para o campo",
+        required: true,
+      },
+      {
+        name: "justificativa",
+        type: "string",
+        description: "Por que essa proposta funciona dramaticamente (1 frase)",
+        required: false,
+      },
+    ],
+    renderAndWaitForResponse: ({ args, respond, status }) => (
+      <PropostaCard
+        campo={args.campo as CampoProtagonista}
+        valor={(args.valor as string) ?? ""}
+        justificativa={args.justificativa as string | undefined}
+        respond={respond}
+        status={status}
+      />
+    ),
   });
 
   const protagonista = state.roteiro?.assets?.protagonistas?.[0];
-
-  // Volta do ciclo (quadro → agente): setState grava no estado compartilhado
-  // e o CopilotKit envia esse estado junto do próximo turno.
-  const salvarCampoProtagonista = (campo: string, valor: string) => {
-    if (!state.roteiro) return;
-    const roteiro = structuredClone(state.roteiro);
-    const prot = roteiro.assets.protagonistas[0];
-    roteiro.assets.protagonistas[0] = {
-      ...prot,
-      [campo]: valor,
-      status: prot.status === "vazio" ? "rascunho" : prot.status,
-    };
-    setState({ ...state, roteiro });
-  };
 
   return (
     <div style={{ flex: 1, padding: 24, overflowY: "auto" }}>

@@ -560,3 +560,17 @@ Decisão do usuário: transformar o Story Render em projeto de aprendizado de Ge
 **Risco anotado:** last-write-wins significa que o estado do CLIENTE sobrescreve o canal `roteiro` inteiro a cada turno. Com uma aba só, ok; com duas abas no mesmo thread (futuro), edições podem se atropelar. Se virar problema real, o caminho é reducer custom no canal ou granularizar o estado.
 
 **Smoke test manual (browser):** digitei "provar que é a melhor perita forense do estado" no Want direto no cartão (blur salvou, status → `rascunho`), perguntei no chat "o que você sabe sobre o want da minha protagonista?" → o agente respondeu citando o texto exato e apontando que need/aposta continuam vazios.
+
+## Fatia 1.5: propostas como HITL nativo (propor_campo + renderAndWaitForResponse)
+
+**O que foi construído:** frontend action `propor_campo(campo, valor, justificativa)` via `useCopilotAction` com `renderAndWaitForResponse` → `PropostaCard` (aceitar/rejeitar) renderizado no chat; aceitar aplica no estado compartilhado (hook `useRoteiro` extraído — mesma mutação usada pelo quadro e pelo card) e o `respond()` devolve a decisão ao agente, que continua a conversa. No grafo: `conversar` agora faz bind dinâmico de `[*TOOLS, *state["tools"]]` e o roteador `rotear_apos_conversar` manda só tool de backend pro `ToolNode` — tool de frontend encerra o run (o CopilotKit intercepta, renderiza, e manda o resultado num run de continuação). Prompt ganhou a regra do produto original: conteúdo de campo do protagonista **nunca** direto, só por proposta; estrutura (complicações) segue direta.
+
+**Por quê:** é a alma do produto original (tabela `propostas` + aceitar/rejeitar + matching por path) reimplementada como mecanismo do protocolo — zero persistência própria, zero matching manual.
+
+**Gotcha central da fatia:** as tools do frontend chegam via `RunAgentInput.tools`, o adaptador as injeta no estado, **mas o LangGraph descarta chaves fora do schema do grafo** — sem declarar `tools: list` no `RoteiroState`, elas somem silenciosamente e o modelo responde a proposta em prosa (foi exatamente o primeiro sintoma). Declarado o canal, o modelo passou a chamar a tool.
+
+**Gotcha operacional:** túnel SSH de ontem morreu mas o listener local continuou vivo (zumbi) — `nc` dizia "ok" e o pool dava `PoolTimeout` no boot. Matar o ssh velho e reabrir com `ServerAliveInterval=30` resolveu; o comando do túnel no `.env.example` deve incluir isso.
+
+**O que ficou pra depois:** caminho de REJEIÇÃO ainda não smoke-testado no browser (só o aceite); propostas pra nós da espinha e demais cartões; clique pré-hidratação do Next perde o primeiro input no teste via Chrome (irritante em automação, invisível pra humano).
+
+**Smoke test manual (browser):** "me proponha um want pra ela" → agente chama `propor_campo`, card com valor + justificativa aparece no chat, quadro intocado → "Aceitar" → Want preenchido no cartão (status `rascunho`), card "Proposta aceita", e o agente recebe a decisão e responde em cima ("O want da sua protagonista está definido…"). Via curl, confirmado `TOOL_CALL_START` + `RUN_FINISHED` limpo (frontend tool não passa pelo ToolNode).
