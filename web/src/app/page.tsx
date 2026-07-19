@@ -141,7 +141,16 @@ export default function Home() {
       <main style={{ height: "100vh", display: "flex" }}>
         <Quadro />
         <div style={{ width: 440, borderLeft: "1px solid #ddd", height: "100%" }}>
-          <CopilotChat agentId="story_agent" />
+          <CopilotChat
+            agentId="story_agent"
+            labels={{
+              welcomeMessageText:
+                "Vamos estruturar sua história? Me conte a premissa — e peça um painel visual sempre que quiser ver o todo.",
+              chatInputPlaceholder: "Escreva sua mensagem…",
+              chatDisclaimerText:
+                "O agente pode errar — o quadro é sempre a fonte de verdade.",
+            }}
+          />
         </div>
       </main>
     </CopilotKit>
