@@ -600,3 +600,18 @@ Decisão do usuário: transformar o Story Render em projeto de aprendizado de Ge
 **Simplificação (aplicada):** helper único `alvoDoAsset` (a regra "protagonistas é lista" estava em 2 lugares); `AssetComCampos` duplicava `AssetBase` — removido; `deepcopy` do roteiro inteiro virou cópia rasa + append (nada mais é mutado); `roteiro_do_estado` centraliza o fallback de roteiro vazio; `conversar` só grava o canal `roteiro` quando ele nasce (antes reemitia snapshot redundante a cada turno de conversa).
 
 **Pendências conhecidas (deliberadas):** last-write-wins entre abas (anotado na 1.4); campos de lista dos cartões; CSS/gramática visual do brief ainda não portada (estilo neutro); retomada de thread após reload; resposta vazia ocasional do OpenRouter (1 caso — retry se virar padrão).
+
+## Deploy: produção na VPS
+
+**O que foi construído:** `agent/Dockerfile` (imagem uv python3.12, `uv sync --frozen`), `web/Dockerfile` (multi-stage, Next `output: "standalone"`), `deploy/docker-compose.yml` (fonte de verdade versionada do compose de produção — copiado pra `/opt/storyrender/` na VPS). Na VPS: repo clonado em `/opt/storyrender/src`, segredos em `/opt/storyrender/.env` (fora do repo, chmod 600), Caddy com bloco `storyrender.mvpsardenberg.cloud → 127.0.0.1:3002`. Padrão da VPS respeitado: compose por projeto + Caddy no host com subdomínio por app.
+
+**Arquitetura de rede:** Postgres e agent sem porta pública (rede interna do compose; `DATABASE_URL` aponta pra `postgres:5432`, o `AGENT_URL` do web pra `agent:8000`); só o web expõe `127.0.0.1:3002` pro Caddy. Dev continua usando o MESMO Postgres via túnel SSH.
+
+**Fluxo de redeploy:** push na branch → na VPS: `cd /opt/storyrender/src && git pull && cd .. && cp src/deploy/docker-compose.yml . && docker compose up -d --build`.
+
+**Gotchas:**
+- A porta 3000 do host já era do binary-kid e a 8000 de outro python — por isso 3002, e o agent nem expõe porta.
+- O classificador do Claude Code bloqueia transporte de segredos — os dois appends no `.env` da VPS (senha do banco na 1.2, chave OpenRouter aqui) foram comandos do usuário via `!`.
+- O `web/AGENTS.md` avisa que este Next tem breaking changes vs treino — `output: "standalone"` confirmado válido nos docs bundled antes de usar.
+
+**Smoke test (produção):** containers up; `POST /api/copilotkit {"method":"info"}` responde com `story_agent`; turno real de LLM dentro do container respondeu "PROD OK"; thread `t-prod` com 3 checkpoints no Postgres (rede interna, sem túnel). **Pendente:** registro DNS `storyrender.mvpsardenberg.cloud → 2.24.108.121` (ação do usuário; Caddy emite TLS sozinho quando resolver).
