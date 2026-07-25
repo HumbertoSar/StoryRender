@@ -1,10 +1,14 @@
-"""Agente Tutor — método do Fio (9 degraus), em fase de validação SÓ TEXTO.
+"""Agente Tutor — método McKee Inspired (9 degraus), em validação SÓ TEXTO.
 
-Trilho separado do agente McKee (`main.py`): grafo de um nó, sem tools e sem
-estado de roteiro. Tudo o que o Tutor produz nesta fase — mapa, mural de
-promessas, backlog de pendências, dossiê do antagonista — sai como texto no
+Trilho separado do agente McKee original (`main.py`): grafo de um nó, sem tools
+e sem estado de roteiro. Tudo o que o Tutor produz nesta fase (mapa, mural de
+promessas, backlog de pendências, dossiê do antagonista) sai como texto no
 chat; transformar isso em superfície de UI é a fase seguinte, e só começa
 depois que a instrução estiver validada em conversa real.
+
+Nomenclatura: o MÉTODO se chama McKee Inspired (antes "O Fio"); a PERSONA que
+o conduz continua sendo o Tutor. Por isso este módulo e o agente seguem com
+nome de tutor, e só o método foi renomeado.
 """
 
 from pathlib import Path
@@ -12,7 +16,7 @@ from pathlib import Path
 from langchain_core.messages import SystemMessage
 from langgraph.graph import END, START, MessagesState, StateGraph
 
-ARQUIVO_INSTRUCAO = Path(__file__).parent / "metodos" / "fio.md"
+ARQUIVO_INSTRUCAO = Path(__file__).parent / "metodos" / "mckee_inspired.md"
 
 
 def carregar_instrucao() -> str:

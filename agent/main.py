@@ -185,9 +185,10 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "")
 # ("RuntimeError: no running event loop" se criado no import).
 agente = LangGraphAgent(name="story_agent", graph=grafo.compile(checkpointer=MemorySaver()))
 
-# Segundo trilho: método do Fio, agente Tutor — grafo próprio, sem tools e sem
-# estado compartilhado. Separado de propósito: o trilho McKee está fechado e
-# em produção, e nada da validação do Fio pode regredi-lo.
+# Segundo trilho: método McKee Inspired, conduzido pelo agente Tutor. Grafo
+# próprio, sem tools e sem estado compartilhado. Separado de propósito: o
+# trilho McKee original está fechado e em produção, e nada da validação do
+# McKee Inspired pode regredi-lo.
 grafo_tutor = construir_grafo_tutor(model)
 agente_tutor = LangGraphAgent(
     name="tutor_agent", graph=grafo_tutor.compile(checkpointer=MemorySaver())
@@ -238,7 +239,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Story Render Agent", lifespan=lifespan)
 add_langgraph_fastapi_endpoint(app, agente, "/agent")
-add_langgraph_fastapi_endpoint(app, agente_tutor, "/agent-fio")
+add_langgraph_fastapi_endpoint(app, agente_tutor, "/agent-tutor")
 app.include_router(router_feedback)
 app.include_router(router_sessoes)
 

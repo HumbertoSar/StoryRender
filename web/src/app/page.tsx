@@ -36,12 +36,13 @@ const METODOS: Metodo[] = [
     ),
   },
   {
-    nome: "O Fio",
+    nome: "McKee Inspired",
     descricao:
-      "Um fio único de 9 degraus, conduzido por um tutor socrático: da semente ao novo equilíbrio, testando cada passo com você.",
-    href: "/fio",
+      "O McKee reformulado como uma escada única de 9 degraus, conduzida por um tutor socrático: da semente ao novo equilíbrio, testando cada passo com você.",
+    href: "/mckee-inspired",
     icone: (
-      // Linha contínua (o fio) em oposição à espinha pontilhada do McKee.
+      // Linha contínua (a escada de degraus) em oposição à espinha pontilhada
+      // do McKee original.
       <svg viewBox="0 0 210 56" className="sr-metodo__icone">
         <polyline
           points="10,46 33,43 57,38 80,33 104,27 128,20 151,11 174,5 198,30"

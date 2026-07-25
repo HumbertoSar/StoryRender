@@ -19,7 +19,7 @@ function editadaHa(iso: string): string {
 
 function CartaoDeSessao({ sessao }: { sessao: Sessao }) {
   return (
-    <Link href={`/fio/${sessao.thread_id}`} className="sr-sessoes__card">
+    <Link href={`/mckee-inspired/${sessao.thread_id}`} className="sr-sessoes__card">
       <div className="sr-sessoes__card-titulo">
         {sessao.inicio || "Sessão sem primeira fala"}
       </div>
@@ -33,7 +33,7 @@ function CartaoDeSessao({ sessao }: { sessao: Sessao }) {
 }
 
 export default async function Sessoes() {
-  const sessoes = await listarSessoes("fio");
+  const sessoes = await listarSessoes("mckee-inspired");
   // O id da sessão nova é sorteado AQUI, no servidor, e não no clique: em dev
   // o Next é servido por http direto no IP — contexto inseguro, onde
   // `crypto.randomUUID()` do navegador não existe. Do lado do servidor sempre
@@ -46,7 +46,7 @@ export default async function Sessoes() {
         <Link href="/" className="sr-sessoes__voltar">
           ← métodos
         </Link>
-        <div className="sr-sessoes__titulo">O Fio</div>
+        <div className="sr-sessoes__titulo">McKee Inspired</div>
         <div className="sr-sessoes__subtitulo">
           tutor socrático · 9 degraus · fase de validação em texto
         </div>
@@ -72,7 +72,7 @@ export default async function Sessoes() {
             <CartaoDeSessao key={s.thread_id} sessao={s} />
           ))}
 
-          <Link href={`/fio/${nova}`} className="sr-sessoes__nova">
+          <Link href={`/mckee-inspired/${nova}`} className="sr-sessoes__nova">
             <div className="sr-sessoes__nova-icone">+</div>
             <div>
               <div className="sr-sessoes__nova-titulo">Nova sessão</div>

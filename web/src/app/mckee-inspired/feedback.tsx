@@ -53,7 +53,7 @@ export function ProvedorDeFeedback({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!threadId) return;
     let vivo = true;
-    fetch(`/api/fio/feedback?thread=${encodeURIComponent(threadId)}`)
+    fetch(`/api/mckee-inspired/feedback?thread=${encodeURIComponent(threadId)}`)
       .then((r) => (r.ok ? r.json() : { marcas: {} }))
       .then((d) => {
         if (!vivo) return;
@@ -80,7 +80,7 @@ export function ProvedorDeFeedback({ children }: { children: ReactNode }) {
       aplicar(otimista);
       setErro(null);
       try {
-        const r = await fetch("/api/fio/feedback", {
+        const r = await fetch("/api/mckee-inspired/feedback", {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({

@@ -1,6 +1,6 @@
 """Feedback por turno — 👍/👎 do autor gravados junto das sessões.
 
-Na validação do método do Fio as sessões de teste SÃO o dado (LEARNINGS.md): é
+Na validação do McKee Inspired as sessões de teste SÃO o dado (LEARNINGS.md): é
 lendo os turnos que se vê se o Tutor conduz como previsto. Só que a leitura
 acontece depois, fora do calor da conversa, e nessa hora já não dá pra lembrar
 qual turno acertou. Marcar na hora, no chat, e ver a marca no Markdown

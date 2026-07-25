@@ -13,9 +13,11 @@ const runtime = new CopilotRuntime({
     story_agent: new LangGraphHttpAgent({
       url: process.env.AGENT_URL ?? "http://127.0.0.1:8000/agent",
     }),
-    // Método do Fio: agente Tutor, endpoint próprio no mesmo servidor Python.
+    // Método McKee Inspired: agente Tutor, endpoint próprio no mesmo servidor
+    // Python. O id do agente é a PERSONA (tutor), não o método — por isso ele
+    // não mudou junto com o rename.
     tutor_agent: new LangGraphHttpAgent({
-      url: process.env.AGENT_FIO_URL ?? "http://127.0.0.1:8000/agent-fio",
+      url: process.env.AGENT_TUTOR_URL ?? "http://127.0.0.1:8000/agent-tutor",
     }),
   },
   // Nível declarative: liga o middleware A2UI (converte as operações emitidas
