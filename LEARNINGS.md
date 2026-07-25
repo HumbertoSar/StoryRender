@@ -1150,3 +1150,51 @@ do mapa (`MURAL`, `CENA OBRIGATÓRIA`, `PROMESSA PLANTADA`); e o limite de três
 perguntas ainda é estourado em todo turno, mesmo com o modelo de lista. Nenhum
 desses foi testado em conversa real ainda: o banco de prova mede o PRIMEIRO
 turno, e o mapa é só um dos formatos que o Tutor produz.
+
+## Fatia: regra determinística fora do prompt e montagem por turno
+
+**Escopo:** os itens 1 e 2 da conversa sobre arquitetura. Tirar do prompt as
+duas regras que um regex faz melhor, e parar de mandar a instrução inteira a
+cada turno.
+
+**Item 1, `forma.py`.** Travessão e título de nível 1 são substituição de
+caractere e de linha, e estavam oscilando (0, 0 e 4 travessões no mesmo
+prompt). Saíram da instrução e viraram código com autoteste (`uv run python
+forma.py`). O que fica no prompt é o que exige julgamento: qual termo marcar,
+como formular o teste, quando elogiar.
+
+Dois cuidados que o código carrega e a instrução não conseguia garantir:
+travessão no INÍCIO da linha não se toca (ali é fala de personagem ou marcador
+de lista, e o Tutor cita o autor), e nada é tocado dentro de bloco de código.
+O caso que escapou na primeira versão veio do banco de prova, não da minha
+cabeça: o modelo escreve `interná-lo —, ou`, travessão colado numa vírgula, e
+o regex pedia espaço depois. Virou caso de teste.
+
+**Item 2, `instrucao.py`.** O prompt passa a ser montado por turno. Núcleo,
+forma, regras de ouro, comportamentos, tom e glossário vão sempre; o bloco de
+fluxo é escolhido (abertura e mapa no primeiro turno, lapidação nos demais); e
+os degraus vão por inteiro só quando são o foco, com os outros virando índice
+de uma linha. O foco sai dos TERMOS MARCADOS no último turno do Tutor, não de
+estado novo: se ele passou o turno falando de `TENTATIVA`, o degrau 6 é o
+assunto. Os vizinhos (n-1 e n+1) entram junto porque o Tutor anda um degrau por
+vez, e sem termo reconhecível manda tudo, porque errar pra menos aqui é pior
+que gastar contexto.
+
+Resultado: 20.667 caracteres no primeiro turno, 15.5k a 17k nos seguintes,
+**18% a 25% menor** conforme o foco.
+
+**A medição, agora pelo caminho real.** O `provar_instrucao.py` passou a rodar
+CONVERSAS de dois turnos (mapa e lapidação), com a instrução montada e a
+resposta normalizada, que é o que a produção faz. Medir o prompt cru daria um
+número que ninguém vive. Sobre 3 conversas: travessão caiu de 3/3 pra 1/3 (e o
+caso restante virou teste no `forma.py`), vício de 2/3 pra 1/3.
+
+**O que NÃO melhorou, e é o próximo alvo:** o limite de três perguntas continua
+estourado em todo turno (17 e 14 numa das conversas). O modelo de lista
+funcionou quando medi turno único logo depois de escrevê-lo, e não se sustentou
+na conversa de dois turnos. É a evidência mais forte de que o problema não é
+falta de regra: a regra existe, tem modelo, e mesmo assim cai.
+
+**Bug de medição corrigido:** o agregado contava a mesma regra duas vezes
+quando ela caía nos dois turnos da mesma conversa, e chegava a imprimir "5/3".
+O denominador é conversa, não violação.

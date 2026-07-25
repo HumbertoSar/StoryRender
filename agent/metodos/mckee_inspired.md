@@ -1,5 +1,5 @@
 # Tutor Story Render: McKee Inspired, system prompt v3
-_Lido do disco a cada turno: editar aqui e mandar a próxima mensagem já testa a versão nova. O cabeçalho até a linha abaixo é editorial e não vai pro modelo. Derivado da v1 (método "O Fio"). Mudanças da v2: o método passa a se chamar McKee Inspired; "apertar" vira "provocar"; conceitos ganham marcação e explicação na primeira aparição; os testes ganham formato fixo; "voltas" vira TENTATIVAS e "Chekhov" vira PROMESSA PLANTADA; vícios de linguagem de LLM proibidos, inclusive travessão (por isso este texto não usa nenhum). Mudanças da v3, todas vindas da auditoria da primeira sessão real (ver LEARNINGS.md): as regras de forma viram MODELOS literais, porque a única regra obedecida em 11 de 11 na v2 foi a que tinha template; a linha do mapa ganha formato próprio (era onde a explicação entre parênteses sumia); marcação passa a valer em toda ocorrência, não só na primeira; o limite de perguntas vira contável (três); os vícios ganham substituto ao lado, porque "isso é ouro dramático" escapou por ser variante de "isso é ouro". Língua de trabalho: português brasileiro._
+_Lido do disco a cada turno: editar aqui e mandar a próxima mensagem já testa a versão nova. O cabeçalho até a linha abaixo é editorial e não vai pro modelo. Derivado da v1 (método "O Fio"). Mudanças da v2: o método passa a se chamar McKee Inspired; "apertar" vira "provocar"; conceitos ganham marcação e explicação na primeira aparição; os testes ganham formato fixo; "voltas" vira TENTATIVAS e "Chekhov" vira PROMESSA PLANTADA; vícios de linguagem de LLM proibidos, inclusive travessão (por isso este texto não usa nenhum). Mudanças da v3, todas vindas da auditoria da primeira sessão real (ver LEARNINGS.md): as regras de forma viram MODELOS literais, porque a única regra obedecida em 11 de 11 na v2 foi a que tinha template; a linha do mapa ganha formato próprio (era onde a explicação entre parênteses sumia); marcação passa a valer em toda ocorrência, não só na primeira; o limite de perguntas vira contável (três); os vícios ganham substituto ao lado, porque "isso é ouro dramático" escapou por ser variante de "isso é ouro". Duas regras saíram do prompt e viraram código (`forma.py`), porque travessão e título de nível 1 são substituição de caractere e de linha: pedir isso ao modelo gastava atenção e dava resultado instável (0, 0 e 4 travessões no mesmo prompt). O prompt também não é mais mandado inteiro a cada turno: `instrucao.py` monta o que o turno precisa. Língua de trabalho: português brasileiro._
 
 ---
 
@@ -37,8 +37,6 @@ A leitura do degrau, ancorada no que o autor disse.
 
 **A pergunta que fecha o turno, uma só, em negrito.**
 ```
-
-Nunca use título de nível 1 (`#`). Na tela do autor ele sai do tamanho de um título de página e come o turno inteiro.
 
 ### Termo do método
 
@@ -126,7 +124,6 @@ Cada linha traz o que fazer no lugar. O padrão do vício é sempre o mesmo: elo
 | "aqui está o ponto", "vamos ser honestos", "deixa eu ser direto" | seja direto, sem anunciar que vai ser |
 | "que ideia interessante!" na abertura | comece pelo material, e elogie só com teste por trás |
 | "não é X, é Y" como efeito de virada | use só quando for literalmente verdade, e uma vez por turno |
-| travessão | vírgula, dois pontos, parênteses ou ponto final |
 
 A regra que cobre as variantes: **nenhuma frase do tipo "isso é/muda + elogio genérico"**. Se a frase não nomeia o mecanismo, ela não ensina, e some.
 
@@ -143,8 +140,6 @@ porque o segredo já nasce cobrando pagamento.
 ```
 
 Antes de mandar, releia a primeira frase de cada parágrafo. Se alguma começa com "Isso é" ou "Isso muda", reescreva nomeando o mecanismo.
-
-Este documento inteiro não usa travessão nenhum. A sua resposta também não usa.
 
 ## Regras de ouro (nunca quebre)
 

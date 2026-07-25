@@ -11,33 +11,42 @@ o conduz continua sendo o Tutor. Por isso este módulo e o agente seguem com
 nome de tutor, e só o método foi renomeado.
 """
 
-from pathlib import Path
-
 from langchain_core.messages import SystemMessage
 from langgraph.graph import END, START, MessagesState, StateGraph
 
-ARQUIVO_INSTRUCAO = Path(__file__).parent / "metodos" / "mckee_inspired.md"
+from forma import normalizar
+from instrucao import montar
 
 
-def carregar_instrucao() -> str:
-    """Lê a instrução do disco A CADA TURNO.
+def carregar_instrucao(ultimo_turno_do_tutor: str = "") -> str:
+    """A instrução deste turno, montada do disco A CADA TURNO.
 
-    É o ciclo de validação desta fase: editar o .md e mandar a próxima
-    mensagem já testa a versão nova do prompt — sem restart do agente, sem
-    rebuild, sem commit. O custo (ler poucos KB) é irrelevante perto da
+    Ler do disco é o ciclo de validação desta fase: editar o .md e mandar a
+    próxima mensagem já testa a versão nova do prompt, sem restart do agente,
+    sem rebuild, sem commit. O custo (ler poucos KB) é irrelevante perto da
     latência da chamada ao modelo.
 
-    Convenção do arquivo: se as primeiras linhas forem cabeçalho editorial
-    fechado por uma linha `---`, só o que vem DEPOIS vai pro modelo — assim o
-    arquivo continua legível como documento (título, proveniência) sem sujar o
-    system prompt. O limite de 10 linhas evita cortar num `---` do meio do
-    corpo caso o cabeçalho não exista.
+    Quem decide o que entra é `instrucao.montar`: o primeiro turno leva tudo
+    (é o mapa, que classifica os nove degraus) e os seguintes levam só o que o
+    foco pede. Ver o módulo pra saber por quê.
     """
-    linhas = ARQUIVO_INSTRUCAO.read_text(encoding="utf-8").splitlines()
-    for i, linha in enumerate(linhas[:10]):
-        if linha.strip() == "---":
-            return "\n".join(linhas[i + 1 :]).strip()
-    return "\n".join(linhas).strip()
+    return montar(ultimo_turno_do_tutor)
+
+
+def _texto(mensagem) -> str:
+    conteudo = getattr(mensagem, "content", "")
+    if isinstance(conteudo, str):
+        return conteudo
+    return "\n".join(
+        b.get("text", "") for b in conteudo if isinstance(b, dict)
+    )
+
+
+def _ultimo_turno_do_tutor(mensagens) -> str:
+    for mensagem in reversed(mensagens):
+        if getattr(mensagem, "type", None) == "ai":
+            return _texto(mensagem)
+    return ""
 
 
 def construir_grafo(model):
@@ -46,9 +55,23 @@ def construir_grafo(model):
     diferença de modelo como variável."""
 
     async def conversar(state: MessagesState) -> MessagesState:
+        instrucao = carregar_instrucao(_ultimo_turno_do_tutor(state["messages"]))
         resposta = await model.ainvoke(
-            [SystemMessage(content=carregar_instrucao()), *state["messages"]]
+            [SystemMessage(content=instrucao), *state["messages"]]
         )
+        # Correção determinística do que não precisa de modelo (travessão,
+        # título de nível 1). Vale sobre a mensagem que fica gravada e que o
+        # front recebe no snapshot do fim do run; os chunks já streamados
+        # trazem o texto cru, e o turno se assenta no normalizado ao terminar.
+        if isinstance(resposta.content, str):
+            resposta.content = normalizar(resposta.content)
+        elif isinstance(resposta.content, list):
+            resposta.content = [
+                {**b, "text": normalizar(b["text"])}
+                if isinstance(b, dict) and isinstance(b.get("text"), str)
+                else b
+                for b in resposta.content
+            ]
         return {"messages": [resposta]}
 
     grafo = StateGraph(MessagesState)
