@@ -323,14 +323,17 @@
   background: var(--fio-papel-fundo);
 }
 
-/* Turno marcado com 👍/👎 — o estado precisa sobreviver ao recarregar a página,
-   então quem manda é o atributo vindo do servidor, não um :focus. */
-.sr-fio [data-testid="copilot-assistant-toolbar"] button[data-marcado] {
+/* Turno marcado com 👍/👎. O gancho é o `aria-pressed` do botão de
+   alternância, não uma classe nossa: o mesmo atributo que anuncia o estado
+   pro leitor de tela pinta o botão, e os dois nunca saem de sincronia. */
+.sr-fio [data-testid="copilot-assistant-toolbar"] button[aria-pressed="true"] {
   color: var(--sr-paper);
   background: var(--sr-accent);
 }
 
-.sr-fio [data-testid="copilot-assistant-toolbar"] button[data-marcado]:hover {
+.sr-fio
+  [data-testid="copilot-assistant-toolbar"]
+  button[aria-pressed="true"]:hover {
   color: var(--sr-paper);
   background: #8f3737;
 }

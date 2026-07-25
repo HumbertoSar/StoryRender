@@ -1,14 +1,31 @@
 "use client";
 
-// TEMPORÁRIO — banco de prova do CSS do chat do Fio. Renderiza o
-// CopilotChatView com mensagens fixas (sem agente, sem custo de LLM) no
-// formato que o Tutor produz de verdade: seções, mapa em três símbolos,
-// pergunta central em negrito e um despejo longo do autor.
+// Banco de prova do chat do Fio: renderiza o CopilotChatView com mensagens
+// fixas — sem agente, sem custo de LLM — no formato que o Tutor produz de
+// verdade (seções, mapa em três símbolos, pergunta central em negrito, despejo
+// longo do autor). Serve pra iterar em CSS e nas ações de mensagem sem gastar
+// turno de conversa, e é onde as duas coisas foram medidas.
 import { CopilotKit } from "@copilotkit/react-core";
-import { CopilotChatView } from "@copilotkit/react-core/v2";
+import {
+  CopilotChatAssistantMessage,
+  CopilotChatConfigurationProvider,
+  CopilotChatView,
+} from "@copilotkit/react-core/v2";
 import "@copilotkit/react-core/v2/styles.css";
 
 import "../fio.css";
+import { ProvedorDeFeedback, TurnoDoTutor, useFeedback } from "../feedback";
+
+// Mesmo aviso da topbar de /fio: sem ele aqui, o caminho de falha do 👍/👎
+// não teria como ser exercitado neste banco de prova.
+function AvisoDeFeedback() {
+  const { erro } = useFeedback();
+  return erro ? <div className="sr-fio__aviso-feedback">{erro}</div> : null;
+}
+
+// Thread fixa: o TurnoDoTutor lê o id daqui (na página de verdade quem o
+// resolve é o <CopilotChat>), e assim o 👍/👎 grava e recarrega igualzinho.
+const THREAD = "previa-de-estilo";
 
 const MENSAGENS = [
   {
@@ -73,23 +90,29 @@ export default function Previa() {
       agent="tutor_agent"
       enableInspector={false}
     >
-      <div className="sr-fio">
-        <div className="sr-fio__topbar">
-          <div className="sr-fio__titulo">O Fio</div>
-          <div className="sr-fio__selo">prévia de estilo</div>
-        </div>
-        <div className="sr-fio__chat">
-          <CopilotChatView
-            messages={MENSAGENS}
-            isRunning={false}
-            messageView={{
-              userMessage: { messageRenderer: "sr-fio__bolha" },
-              assistantMessage: { onThumbsUp: () => {}, onThumbsDown: () => {} },
-            }}
-            input={{ disclaimer: "sr-fio__aviso" }}
-          />
-        </div>
-      </div>
+      <ProvedorDeFeedback>
+        <CopilotChatConfigurationProvider agentId="tutor_agent" threadId={THREAD}>
+          <div className="sr-fio">
+            <div className="sr-fio__topbar">
+              <div className="sr-fio__titulo">O Fio</div>
+              <div className="sr-fio__selo">prévia de estilo</div>
+              <AvisoDeFeedback />
+            </div>
+            <div className="sr-fio__chat">
+              <CopilotChatView
+                messages={MENSAGENS}
+                isRunning={false}
+                messageView={{
+                  userMessage: { messageRenderer: "sr-fio__bolha" },
+                  assistantMessage:
+                    TurnoDoTutor as typeof CopilotChatAssistantMessage,
+                }}
+                input={{ disclaimer: "sr-fio__aviso" }}
+              />
+            </div>
+          </div>
+        </CopilotChatConfigurationProvider>
+      </ProvedorDeFeedback>
     </CopilotKit>
   );
 }

@@ -829,3 +829,53 @@ erro de `npm run lint` é o pré-existente do `CartaoAsset.tsx`.
 **O que ficou pra depois:** o tooltip dos botões de ação renderiza em portal no
 `body`, fora do `.sr-fio`, então continua com o preto padrão do pacote em vez
 do vinho — corrigir exigiria token global, que respingaria no McKee.
+
+## Fatia: copiar e curtir o turno — feedback que vira dado da sessão
+
+**O que foi construído:** `POST/GET /feedback` no agente (`agent/feedback.py`),
+proxy em `/api/fio/feedback`, `ProvedorDeFeedback` + `TurnoDoTutor` no front, e
+o turno marcado saindo no Markdown do `exportar_sessao.py`. O botão de copiar
+já existia no componente — estava só ilegível sobre papel, e a barra da
+mensagem do autor nascia `invisible` até o hover (em toque, nunca aparecia).
+
+**Por quê:** durante a validação, ler a sessão exportada é quando se decide se
+a instrução funciona — e nessa hora já não dá pra lembrar qual turno acertou.
+Marcar no calor da conversa e reencontrar a marca no arquivo fecha o ciclo.
+
+**Decisões:**
+- **A marca é presa ao id da mensagem do agente**, não ao índice do turno. Dá
+  certo porque o id é o MESMO dos dois lados: o adaptador AG-UI emite o
+  `message_id` a partir do id do chunk do LangChain, que é o id gravado no
+  checkpointer (`lc_run--…`). Conferido lendo os dois.
+- **`aria-pressed` como estado, não classe nossa.** É o atributo correto pro
+  botão de alternância, anuncia o estado pro leitor de tela E serve de gancho
+  no CSS — um estado só, impossível de dessincronizar.
+- **Otimista com desfazer.** A marca aparece na hora, mas se o POST falhar ela
+  volta atrás e a topbar avisa "feedback não gravado". Marca que não foi
+  gravada não pode ficar na tela parecendo que foi: é ela que vira dado depois.
+  Já falhar ao LER as marcas antigas é silencioso — não atrapalha a conversa.
+- **A página não passa mais `threadId` pro `CopilotChat`.** Passar liga o
+  `hasExplicitThreadId` do componente, que **suprime a tela de abertura** — o
+  "nova conversa" vinha abrindo uma conversa muda, sem o convite do Tutor
+  (bug real, medido antes/depois). Agora o `key` remonta, o chat resolve a
+  própria thread, e quem precisa do id lê de `useCopilotChatConfiguration()`
+  lá de dentro.
+
+**Smoke test (Playwright, `/fio/previa`):** marca carregada do servidor ao
+abrir (`aria-pressed=true`, fundo `rgb(122,46,46)`); clicar no outro polegar
+troca o valor; **sobrevive a recarregar a página**; clicar de novo desmarca e
+o desmarcado também sobrevive ao reload. Com o POST forçado a 503, a marca
+volta atrás e o aviso aparece. Em `/fio`, a tela de abertura continua de pé
+depois do "nova conversa" (antes: sumia). No agente: 👍 gravado e lido de
+volta, valor fora do vocabulário recusado com 422, export marcando
+`## Tutor — 👍 funcionou` e o cabeçalho contando `1 👍 · 0 👎`.
+
+**A prévia ficou no repositório.** `/fio/previa` monta o chat com um turno fixo
+no formato real do Tutor, sem agente e sem custo de LLM. Foi onde tudo isto foi
+medido, e é onde a fase de canvas vai ser medida também. Se atrapalhar, é uma
+pasta pra apagar.
+
+**O que ficou pra depois:** regenerar o turno (útil pra testar uma edição do
+`fio.md` no mesmo ponto da conversa) NÃO é barato aqui — o histórico vive no
+checkpointer do lado do servidor, e mexer nele pelo cliente exigiria cirurgia
+na thread. Mesma coisa pra editar mensagem do autor com ramificação.
