@@ -1094,3 +1094,59 @@ intactos), mas o PR teve que ser recriado como #5. A ordem certa em pilha é:
 aberto, `npm run lint` sem nenhum erro pela primeira vez, produção em
 storyrender.mvpsardenberg.cloud servindo o McKee Inspired com as sessões vindas
 do Postgres (3 sessões listadas, 6 turnos reidratados, 59 termos marcados).
+
+## Fatia: instrução v3 (regras de forma viram modelo) + banco de prova do prompt
+
+**Escopo:** aplicar na instrução as cinco correções que a auditoria da sessão
+do Cadu apontou, versionar o auditor, e criar um banco de prova que roda turnos
+do Tutor sem sessão e sem UI, pra medir o efeito de uma edição de prompt em
+minutos em vez de esperar uma conversa real.
+
+**O que entrou na v3:** modelo literal de um turno; formato próprio da linha do
+mapa (era onde a explicação entre parênteses sumia); marcação em toda
+ocorrência, com exemplo errado/certo; limite contável de três perguntas, com
+modelo de como oferecer candidatos em lista em vez de enfileirar interrogações;
+tabela de vícios com substituto ao lado; forma fixa pro elogio; veredito solto
+em prosa vira bloco, com exemplo.
+
+**`auditar_sessao.py`** mede o que dá pra contar (vício, travessão, marcação,
+explicação na estreia, formato de teste, nível de título, perguntas por turno)
+e sai com código diferente de zero quando alguma regra caiu.
+**`provar_instrucao.py`** roda N turnos com a instrução do disco, grava no
+formato do exportador e agrega o auditor por cima. Nenhum dos dois toca no
+checkpointer.
+
+**O resultado medido, e ele é misto.** Comparando a sessão real da v2 (6 turnos)
+com 3 turnos de banco de prova da v3:
+
+| Regra | v2 | v3 (3 turnos) |
+| --- | --- | --- |
+| Título em nível 1 | 28 | 0 · 0 · 0 |
+| Perguntas por turno (limite 3) | 35 · 25 · 17 | 13 · 5 · 5 |
+| Vício de linguagem | 2 | caiu em 2 de 3 turnos |
+| Termos sem marcação | 14 | 3 · 1 · 4 |
+| Travessão | 0 | 5 · 2 · 1 |
+
+**A descoberta que muda o método de trabalho: uma rodada não é evidência.** O
+mesmo prompt, medido três vezes, deu 0, 0 e 4 travessões. A obediência a regra
+de forma varia entre execuções, então medir uma vez não distingue "o prompt
+melhorou" de "essa rodada deu sorte". Por isso o banco de prova agrega por
+regra ("caiu em 2 de 3 turnos") em vez de dar veredito de amostra única.
+
+**A descoberta que dói: acrescentar regra tem custo.** O travessão estava
+resolvido na v2 (0 em 25 mil caracteres de conversa real) e voltou na v3, que
+é 27% maior (18,2 KB → 23,1 KB). A hipótese mais simples é diluição: quanto
+mais instrução, menos peso cada regra carrega. O caminho da v4 provavelmente
+não é escrever mais regra, e sim **encurtar**: transformar prosa remanescente
+em modelo e cortar o que o modelo já faz sem ser mandado.
+
+**O que continua valendo:** regra com template literal é obedecida (título em
+nível 1 zerou nos três turnos, e a lista de candidatos derrubou as perguntas de
+35 pra 5). Regra em prosa continua escorregando.
+
+**O que ficou pra depois:** a marcação de `RACHADURA` e `GÊNERO` continua
+falhando; a explicação na estreia falha nos termos que estreiam fora da linha
+do mapa (`MURAL`, `CENA OBRIGATÓRIA`, `PROMESSA PLANTADA`); e o limite de três
+perguntas ainda é estourado em todo turno, mesmo com o modelo de lista. Nenhum
+desses foi testado em conversa real ainda: o banco de prova mede o PRIMEIRO
+turno, e o mapa é só um dos formatos que o Tutor produz.
