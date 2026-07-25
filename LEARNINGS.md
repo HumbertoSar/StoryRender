@@ -879,3 +879,85 @@ pasta pra apagar.
 `fio.md` no mesmo ponto da conversa) NÃO é barato aqui — o histórico vive no
 checkpointer do lado do servidor, e mexer nele pelo cliente exigiria cirurgia
 na thread. Mesma coisa pra editar mensagem do autor com ramificação.
+
+## Fatia: tela de seleção de sessão — a conversa ganha endereço
+
+**Escopo:** dar endereço às conversas do Fio. O checkpointer já gravava tudo no
+Postgres; o que faltava era caminho de volta. Entraram dois endpoints de
+leitura no agente (`GET /sessoes`, `GET /sessoes/{id}`), a tela de seleção em
+`/fio` e a conversa em `/fio/<id>`, com o histórico do banco reidratado no chat
+ao abrir. Ficaram de fora: renomear, apagar, buscar, paginar — e o McKee.
+
+**Por quê:** sair do dispositivo no meio de um teste de roteiro parecia perder
+a sessão. Não perdia dado nenhum — a conversa estava inteira no Postgres —, mas
+sem lista e sem id na URL não havia como voltar pra ela. O trabalho aqui não é
+persistir; é dar endereço ao que já estava persistido.
+
+**Decisões:**
+- **A URL é a persistência visível.** `/fio/<thread_id>`: recarregar, trocar de
+  aparelho ou mandar o link continua a mesma conversa. O id da sessão nova é
+  sorteado NO SERVIDOR, não no clique — em dev o Next é servido por http no IP,
+  contexto inseguro, onde `crypto.randomUUID()` do navegador não existe.
+- **Sessão nova não escreve nada.** Um id sem checkpoint é exatamente isso: a
+  thread nasce no primeiro turno. Por isso `GET /sessoes/{id}` responder 404 é
+  o caminho normal, não erro — a lista só mostra conversa que existe.
+- **Ler o acervo mora em `sessoes.py`, e o exportador passou a beber de lá.**
+  Era a mesma varredura duplicada em dois lugares; agora uma função só decide o
+  que é uma sessão (trilho, turnos, começo da conversa).
+- **Server Components leem direto do agente.** A lista e o histórico saem do
+  servidor do Next pro agente Python sem passar por route handler — proxy em
+  `/api` só existe pra quem chama do navegador (é o caso do 👍/👎).
+
+**A pegadinha que custou o teste (e vale pro resto do trilho):** o
+`<CopilotKit>` **já monta um `CopilotChatConfigurationProvider` com uma thread
+SORTEADA**, e na resolução do threadId a config do pai vence a `threadId`
+passada por prop numa config aninhada (`parentConfig?.threadId` é consultado
+antes do `threadId` próprio). Resultado silencioso: a tela mostrava a sessão
+certa, mas a conversa era gravada numa thread aleatória — e o 👍/👎 ia junto.
+Passar `threadId` pro `<CopilotKit>` conserta o id e quebra outra coisa: liga
+`hasExplicitThreadId`, que suprime a tela de abertura (regressão já registrada
+na fatia anterior) e faz o chat tentar reconectar a thread sozinho — e nesse
+modo SSE o `connect` só sabe repetir o que estiver na MEMÓRIA do processo do
+Next, não o que está no Postgres. O caminho certo é o
+`setActiveThreadId(sessao, { explicit: false })` da configuração do chat: troca
+a thread sem marcá-la como explícita.
+
+**Reidratar sem apagar nem duplicar:**
+- O componente que reidrata precisa ser **pai** do `<CopilotChat>`: o React roda
+  efeito de filho antes de efeito de pai, e o efeito do chat zera as mensagens
+  ao detectar troca de thread. De irmão (ou de dentro), a reidratação seria
+  apagada por essa limpeza.
+- Reidrata **só com o chat vazio** e **só depois** de a thread ativa já ser a da
+  URL. Sem a primeira guarda, uma troca de instância do agente (reconexão do
+  runtime) reescreveria por cima de turnos novos.
+- **Os ids vêm do checkpointer**, e é isso que torna a continuação segura: no
+  próximo turno o cliente reenvia o histórico e o
+  `langgraph_default_merge_state` só acrescenta id que ainda não existe no
+  checkpoint. Ids nossos fariam a conversa duplicar — ou pior, cairiam no
+  caminho de regeneração (time-travel) do adaptador.
+
+**Smoke test (Playwright, tudo contra o Postgres de verdade):**
+- Lista: 7 cartões com turnos/data/id, "Nova sessão" visível.
+- Abrir sessão gravada: 7 turnos do autor + 7 do Tutor reidratados, sem tela de
+  abertura; F5 mantém os 14. Sessão nova: vazia, com a abertura do Tutor.
+- **Retomada com turno novo (2 turnos de LLM, thread `t-retomada-01`):** 2
+  mensagens no checkpoint → F5 → 3º turno → 4 mensagens, **nenhum id repetido**,
+  as duas primeiras com o **mesmo id** de antes (não houve regeneração), e o
+  Tutor respondeu citando a mensagem anterior — contexto preservado.
+- Vizinhos: 👍 gravado fora da tela repinta na sessão retomada e desmarcar
+  grava na thread certa; `/fio/previa`, `/mckee` e a home de métodos de pé.
+- `tsc --noEmit` limpo; `npm run lint` só com o erro pré-existente do
+  `CartaoAsset.tsx`.
+
+**O que ficou pra depois:**
+- **Renomear e apagar sessão.** Hoje o título é a primeira fala do autor e não
+  há como excluir — as threads de teste (`t-fio-smoke`, `t-retomada-01`, …)
+  aparecem na lista junto com as de verdade.
+- **A lista carrega abrindo o checkpoint de cada thread** (teto de 300). Serve
+  pra dezenas de sessões; se um dia forem centenas, o resumo precisa virar
+  coluna no banco em vez de leitura de estado.
+- **Sem dono da sessão:** qualquer um com a URL abre. Igual ao resto do
+  laboratório, revisitar se sair do uso pessoal.
+- **Prod ainda não tem o Fio:** `deploy/docker-compose.yml` passa só `AGENT_URL`
+  pro web; o trilho do Fio precisa de `AGENT_FIO_URL`, `AGENT_FEEDBACK_URL` e
+  `AGENT_SESSOES_URL` apontando pro `http://agent:8000/...` antes de subir.

@@ -1,0 +1,166 @@
+/* Tela de seleção de sessão do Fio — desenho portado de
+   frontend/src/home/home.css (o legado já tinha essa tela; o que ela ganha
+   aqui é o acervo vindo do checkpointer em vez de uma tabela de roteiros).
+   Quadro escuro, cartões em papel: a mesma gramática do brief. */
+.sr-sessoes {
+  min-height: 100vh;
+  background: var(--sr-board);
+  background-image: radial-gradient(
+    ellipse at 50% 18%,
+    rgba(255, 255, 255, 0.04),
+    transparent 60%
+  );
+  display: flex;
+  justify-content: center;
+}
+
+.sr-sessoes__conteudo {
+  width: min(560px, 100%);
+  padding: 40px 20px 56px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sr-sessoes__voltar {
+  font-family: var(--sr-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(240, 233, 216, 0.7);
+  margin-bottom: 28px;
+}
+
+.sr-sessoes__voltar:hover {
+  color: var(--sr-paper);
+}
+
+.sr-sessoes__titulo {
+  font-family: var(--sr-font-serif);
+  font-weight: 700;
+  font-size: 30px;
+  color: var(--sr-paper);
+}
+
+.sr-sessoes__subtitulo {
+  font-family: var(--sr-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(240, 233, 216, 0.45);
+  margin-top: 6px;
+}
+
+.sr-sessoes__label {
+  font-family: var(--sr-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(240, 233, 216, 0.5);
+  margin: 44px 0 12px;
+}
+
+.sr-sessoes__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sr-sessoes__vazio {
+  font-family: var(--sr-font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(240, 233, 216, 0.5);
+  padding: 8px 2px;
+}
+
+.sr-sessoes__vazio--erro {
+  color: #e5a3a3;
+}
+
+.sr-sessoes__card {
+  display: block;
+  background: var(--sr-paper);
+  border: 1px solid var(--sr-neutral);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.32);
+  border-radius: 3px;
+  padding: 16px 18px;
+}
+
+.sr-sessoes__card:hover {
+  border-color: var(--sr-brass);
+}
+
+/* O começo da conversa é o título da sessão — como ela não tem nome, são as
+   primeiras palavras do autor que a tornam reconhecível. Duas linhas bastam
+   pra reconhecer; mais que isso vira um bloco de texto. */
+.sr-sessoes__card-titulo {
+  font-family: var(--sr-font-serif);
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.4;
+  color: var(--sr-ink);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sr-sessoes__card-meta {
+  font-family: var(--sr-font-mono);
+  font-size: 8.5px;
+  letter-spacing: 0.07em;
+  color: #85714d;
+  margin-top: 8px;
+}
+
+.sr-sessoes__nova {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border: 1px dashed rgba(240, 233, 216, 0.35);
+  border-radius: 3px;
+  margin-top: 6px;
+  padding: 15px 18px;
+}
+
+.sr-sessoes__nova:hover {
+  border-color: rgba(240, 233, 216, 0.6);
+}
+
+.sr-sessoes__nova-icone {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 3px;
+  background: var(--sr-accent);
+  color: var(--sr-paper);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--sr-font-mono);
+  font-size: 15px;
+}
+
+.sr-sessoes__nova-titulo {
+  font-family: var(--sr-font-sans);
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--sr-paper);
+}
+
+.sr-sessoes__nova-legenda {
+  font-family: var(--sr-font-sans);
+  font-size: 11px;
+  color: rgba(240, 233, 216, 0.5);
+  margin-top: 2px;
+}
+
+.sr-sessoes__rodape {
+  font-family: var(--sr-font-sans);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: rgba(240, 233, 216, 0.4);
+  margin-top: 32px;
+  border-top: 1px solid rgba(240, 233, 216, 0.12);
+  padding-top: 14px;
+}

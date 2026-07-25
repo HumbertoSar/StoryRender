@@ -65,6 +65,12 @@
   padding: 3px 7px;
 }
 
+/* O id da sessão foge do uppercase do selo: é hexadecimal, e é ele que se cola
+   no `exportar_sessao.py` pra reler a conversa em Markdown. */
+.sr-fio__id {
+  text-transform: none;
+}
+
 /* Aviso de falha ao gravar o feedback: some sozinho quando dá certo de novo.
    Fica na topbar porque é o único lugar sempre visível na conversa. */
 .sr-fio__aviso-feedback {
