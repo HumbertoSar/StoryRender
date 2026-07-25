@@ -25,23 +25,13 @@ from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
+# Ler o acervo é o mesmo trabalho que a tela de seleção de sessão faz — as
+# funções moram lá pra não existirem duas verdades sobre o que é uma sessão.
+from sessoes import carregar, listar_sessoes, texto_da_mensagem, trilho_dos_canais
+
 load_dotenv(Path(__file__).parent / ".env")
 
 DESTINO = Path(__file__).parent / "sessoes"
-
-
-def texto_da_mensagem(mensagem) -> str:
-    """O conteúdo pode vir como string ou como lista de blocos, dependendo do
-    modelo — normaliza os dois casos."""
-    conteudo = getattr(mensagem, "content", "")
-    if isinstance(conteudo, str):
-        return conteudo
-    partes = [
-        bloco.get("text", "")
-        for bloco in conteudo
-        if isinstance(bloco, dict) and bloco.get("type") == "text"
-    ]
-    return "\n".join(p for p in partes if p)
 
 
 async def abrir_pool() -> AsyncConnectionPool:
@@ -53,12 +43,6 @@ async def abrir_pool() -> AsyncConnectionPool:
     )
     await pool.open(wait=True, timeout=10)
     return pool
-
-
-async def carregar(saver: AsyncPostgresSaver, thread_id: str):
-    return await saver.aget_tuple(
-        {"configurable": {"thread_id": thread_id, "checkpoint_ns": ""}}
-    )
 
 
 # Como o turno marcado aparece no Markdown. Símbolo antes do texto pra dar pra
@@ -84,33 +68,18 @@ async def carregar_feedback(pool, thread_id: str) -> dict:
 
 async def listar() -> None:
     pool = await abrir_pool()
-    async with pool.connection() as conn:
-        cur = await conn.execute(
-            "SELECT thread_id, MAX(checkpoint_id) AS ultimo FROM checkpoints "
-            "GROUP BY thread_id ORDER BY ultimo DESC"
-        )
-        threads = await cur.fetchall()
-
     saver = AsyncPostgresSaver(pool)
+    sessoes = await listar_sessoes(pool, saver)
+    await pool.close()
+
     print(f"{'thread_id':40} {'trilho':7} {'turnos':>6}  {'quando':20} início da conversa")
     print("-" * 128)
-    for linha in threads:
-        tupla = await carregar(saver, linha["thread_id"])
-        if tupla is None:
-            continue
-        canais = tupla.checkpoint.get("channel_values", {})
-        mensagens = canais.get("messages") or []
-        # O trilho McKee tem o canal `roteiro` no estado; o do Fio só `messages`.
-        trilho = "mckee" if "roteiro" in canais else "fio"
-        turnos = sum(1 for m in mensagens if getattr(m, "type", None) == "human")
-        quando = str(tupla.checkpoint.get("ts", ""))[:19].replace("T", " ")
-        inicio = ""
-        for m in mensagens:
-            if getattr(m, "type", None) == "human":
-                inicio = texto_da_mensagem(m)[:44].replace("\n", " ")
-                break
-        print(f"{linha['thread_id']:40} {trilho:7} {turnos:>6}  {quando:20} {inicio}")
-    await pool.close()
+    for s in sessoes:
+        quando = s["atualizado_em"][:19].replace("T", " ")
+        print(
+            f"{s['thread_id']:40} {s['trilho']:7} {s['turnos']:>6}  "
+            f"{quando:20} {s['inicio'][:44]}"
+        )
 
 
 async def exportar(thread_id: str) -> None:
@@ -128,7 +97,10 @@ async def exportar(thread_id: str) -> None:
     if not mensagens:
         sys.exit(f"thread {thread_id} existe mas não tem mensagens.")
 
-    trilho = "McKee (story_agent)" if "roteiro" in canais else "Fio (tutor_agent)"
+    trilho = {
+        "mckee": "McKee (story_agent)",
+        "fio": "Fio (tutor_agent)",
+    }[trilho_dos_canais(canais)]
     quando = str(tupla.checkpoint.get("ts", ""))
     turnos = sum(1 for m in mensagens if getattr(m, "type", None) == "human")
 

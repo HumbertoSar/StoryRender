@@ -24,6 +24,8 @@ from roteiro import (
     resumo_espinha,
     roteiro_mckee_vazio,
 )
+from sessoes import router as router_sessoes
+from sessoes import usar_pool as usar_pool_sessoes
 from tutor import construir_grafo as construir_grafo_tutor
 
 load_dotenv()
@@ -220,6 +222,9 @@ async def lifespan(app: FastAPI):
             # é o que deixa o exportador casar marca e turno numa consulta só.
             await criar_tabela_feedback(_pool)
             usar_pool_feedback(_pool)
+            # Leitura do acervo (tela de seleção de sessão) — mesmo pool, mesmo
+            # checkpointer que o grafo escreve.
+            usar_pool_sessoes(_pool)
             print("checkpointer: Postgres")
         except Exception as e:  # túnel/banco fora não pode impedir o dev local
             print(f"AVISO: Postgres indisponível ({e!r}) — usando checkpointer em MEMÓRIA; estado NÃO sobrevive a restart")
@@ -235,6 +240,7 @@ app = FastAPI(title="Story Render Agent", lifespan=lifespan)
 add_langgraph_fastapi_endpoint(app, agente, "/agent")
 add_langgraph_fastapi_endpoint(app, agente_tutor, "/agent-fio")
 app.include_router(router_feedback)
+app.include_router(router_sessoes)
 
 
 @app.get("/health")
