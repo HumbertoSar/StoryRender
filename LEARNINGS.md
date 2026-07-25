@@ -635,6 +635,28 @@ Decisão do usuário: transformar o Story Render em projeto de aprendizado de Ge
 
 **O que ficou pra depois:** catálogo CUSTOM com os widgets do design system do brief (cartão de asset, nó de espinha) via `createCatalog` — hoje é o catálogo básico genérico; `A2UIGuidelines` (generation/design/composition) pra dirigir o estilo; superfície no QUADRO (não só no chat); latência da geração (~20-40s, subagente) merece skeleton melhor; comparação com Open-JSON-UI (flag `openGenerativeUI` existe no mesmo runtime — investigar na fatia da Fase 3).
 
+## Fix: setState dentro de efeito no campo editável do cartão
+
+**O que foi construído:** `CampoEditavel` (`web/src/components/CartaoAsset.tsx`)
+sincronizava o rascunho local com a prop do agente via
+`useEffect(() => setTexto(valor), [valor])`. Trocado pelo ajuste **durante o
+render** (padrão do React pra estado derivado de prop): um segundo estado
+guarda o último `valor` visto e, quando ele muda, os dois são atualizados no
+próprio render.
+
+**Por quê:** era o único erro de `npm run lint` no repositório
+(`react-hooks/set-state-in-effect`), herdado do hook de auto-altura portado do
+legado. Além do lint, o efeito só rodava DEPOIS da pintura — o campo chegava a
+exibir o rascunho velho por um frame quando o agente escrevia nele.
+
+**Cuidado:** o `useEffect` do `useAutoAltura` permanece, e está certo — ele
+mexe no DOM (altura do textarea), que é exatamente o caso de uso legítimo de
+efeito. A regra de lint não reclama dele.
+
+**Smoke test:** `npm run lint` sem nenhuma saída (antes: 1 erro) e
+`npm run build` limpo. Sem cobertura automatizada no `web/` — a conferência do
+comportamento (digitar no campo, aceitar proposta do agente e ver o campo
+atualizar) fica pro browser.
 ---
 
 # TRILHO NOVO — Método do Fio (agente Tutor)
