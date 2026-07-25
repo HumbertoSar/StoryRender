@@ -8,6 +8,15 @@ import "@copilotkit/react-core/v2/styles.css";
 
 import "./fio.css";
 
+// Slots do chat v2: passar uma string por slot manda um className pro
+// componente interno (o pacote mescla com o dele). É o gancho estável pra
+// estilizar a bolha do autor e o aviso — melhor que caçar as classes `cpk:`
+// geradas, que mudam sem aviso entre versões.
+// Fora do componente de propósito: o chat memoiza as mensagens comparando a
+// identidade destes objetos, e recriá-los a cada render anularia o memo.
+const SLOT_MENSAGENS = { userMessage: { messageRenderer: "sr-fio__bolha" } };
+const SLOT_INPUT = { disclaimer: "sr-fio__aviso" };
+
 export default function Fio() {
   // Thread controlada aqui só pra permitir recomeçar do zero sem recarregar a
   // página — a validação do prompt é um ciclo de conversas curtas e repetidas.
@@ -16,7 +25,16 @@ export default function Fio() {
   const [threadId, setThreadId] = useState<string | undefined>(undefined);
 
   return (
-    <CopilotKit runtimeUrl="/api/copilotkit" agent="tutor_agent">
+    // enableInspector desligado: em dev o CopilotKit monta um inspetor
+    // flutuante que anuncia novidades do produto por cima do chat — ruído em
+    // cima justamente do que se quer observar numa sessão de validação. É
+    // prop separada de `showDevConsole`, que segue ligada: os toasts de erro
+    // do runtime precisam continuar aparecendo, senão uma falha passa batida.
+    <CopilotKit
+      runtimeUrl="/api/copilotkit"
+      agent="tutor_agent"
+      enableInspector={false}
+    >
       <div className="sr-fio">
         <div className="sr-fio__topbar">
           <Link href="/" className="sr-fio__voltar">
@@ -39,6 +57,8 @@ export default function Fio() {
             key={threadId ?? "inicial"}
             agentId="tutor_agent"
             threadId={threadId}
+            messageView={SLOT_MENSAGENS}
+            input={SLOT_INPUT}
             labels={{
               welcomeMessageText:
                 "Me conta tudo o que você já pensou sobre essa história — do jeito que estiver na sua cabeça. Pode vir bagunçado. Quando terminar, eu te mostro o mapa do que você já tem.",

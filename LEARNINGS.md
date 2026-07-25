@@ -766,3 +766,66 @@ conclusão errada; foi preciso ler o turno pra saber.
 virar superfície. Ainda NÃO apareceram em sessão real: dossiê do antagonista,
 mural de promessas com status e cena obrigatória — vale provocá-los nas
 próximas conversas antes de desenhar UI pra eles.
+
+## Fatia: o chat do Fio vestido no brief — e o reset global que matava o respiro
+
+**O que foi construído:** `fio.css` reescrito — tokens do chat v2 mapeados pra
+paleta do brief (papel/tinta/vinho/neutro), medida de leitura em 42rem,
+serifada nos títulos do turno, bolha do autor com padding de verdade, campo de
+escrita e botão de enviar em papel/vinho, barra de ações legível. Em
+`globals.css`, o reset `*` foi pra dentro de `@layer base`. Inspetor flutuante
+do CopilotKit desligado em `/fio` (`enableInspector={false}`). Página
+`/fio/previa` como banco de prova de estilo.
+
+**A causa raiz do "texto batendo nas bordas":** não era falta de padding no
+nosso CSS — era o reset `* { margin: 0; padding: 0 }` do `globals.css`, que
+estava **sem camada**. Regra sem camada vence QUALQUER `@layer`, por mais
+específica que a outra seja, e o CSS do chat v2 do CopilotKit vive inteiro em
+`@layer`. Resultado: todo utilitário de margem/padding do chat estava morto.
+Medido no navegador, antes → depois de neutralizar a regra:
+
+| o que | antes | depois |
+|---|---|---|
+| centralização da coluna (`mx-auto`) | `margin-left: 0px` | `286px` |
+| padding interno do campo de escrita | `0px` | `8px 12px` |
+| recuo das listas do agente | `0px` | `26px` |
+| margem entre parágrafos do agente | `0px` | `20px` |
+
+Ou seja: a coluna inteira ficava encostada na esquerda numa tela de 1280, os
+parágrafos saíam colados uns nos outros e a bolha da mensagem do autor não
+tinha respiro nenhum. Com o reset dentro de `base`, ele continua valendo pro
+resto do app e perde pras utilities do chat — que é o certo.
+
+**Decisões:**
+- **Token antes de override.** Onde o componente lê um token shadcn
+  (`--muted`, `--primary`, `--border`), o `fio.css` redeclara o token; só onde
+  a cor está cravada no className (`cpk:bg-black` no enviar,
+  `cpk:text-[rgb(93,93,93)]` nas ações) é que existe regra direta. Menos
+  superfície pra quebrar quando o pacote atualizar.
+- **Os dois remendos de 16px saíram do `globals.css`.** Eles existiam pra
+  compensar o sintoma; com a causa resolvida, o `cpk:px-4` do próprio
+  componente voltou a valer e eles viraram duplicata.
+- **`enableInspector` ≠ `showDevConsole`.** São props separadas na v1: a
+  primeira monta o inspetor flutuante (que anuncia novidades do produto por
+  cima do chat), a segunda controla os toasts de erro. Desligamos só a
+  primeira — erro de runtime tem que continuar aparecendo.
+- **`list-style-position: outside`.** O markdown vem com `list-inside`: em item
+  de uma linha ninguém nota, mas nos itens longos do Tutor a segunda linha
+  passava por baixo do marcador.
+
+**Efeito colateral consciente no trilho McKee:** a correção do reset é global,
+então o chat embutido do `/mckee` também recuperou o espaçamento interno que o
+componente sempre quis ter (mesmos 16px de goteira de antes, mais o padding do
+campo e o ritmo dos parágrafos). É correção de bug compartilhado, não evolução
+do trilho — mas está registrado aqui porque mexe numa tela congelada.
+
+**Smoke test:** medido com Playwright em `/fio/previa` a 1280×900 e 390×844 —
+coluna centralizada (x=304, largura 672) e input alinhado no mesmo eixo;
+parágrafo com `margin 20px` e `line-height 27.52px`; lista com recuo de 26px;
+bolha com `padding 12px 18px` sobre `#e7dfc9`; fundo do chat `#f0e9d8`. Sem
+overflow horizontal no mobile. `npm run build` limpo com as 6 rotas; o único
+erro de `npm run lint` é o pré-existente do `CartaoAsset.tsx`.
+
+**O que ficou pra depois:** o tooltip dos botões de ação renderiza em portal no
+`body`, fora do `.sr-fio`, então continua com o preto padrão do pacote em vez
+do vinho — corrigir exigiria token global, que respingaria no McKee.
