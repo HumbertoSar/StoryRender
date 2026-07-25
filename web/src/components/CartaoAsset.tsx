@@ -28,8 +28,16 @@ function CampoEditavel({
   onSalvar: (valor: string) => void;
 }) {
   // Rascunho local enquanto digita; sincroniza quando o agente muda o valor.
+  // O ajuste é feito DURANTE o render (padrão do React pra estado derivado de
+  // prop), não num useEffect: setState dentro de efeito só roda depois da
+  // pintura, então o campo chegava a exibir o rascunho velho por um frame — e
+  // gerava render em cascata (era o erro react-hooks/set-state-in-effect).
   const [texto, setTexto] = useState(valor);
-  useEffect(() => setTexto(valor), [valor]);
+  const [valorSincronizado, setValorSincronizado] = useState(valor);
+  if (valor !== valorSincronizado) {
+    setValorSincronizado(valor);
+    setTexto(valor);
+  }
   const ref = useAutoAltura(texto);
 
   return (
