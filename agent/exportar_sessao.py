@@ -61,6 +61,27 @@ async def carregar(saver: AsyncPostgresSaver, thread_id: str):
     )
 
 
+# Como o turno marcado aparece no Markdown. Símbolo antes do texto pra dar pra
+# achar com Ctrl+F e pra saltar aos olhos rolando o arquivo.
+SIMBOLO = {"positivo": "👍 funcionou", "negativo": "👎 não funcionou"}
+
+
+async def carregar_feedback(pool, thread_id: str) -> dict:
+    """Marcas 👍/👎 da thread, indexadas por id da mensagem do agente.
+
+    A tabela é criada pelo servidor (feedback.py) — exportar uma sessão de
+    antes dela existir não é erro, é só uma sessão sem marca."""
+    try:
+        async with pool.connection() as conn:
+            cur = await conn.execute(
+                "SELECT mensagem_id, valor FROM feedback_turno WHERE thread_id = %s",
+                (thread_id,),
+            )
+            return {l["mensagem_id"]: l["valor"] for l in await cur.fetchall()}
+    except Exception:
+        return {}
+
+
 async def listar() -> None:
     pool = await abrir_pool()
     async with pool.connection() as conn:
@@ -96,6 +117,7 @@ async def exportar(thread_id: str) -> None:
     pool = await abrir_pool()
     saver = AsyncPostgresSaver(pool)
     tupla = await carregar(saver, thread_id)
+    marcas = await carregar_feedback(pool, thread_id)
     await pool.close()
 
     if tupla is None:
@@ -110,6 +132,9 @@ async def exportar(thread_id: str) -> None:
     quando = str(tupla.checkpoint.get("ts", ""))
     turnos = sum(1 for m in mensagens if getattr(m, "type", None) == "human")
 
+    positivos = sum(1 for v in marcas.values() if v == "positivo")
+    negativos = sum(1 for v in marcas.values() if v == "negativo")
+
     linhas = [
         f"# Sessão — {quando[:10]}",
         "",
@@ -118,10 +143,11 @@ async def exportar(thread_id: str) -> None:
         f"- **Turnos do autor:** {turnos}",
         f"- **Modelo:** `{os.environ.get('OPENROUTER_MODEL', 'anthropic/claude-sonnet-4.5')}`",
         f"- **Último checkpoint:** {quando}",
-        "",
-        "---",
-        "",
     ]
+    if marcas:
+        linhas.append(f"- **Turnos marcados:** {positivos} 👍 · {negativos} 👎")
+    linhas += ["", "---", ""]
+
     for mensagem in mensagens:
         tipo = getattr(mensagem, "type", None)
         texto = texto_da_mensagem(mensagem).strip()
@@ -130,7 +156,11 @@ async def exportar(thread_id: str) -> None:
         if tipo == "human":
             linhas += ["## Autor", "", texto, ""]
         elif tipo == "ai":
-            linhas += ["## Tutor", "", texto, "", "---", ""]
+            # A marca vai no título do turno: rolando o arquivo, dá pra achar
+            # o que funcionou sem ler tudo de novo — que é o motivo de existir.
+            marca = SIMBOLO.get(marcas.get(getattr(mensagem, "id", "") or ""))
+            titulo = f"## Tutor — {marca}" if marca else "## Tutor"
+            linhas += [titulo, "", texto, "", "---", ""]
 
     DESTINO.mkdir(exist_ok=True)
     arquivo = DESTINO / f"{quando[:10]}-{thread_id[:8]}.md"

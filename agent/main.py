@@ -15,6 +15,9 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import InjectedState, ToolNode
 from langgraph.types import Command
 
+from feedback import criar_tabela as criar_tabela_feedback
+from feedback import router as router_feedback
+from feedback import usar_pool as usar_pool_feedback
 from roteiro import (
     adicionar_complicacao,
     resumo_assets,
@@ -213,6 +216,10 @@ async def lifespan(app: FastAPI):
             await saver.setup()  # cria as tabelas de checkpoint se não existem
             for ag, g in AGENTES:
                 ag.graph = g.compile(checkpointer=saver)
+            # Feedback por turno vive na MESMA base das sessões de propósito:
+            # é o que deixa o exportador casar marca e turno numa consulta só.
+            await criar_tabela_feedback(_pool)
+            usar_pool_feedback(_pool)
             print("checkpointer: Postgres")
         except Exception as e:  # túnel/banco fora não pode impedir o dev local
             print(f"AVISO: Postgres indisponível ({e!r}) — usando checkpointer em MEMÓRIA; estado NÃO sobrevive a restart")
@@ -227,6 +234,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Story Render Agent", lifespan=lifespan)
 add_langgraph_fastapi_endpoint(app, agente, "/agent")
 add_langgraph_fastapi_endpoint(app, agente_tutor, "/agent-fio")
+app.include_router(router_feedback)
 
 
 @app.get("/health")
