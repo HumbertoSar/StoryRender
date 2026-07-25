@@ -734,3 +734,35 @@ passo do usuário — o valor desta fatia só aparece em uso real); nenhuma
 persistência de artefatos do método (mural, backlog e dossiê vivem só no
 histórico da thread); e as duas fases de UI — canvas com os cartões, e depois
 o open-ended sem design system pré-fixado.
+
+## Fatia: exportar sessão do checkpointer pra Markdown
+
+**O que foi construído:** `agent/exportar_sessao.py` — sem argumento, lista as
+threads gravadas (trilho, turnos, data, início da conversa); com um thread_id,
+grava `agent/sessoes/<data>-<prefixo>.md` com a conversa inteira. O trilho é
+inferido do formato do estado: quem tem canal `roteiro` é McKee, quem só tem
+`messages` é Fio.
+
+**Por quê:** na validação do método do Fio, **as sessões de teste são o dado** —
+é nelas que se vê se o Tutor conduz como previsto. Elas já eram duráveis (o
+checkpointer é Postgres), mas ilegíveis: recuperar exigia SQL e desserialização.
+
+**Decisão de privacidade:** `agent/sessoes/` entrou no `.gitignore`. O
+repositório é **público** e o conteúdo das sessões é criação do autor. Se um
+dia for preciso versionar as sessões, o caminho é repositório privado — não
+este. Contrapartida assumida: as sessões vivem só na VPS, sem backup por git.
+
+**O que a primeira sessão real mostrou (7 turnos, 42 KB):** os turnos do Tutor
+são LONGOS — 1.000 a 1.400 palavras, com títulos, listas e o mapa em três
+seções (● forte / ◐ rascunho / ○ buraco), citando as palavras do autor. A
+contagem crua de interrogações assusta (30 a 46 por turno) mas **não** é
+violação da regra "uma pergunta central por turno": as interrogações são os
+itens do mapa e os candidatos das bifurcações — que o prompt manda oferecer — e
+cada turno fecha numa única pergunta central em negrito. Medida errada leva a
+conclusão errada; foi preciso ler o turno pra saber.
+
+**Consequência pra fase de UI:** esse formato não cabe numa coluna de chat de
+440px, que é o layout do trilho McKee. O **mapa** é o candidato número 1 a
+virar superfície. Ainda NÃO apareceram em sessão real: dossiê do antagonista,
+mural de promessas com status e cena obrigatória — vale provocá-los nas
+próximas conversas antes de desenhar UI pra eles.
