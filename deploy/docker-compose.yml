@@ -33,7 +33,15 @@ services:
     container_name: storyrender-web
     restart: unless-stopped
     environment:
+      # Uma var por endpoint do agente. O default no código aponta pra
+      # 127.0.0.1:8000, que dentro do container do web é o PRÓPRIO container:
+      # sem estas linhas o trilho McKee Inspired sobe e quebra na primeira
+      # mensagem. Lidas em runtime pelos route handlers e Server Components,
+      # então trocar uma delas não exige rebuild da imagem.
       AGENT_URL: http://agent:8000/agent
+      AGENT_TUTOR_URL: http://agent:8000/agent-tutor
+      AGENT_FEEDBACK_URL: http://agent:8000/feedback
+      AGENT_SESSOES_URL: http://agent:8000/sessoes
     ports:
       # Caddy (no host) faz o reverse proxy de storyrender.mvpsardenberg.cloud.
       - "127.0.0.1:3002:3000"
