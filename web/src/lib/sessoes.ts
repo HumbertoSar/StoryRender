@@ -1,4 +1,4 @@
-/** Leitura do acervo de sessões — usada pelos Server Components do trilho do Fio.
+/** Leitura do acervo de sessões — usada pelos Server Components do McKee Inspired.
  *
  * Roda só no servidor do Next (a tela de seleção e a página da conversa são
  * Server Components), então fala direto com o agente Python, sem passar por um
@@ -8,7 +8,7 @@ const AGENTE = process.env.AGENT_SESSOES_URL ?? "http://127.0.0.1:8000/sessoes";
 
 export type Sessao = {
   thread_id: string;
-  trilho: "fio" | "mckee";
+  trilho: "mckee-inspired" | "mckee";
   turnos: number;
   /** ISO do último checkpoint. */
   atualizado_em: string;
@@ -23,7 +23,7 @@ export type MensagemDaSessao = {
   content?: string;
 };
 
-/** O subconjunto que o chat do Fio sabe mostrar: turno de texto, de um lado ou
+/** O subconjunto que o chat do Tutor sabe mostrar: turno de texto, de um lado ou
  * do outro. É o que a fase de validação produz (o Tutor não tem tools). */
 export type TurnoDeTexto =
   | { id: string; role: "user"; content: string }
@@ -67,7 +67,7 @@ export async function carregarSessao(id: string): Promise<HistoricoDaSessao> {
   }
 }
 
-/** Só os turnos de texto, que é o que o chat do Fio renderiza.
+/** Só os turnos de texto, que é o que o chat do Tutor renderiza.
  *
  * Uma thread do McKee aberta aqui por engano (id colado na URL) aparece sem as
  * tool calls em vez de quebrar o chat — e isso não corrompe nada: ao mandar o

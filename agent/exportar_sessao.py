@@ -1,6 +1,6 @@
 """Exporta uma conversa gravada no checkpointer pra um arquivo Markdown.
 
-Durante a validação do método do Fio, as sessões de teste SÃO o dado: é nelas
+Durante a validação do McKee Inspired, as sessões de teste SÃO o dado: é nelas
 que se vê se o Tutor conduz como previsto. Elas vivem no Postgres (checkpoints
 do LangGraph), que é durável mas nada prático de reler — daí este script.
 
@@ -72,12 +72,12 @@ async def listar() -> None:
     sessoes = await listar_sessoes(pool, saver)
     await pool.close()
 
-    print(f"{'thread_id':40} {'trilho':7} {'turnos':>6}  {'quando':20} início da conversa")
+    print(f"{'thread_id':40} {'trilho':15} {'turnos':>6}  {'quando':20} início da conversa")
     print("-" * 128)
     for s in sessoes:
         quando = s["atualizado_em"][:19].replace("T", " ")
         print(
-            f"{s['thread_id']:40} {s['trilho']:7} {s['turnos']:>6}  "
+            f"{s['thread_id']:40} {s['trilho']:15} {s['turnos']:>6}  "
             f"{quando:20} {s['inicio'][:44]}"
         )
 
@@ -98,8 +98,8 @@ async def exportar(thread_id: str) -> None:
         sys.exit(f"thread {thread_id} existe mas não tem mensagens.")
 
     trilho = {
-        "mckee": "McKee (story_agent)",
-        "fio": "Fio (tutor_agent)",
+        "mckee": "McKee original (story_agent)",
+        "mckee-inspired": "McKee Inspired (tutor_agent)",
     }[trilho_dos_canais(canais)]
     quando = str(tupla.checkpoint.get("ts", ""))
     turnos = sum(1 for m in mensagens if getattr(m, "type", None) == "human")

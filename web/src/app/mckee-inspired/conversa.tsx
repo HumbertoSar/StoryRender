@@ -12,7 +12,7 @@ import {
 import "@copilotkit/react-core/v2/styles.css";
 
 import type { TurnoDeTexto } from "@/lib/sessoes";
-import "./fio.css";
+import "./tutor.css";
 import { ProvedorDeFeedback, TurnoDoTutor, useFeedback } from "./feedback";
 
 const AGENTE = "tutor_agent";
@@ -24,35 +24,35 @@ const AGENTE = "tutor_agent";
 // Fora do componente de propósito: o chat memoiza as mensagens comparando a
 // identidade destes objetos, e recriá-los a cada render anularia o memo.
 const SLOT_MENSAGENS = {
-  userMessage: { messageRenderer: "sr-fio__bolha" },
+  userMessage: { messageRenderer: "sr-tutor__bolha" },
   // O tipo do slot pede o componente do pacote COM os estáticos dele
   // (MarkdownRenderer, Toolbar, …); em runtime só é chamado como componente,
   // e o TurnoDoTutor repassa tudo pro original. Daí o cast.
   assistantMessage: TurnoDoTutor as typeof CopilotChatAssistantMessage,
 };
-const SLOT_INPUT = { disclaimer: "sr-fio__aviso" };
+const SLOT_INPUT = { disclaimer: "sr-tutor__aviso" };
 
 const ABERTURA =
-  "Me conta tudo o que você já pensou sobre essa história — do jeito que estiver na sua cabeça. Pode vir bagunçado. Quando terminar, eu te mostro o mapa do que você já tem.";
+  "Me conta tudo o que você já pensou sobre essa história, do jeito que estiver na sua cabeça. Pode vir bagunçado. Quando terminar, eu te mostro o mapa do que você já tem.";
 
 function Topbar({ sessao, erroDoHistorico }: { sessao: string; erroDoHistorico: string | null }) {
   const { erro } = useFeedback();
   const avisos = [erroDoHistorico, erro].filter(Boolean);
   return (
-    <div className="sr-fio__topbar">
-      <Link href="/fio" className="sr-fio__voltar">
+    <div className="sr-tutor__topbar">
+      <Link href="/mckee-inspired" className="sr-tutor__voltar">
         ← sessões
       </Link>
-      <div className="sr-fio__titulo">O Fio</div>
+      <div className="sr-tutor__titulo">McKee Inspired</div>
       {/* O id curto fica visível de propósito: é ele que se passa pro
           `exportar_sessao.py` na hora de reler a sessão em Markdown. */}
-      <div className="sr-fio__selo" title={sessao}>
-        sessão <span className="sr-fio__id">{sessao.slice(0, 8)}</span>
+      <div className="sr-tutor__selo" title={sessao}>
+        sessão <span className="sr-tutor__id">{sessao.slice(0, 8)}</span>
       </div>
       {/* Falhas que o autor precisa ver: histórico que não carregou (a
           conversa parece mais curta do que é) e 👍/👎 que não gravou. */}
       {avisos.length > 0 && (
-        <div className="sr-fio__aviso-feedback">{avisos.join(" · ")}</div>
+        <div className="sr-tutor__aviso-feedback">{avisos.join(" · ")}</div>
       )}
     </div>
   );
@@ -75,9 +75,9 @@ export function Conversa({
     // do runtime precisam continuar aparecendo, senão uma falha passa batida.
     <CopilotKit runtimeUrl="/api/copilotkit" agent={AGENTE} enableInspector={false}>
       <ProvedorDeFeedback>
-        <div className="sr-fio">
+        <div className="sr-tutor">
           <Topbar sessao={sessao} erroDoHistorico={erroDoHistorico} />
-          <div className="sr-fio__chat">
+          <div className="sr-tutor__chat">
             <SessaoDoChat sessao={sessao} historico={historico}>
               <CopilotChat
                 key={sessao}
@@ -88,7 +88,7 @@ export function Conversa({
                   welcomeMessageText: ABERTURA,
                   chatInputPlaceholder: "Despeje a história…",
                   chatDisclaimerText:
-                    "O material é seu: o tutor testa, aperta e propõe — quem decide é você.",
+                    "O material é seu: o tutor testa, provoca e propõe. Quem decide é você.",
                 }}
               />
             </SessaoDoChat>

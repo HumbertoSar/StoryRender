@@ -42,8 +42,14 @@ def texto_da_mensagem(mensagem) -> str:
 
 
 def trilho_dos_canais(canais: dict) -> str:
-    """O trilho McKee tem o canal `roteiro` no estado; o do Fio só `messages`."""
-    return "mckee" if "roteiro" in canais else "fio"
+    """Qual método produziu a sessão.
+
+    Deduzido do formato do estado, não de um campo gravado: o trilho McKee
+    original tem o canal `roteiro` (quadro compartilhado); o McKee Inspired,
+    conduzido pelo Tutor, só tem `messages`. Por ser derivado na leitura,
+    renomear o trilho não exige migração nenhuma no banco.
+    """
+    return "mckee" if "roteiro" in canais else "mckee-inspired"
 
 
 async def carregar(saver: AsyncPostgresSaver, thread_id: str):

@@ -961,3 +961,66 @@ a thread sem marcá-la como explícita.
 - **Prod ainda não tem o Fio:** `deploy/docker-compose.yml` passa só `AGENT_URL`
   pro web; o trilho do Fio precisa de `AGENT_FIO_URL`, `AGENT_FEEDBACK_URL` e
   `AGENT_SESSOES_URL` apontando pro `http://agent:8000/...` antes de subir.
+
+## Fatia: McKee Inspired — rename do método e v2 da instrução
+
+**Escopo:** o método "O Fio" passa a se chamar McKee Inspired, e a instrução do
+Tutor ganha uma v2 com sete mudanças pedidas pelo autor: nome novo, "apertar"
+vira "provocar", conceito marcado e explicado na primeira aparição, teste com
+formato fixo, "voltas" vira TENTATIVAS, "Chekhov" vira PROMESSA PLANTADA, e
+vícios de LLM proibidos (inclusive travessão).
+
+**Regra de nome, pra não existirem duas coisas chamadas McKee:** o que é
+MÉTODO virou McKee Inspired (rota `/mckee-inspired`, `metodos/mckee_inspired.md`,
+trilho `mckee-inspired`, textos de tela); o que é PERSONA continua Tutor
+(`tutor.py`, agente `tutor_agent`, endpoint `/agent-tutor`, classes
+`sr-tutor__*`, `tutor.css`). O trilho congelado segue sendo `mckee`.
+
+**Decisões:**
+- **A instrução ensina pelo próprio estilo.** A v1 tinha mais de 40 travessões;
+  proibir travessão num texto cheio deles não funciona, porque o modelo imita o
+  documento que o instrui. A v2 não usa nenhum no corpo. O cabeçalho editorial
+  (fora do system prompt) registra o changelog da versão.
+- **Marcação de conceito pela CRASE, não pelo negrito.** O Tutor já usa negrito
+  pra ênfase comum, e CSS não distingue "negrito que é termo" de "negrito que é
+  ênfase". Com a crase o canal fica exclusivo: cor, caixa alta e sublinhado
+  viram decisão de CSS (`tutor.css`), não de prompt. Precisa zerar o
+  `code::before/after` da prosa do Tailwind, senão as crases aparecem na tela.
+- **Vinho, não latão, nos termos.** Sobre papel (#f0e9d8) o latão fica em ~3:1
+  de contraste, abaixo do mínimo pra texto corrido; o vinho passa de 7:1.
+- **Bloco `>` é EXCLUSIVO de teste.** Na primeira versão o Tutor também citava
+  o autor em bloco, e a citação ficava com a mesma caixa do teste, diluindo
+  justamente o sinal que o autor pediu. Agora citação é aspas ou itálico.
+- **Markdown cola linhas dentro de citação.** O template do teste precisa das
+  linhas `>` vazias no meio, senão os três campos saem num parágrafo só. Foi
+  visto na prévia, não numa conversa real.
+- **Glossário no fim da instrução.** Serve a duas regras de uma vez: define
+  quais termos levam marcação (senão o modelo marca tudo) e dá a explicação
+  curta que vai entre parênteses na primeira aparição.
+
+**Rotas antigas redirecionam.** `/fio*` responde 307 pra `/mckee-inspired*`. As
+sessões gravadas são endereçadas por URL, então todo link que já existia
+continua valendo; os ids das threads não mudaram (o trilho é DERIVADO do
+formato do estado na leitura, não um campo gravado, então o rename não pediu
+migração nenhuma no banco).
+
+**Smoke test:** `npm run build` limpo com as rotas novas, `tsc --noEmit` limpo,
+lint só com o erro pré-existente do `CartaoAsset.tsx`. Na prévia de estilo
+(`/mckee-inspired/previa`, sem custo de LLM): 8 termos marcados renderizando em
+`rgb(122,46,46)`, uppercase e underline, sem as crases na tela; bloco de teste
+com os 3 parágrafos separados. Suíte de sessões toda verde nas rotas novas (7+7
+turnos reidratados, F5, sessão nova com tela de abertura); 👍/👎 gravando e
+desmarcando pela rota renomeada `/api/mckee-inspired/feedback`; `/mckee` e a
+home de pé. `/fio` redirecionando com 307.
+
+**O que ficou pra depois:**
+- **Não foi testado em conversa real ainda.** Tudo aqui é forma, e forma se
+  verifica olhando um turno. Se o Tutor VAI obedecer as regras de forma (marcar
+  só o que é termo, não escorregar em travessão) só a próxima sessão diz.
+- **Outros termos importados continuam:** `steadfast`, `diff`, `braindump`,
+  "sondas", "navalha", e as ferramentas do 6b (âncoras de destino, régua
+  cruzada, trançado mínimo, calendário entrelaçado). Ficaram pendentes de
+  decisão do autor.
+- **A sessão exportada ainda não registra a versão do prompt.** Com a v2 no ar,
+  comparar sessões de versões diferentes já é o caso de uso, e sem o carimbo
+  não dá pra saber qual instrução produziu qual turno.
