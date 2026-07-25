@@ -1046,3 +1046,51 @@ home de pé. `/fio` redirecionando com 307.
 - **A sessão exportada ainda não registra a versão do prompt.** Com a v2 no ar,
   comparar sessões de versões diferentes já é o caso de uso, e sem o carimbo
   não dá pra saber qual instrução produziu qual turno.
+
+## Ciclo: merge da pilha, deploy e auditoria da primeira sessão v2
+
+**Auditoria da sessão do Cadu (6 turnos, 25 mil caracteres do Tutor).** Primeira
+conversa real com a instrução v2, medida por script e não por impressão:
+
+| Regra de forma | Resultado |
+| --- | --- |
+| Sem travessão | 0 ocorrências |
+| Teste em bloco fixo | 11 blocos, 11 com veredito em negrito |
+| Marcar só termo do glossário | 59 marcações, 1 fora (plural de `CENA OBRIGATÓRIA`) |
+| Explicação entre parênteses na 1ª aparição | 15 de 16 termos SEM |
+| Marcar toda ocorrência | ~45 sem marca (`TENTATIVA` 15x, `DESEJO` 13x) |
+| Título nível 2 ou 3 | 28 títulos em nível 1 |
+| Vícios proibidos | 2 escapes ("isso muda tudo", "isso é ouro dramático") |
+| Uma pergunta central por turno | 35, 25 e 17 perguntas em três turnos |
+
+**A causa é uma só: regra com TEMPLATE literal é obedecida; regra em PROSA
+não.** O bloco de teste, que veio com modelo pronto, saiu 11 vezes em 11. As
+outras, escritas como princípio, foram ignoradas na mesma proporção em que o
+modelo tinha um formato concorrente na cabeça. E o travessão sumiu não por ter
+sido proibido, mas porque a v2 inteira foi reescrita sem nenhum: o modelo imita
+a forma do documento, não a descrição da forma.
+
+**O conflito de desenho que eu mesmo criei:** a regra da explicação entre
+parênteses não previu o MAPA, onde todos os termos aparecem de uma vez como
+rótulo de degrau (`**1 · SEMENTE + GÊNERO** ● forte`). Ali o parêntese fica
+esquisito, e o modelo escolheu o formato. Repetir a regra não resolve; dar o
+formato certo do mapa resolve.
+
+**Deploy: o compose em uso é uma CÓPIA MANUAL.** `deploy/docker-compose.yml` no
+repositório é modelo; quem roda é `/opt/storyrender/docker-compose.yml`, copiado
+à mão. Adicionar as env vars no versionado e dar `git pull` na produção NÃO as
+leva pro container: o primeiro `up -d` subiu o web ainda sem elas (conferido com
+`docker exec storyrender-web env`). O passo que falta é copiar o arquivo por
+cima antes do `up -d`. Vale um `deploy.sh` que faça isso sozinho.
+
+**PR empilhado: apagar a branch base FECHA o PR dependente.** Ao mergear o #1
+com `--delete-branch`, o GitHub fechou o #3 (que nascia dele) em vez de
+reapontar, e depois não deixou reabrir ("cannot change the base branch of a
+closed pull request"). Nada se perdeu (a branch e os commits continuaram
+intactos), mas o PR teve que ser recriado como #5. A ordem certa em pilha é:
+**reapontar os dependentes para a nova base ANTES de mergear e apagar.**
+
+**Estado ao fim do ciclo:** `main` com tudo (PRs #1, #5, #4, #2, #6), zero PR
+aberto, `npm run lint` sem nenhum erro pela primeira vez, produção em
+storyrender.mvpsardenberg.cloud servindo o McKee Inspired com as sessões vindas
+do Postgres (3 sessões listadas, 6 turnos reidratados, 59 termos marcados).
