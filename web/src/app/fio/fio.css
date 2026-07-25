@@ -1,0 +1,76 @@
+/* Método do Fio, fase de validação: chat em tela cheia. Nenhum quadro, nenhum
+   cartão — o que o Tutor produz sai como texto até a instrução estar validada. */
+.sr-fio {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--sr-board);
+}
+
+/* Topbar no mesmo desenho do legado (frontend/src/shared.css). */
+.sr-fio__topbar {
+  height: 44px;
+  flex: none;
+  background: rgba(24, 20, 16, 0.35);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+}
+
+.sr-fio__voltar {
+  font-family: var(--sr-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(240, 233, 216, 0.7);
+}
+
+.sr-fio__voltar:hover {
+  color: var(--sr-paper);
+}
+
+.sr-fio__titulo {
+  font-family: var(--sr-font-serif);
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--sr-paper);
+}
+
+.sr-fio__selo {
+  font-family: var(--sr-font-mono);
+  font-size: 8px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(240, 233, 216, 0.5);
+  border: 1px solid rgba(240, 233, 216, 0.25);
+  border-radius: 2px;
+  padding: 2px 7px;
+}
+
+.sr-fio__nova {
+  margin-left: auto;
+  font-family: var(--sr-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sr-paper);
+  border: 1px solid var(--sr-accent);
+  background: var(--sr-accent);
+  border-radius: 3px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+.sr-fio__nova:hover {
+  background: #8f3737;
+}
+
+/* O chat ocupa o resto da altura; fundo claro pra leitura longa de texto —
+   é uma conversa de tutoria, não um painel. */
+.sr-fio__chat {
+  flex: 1;
+  min-height: 0;
+  background: var(--sr-paper);
+}

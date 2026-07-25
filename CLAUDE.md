@@ -8,7 +8,13 @@
 - **Fase 2 — nível declarative**: agente compõe o layout do quadro via A2UI/Open-JSON-UI dentro do design system do brief
 - **Fase 3 — nível open-ended**: agente gera visualizações HTML/SVG completas (MCP Apps, iframe sandboxed)
 
-O produto de verdade é o `LEARNINGS.md`: registrar onde cada nível acerta e quebra. Plano completo em `.claude/plans/synthetic-juggling-hamster.md`.
+O produto de verdade é o `LEARNINGS.md`: registrar onde cada nível acerta e quebra.
+
+### Dois trilhos (desde jul/2026)
+O teste real do McKee mostrou que **completar o método era difícil** — o agente preenchia fichas em vez de puxar a história pra cima. Daí nasceu um segundo método, e os dois convivem; a home `/` é a tela de escolha:
+
+- **`/mckee` — trilho McKee (congelado).** Fases 0 a 2.1 feitas, em produção. Não evoluir sem decisão explícita; serve de baseline pra comparar os níveis de GenUI.
+- **`/fio` — trilho do Fio (ativo).** Método McKee reformulado como um fio de 9 degraus conduzido por um tutor socrático. Recomeça do nível 0 da escada: **só texto**, até a instrução estar validada em conversa real. Depois sobe pra (a) canvas/whiteboard com os cartões e (b) open-ended, onde o agente compõe os cartões a partir do contexto e das preferências do autor, sem design system pré-fixado.
 
 O domínio (campos dos cartões, ordem, modos Condução/Diagnóstico do agente) e a gramática visual continuam decididos nos docs, fonte de verdade antes de qualquer fatia:
 
@@ -20,7 +26,8 @@ Se uma fatia exigir uma decisão que nem os docs nem o plano cobrem: **parar e p
 
 ## Stack
 - `web/` — Next.js + TypeScript + CopilotKit (`@copilotkit/react-core`, `react-ui`, `runtime`). Route handler `/api/copilotkit` faz ponte AG-UI pro agente Python (`LangGraphHttpAgent`, `ExperimentalEmptyAdapter` — todo LLM roda no agente).
-- `agent/` — Python 3.12 via **uv**, LangGraph servido por FastAPI com `ag-ui-langgraph` (rota `/agent`). O grafo PRECISA de checkpointer (o adaptador AG-UI consulta estado a cada run). LLM via OpenRouter (`OPENROUTER_API_KEY`/`OPENROUTER_MODEL` em `agent/.env`) — troca de modelo por env var.
+- `agent/` — Python 3.12 via **uv**, LangGraph servido por FastAPI com `ag-ui-langgraph`. **Dois agentes no mesmo servidor**: `story_agent` em `/agent` (McKee, com tools e estado compartilhado, em `main.py`) e `tutor_agent` em `/agent-fio` (Fio, grafo de um nó, sem tools, em `tutor.py`). O grafo PRECISA de checkpointer (o adaptador AG-UI consulta estado a cada run). LLM via OpenRouter (`OPENROUTER_API_KEY`/`OPENROUTER_MODEL` em `agent/.env`) — troca de modelo por env var.
+- `agent/metodos/fio.md` — a instrução do Tutor, **lida do disco a cada turno**: editar o arquivo e mandar a próxima mensagem já testa a versão nova, sem restart. É o ciclo de validação do prompt; um cabeçalho editorial fechado por linha `---` fica fora do system prompt.
 - `frontend/` e `backend/` — **legado** (MVP pré-pivô, React+Vite / Express). Referência de domínio pra portar (`backend/src/roteiro.ts`, `backend/src/agente/prompt.ts`, cartões e CSS de `frontend/src/quadro/`); não evoluir. Arquivar após paridade da Fase 1.
 - Postgres (Docker Compose) — entra na fatia de persistência da Fase 1.
 

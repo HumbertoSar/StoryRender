@@ -13,6 +13,10 @@ const runtime = new CopilotRuntime({
     story_agent: new LangGraphHttpAgent({
       url: process.env.AGENT_URL ?? "http://127.0.0.1:8000/agent",
     }),
+    // Método do Fio: agente Tutor, endpoint próprio no mesmo servidor Python.
+    tutor_agent: new LangGraphHttpAgent({
+      url: process.env.AGENT_FIO_URL ?? "http://127.0.0.1:8000/agent-fio",
+    }),
   },
   // Nível declarative: liga o middleware A2UI (converte as operações emitidas
   // pelo agente em activities `a2ui-surface` que o chat v2 renderiza).

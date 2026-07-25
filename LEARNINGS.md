@@ -684,3 +684,53 @@ e o chat como antes; `POST /api/copilotkit {"method":"info"}` responde com
 `RUN_STARTED → TEXT_MESSAGE_* → RUN_FINISHED` com `checkpointer: Postgres`.
 Pendente do usuário: conferir no browser o turno de chat e o aceitar/rejeitar
 de proposta em `/mckee` (curl não dirige o cliente).
+
+## Fatia B: agente Tutor (tutor_agent) + rota /fio, só texto
+
+**O que foi construído:** `agent/tutor.py` — grafo de um nó (`conversar`), sem
+tools e sem canal de estado além de `messages`, servido como segundo agente
+(`tutor_agent`) em `/agent-fio` no mesmo FastAPI; `tutor_agent` registrado no
+`CopilotRuntime`; rota `/fio` com `CopilotChat` v2 em tela cheia, topbar com
+selo "validação em texto" e botão **nova conversa**; quarto cartão na tela de
+seleção (linha contínua — o fio — em oposição à espinha pontilhada do McKee).
+
+**Por quê:** validar a instrução nova antes de desenhar UI pra ela. O prompt do
+Tutor produz mapa, mural de promessas, backlog de pendências e dossiê do
+antagonista — todos candidatos naturais a virar superfície nas fases seguintes,
+mas só depois que a conversa provar que o método funciona.
+
+**Decisões:**
+- **Instrução lida do disco a cada turno** (`carregar_instrucao()`), não
+  constante no código: editar `agent/metodos/fio.md` e mandar a próxima
+  mensagem já testa a versão nova. Sem restart, sem rebuild, sem commit — o
+  ciclo de iteração de prompt é o trabalho desta fase, e ele não pode passar
+  por deploy. Custo: um read de ~12 KB por turno, irrelevante perto do LLM.
+- **Cabeçalho editorial some do system prompt**: se as 10 primeiras linhas
+  tiverem um `---`, só o que vem depois vai pro modelo. O arquivo continua
+  legível como documento (título, proveniência) sem sujar a instrução.
+- **Dois agentes, não um com prompt trocado por parâmetro.** O McKee está
+  fechado, revisado e em produção; nada da iteração do Fio pode regredi-lo.
+  O custo é um `AGENTES = [(agente, grafo), ...]` no lifespan pra recompilar
+  os dois com o checkpointer do Postgres.
+- **Mesma instância de `model` nos dois trilhos**: comparar os métodos sem
+  introduzir diferença de modelo como variável.
+- **`threadId` controlado no cliente** pro botão de nova conversa: começa
+  `undefined` (o chat cria a sua) porque sortear um id no primeiro render
+  quebraria a hidratação — servidor e cliente gerariam ids diferentes. O
+  `key={threadId}` junto força a remontagem, garantindo tela limpa.
+
+**Smoke test:** turno real em `/agent-fio` → o Tutor abre com o texto de
+abertura do prompt ("Me conta tudo o que você já pensou…"), `RUN_STARTED →
+TEXT_MESSAGE_* → RUN_FINISHED` limpo. **Hot-reload provado na marra**: com o
+servidor NO AR, adicionei ao `fio.md` uma regra temporária ("comece com o token
+ZZ-42"), rodei um turno novo — o token apareceu — e restaurei o arquivo
+conferindo o `sha256`. `carregar_instrucao()` devolve 12.038 chars começando em
+"Você é o Tutor…" (cabeçalho fora). Build limpo com as 4 rotas; `/` serve os 4
+cartões (McKee e O Fio disponíveis); `/fio` serve topbar, botão e input;
+`{"method":"info"}` no runtime lista `story_agent` e `tutor_agent`.
+
+**O que ficou pra depois:** validação de conversa longa no browser (é o próximo
+passo do usuário — o valor desta fatia só aparece em uso real); nenhuma
+persistência de artefatos do método (mural, backlog e dossiê vivem só no
+histórico da thread); e as duas fases de UI — canvas com os cartões, e depois
+o open-ended sem design system pré-fixado.

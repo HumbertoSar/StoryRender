@@ -36,6 +36,36 @@ const METODOS: Metodo[] = [
     ),
   },
   {
+    nome: "O Fio",
+    descricao:
+      "Um fio único de 9 degraus, conduzido por um tutor socrático: da semente ao novo equilíbrio, testando cada passo com você.",
+    href: "/fio",
+    icone: (
+      // Linha contínua (o fio) em oposição à espinha pontilhada do McKee.
+      <svg viewBox="0 0 210 56" className="sr-metodo__icone">
+        <polyline
+          points="10,46 33,43 57,38 80,33 104,27 128,20 151,11 174,5 198,30"
+          fill="none"
+          stroke="var(--sr-accent)"
+          strokeWidth="1.5"
+        />
+        {[
+          [10, 46],
+          [33, 43],
+          [57, 38],
+          [80, 33],
+          [104, 27],
+          [128, 20],
+          [151, 11],
+          [198, 30],
+        ].map(([cx, cy]) => (
+          <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="3.5" fill="var(--sr-brass)" />
+        ))}
+        <circle cx="174" cy="5" r="4" fill="var(--sr-accent)" />
+      </svg>
+    ),
+  },
+  {
     nome: "Jornada do Herói",
     descricao: "O círculo de partida, provação e retorno transformado, de Campbell a Vogler.",
     icone: (
