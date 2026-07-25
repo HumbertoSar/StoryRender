@@ -3,6 +3,12 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Imagem Docker mínima (deploy na VPS): só runtime + arquivos necessários.
   output: "standalone",
+
+  // O `next dev` bloqueia requisição a asset de dev vinda de origem diferente
+  // daquela em que subiu (localhost). Como o dev roda atrás do Caddy num
+  // subdomínio, sem isto o HMR e o `/_next/*` são recusados e a página carrega
+  // quebrada. Só vale em desenvolvimento — o build de produção ignora.
+  allowedDevOrigins: ["dev.storyrender.mvpsardenberg.cloud"],
 };
 
 export default nextConfig;
