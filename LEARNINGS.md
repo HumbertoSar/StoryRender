@@ -634,3 +634,53 @@ Decisão do usuário: transformar o Story Render em projeto de aprendizado de Ge
 **Resultado no browser:** "me mostra um painel visual da história" → superfície composta pelo agente no chat: título, subtítulo, divisor e 4 Cards de personagem (Juíza/Assassino/Filho/Chantagista) — estrutura que NINGUÉM pré-desenhou; a hierarquia veio da interpretação da história. Regressão zero: HITL (propor_campo com aceitar/rejeitar), quadro reativo e revelação progressiva seguem funcionando no chat v2.
 
 **O que ficou pra depois:** catálogo CUSTOM com os widgets do design system do brief (cartão de asset, nó de espinha) via `createCatalog` — hoje é o catálogo básico genérico; `A2UIGuidelines` (generation/design/composition) pra dirigir o estilo; superfície no QUADRO (não só no chat); latência da geração (~20-40s, subagente) merece skeleton melhor; comparação com Open-JSON-UI (flag `openGenerativeUI` existe no mesmo runtime — investigar na fatia da Fase 3).
+
+---
+
+# TRILHO NOVO — Método do Fio (agente Tutor)
+
+Depois de rodar o McKee de ponta a ponta, o teste real mostrou o limite do
+desenho original: **completar o método era difícil** — o agente preenchia
+fichas em vez de puxar a história pra cima. O usuário reescreveu a instrução
+como um TUTOR socrático (script doctor) sobre um **fio único de 9 degraus**,
+que simplifica a estrutura e, por consequência, muda a UI.
+
+Decisão de arquitetura: **os dois trilhos convivem**. O McKee fica congelado
+como está (já revisado, já em produção); o Fio nasce do nível 0 da escada de
+GenUI — só texto — e sobe pro canvas e pro open-ended depois de validado.
+
+## Fatia A: tela de escolha de método + McKee migrado pra /mckee
+
+**O que foi construído:** `MetodoScreen` portada de `frontend/src/home/` (legado)
+como nova home `/` — cartões com ícone SVG da espinha, badges disponível/em
+breve, tokens de cor e o trio tipográfico do brief. O quadro McKee inteiro foi
+pro `/mckee` via `git mv`, sem uma linha de conteúdo alterada.
+
+**Por quê:** a bifurcação precisa de uma porta de entrada antes de existir um
+segundo método. Portar a tela do legado em vez de inventar uma nova traz de
+quebra a **primeira peça da gramática visual do brief pro `web/`**, que estava
+todo em estilo neutro desde o pivô.
+
+**Decisões e gotchas:**
+- **Fontes via `next/font/google`** (Alegreya, Source Sans 3, JetBrains Mono),
+  não `@import` do Google Fonts como no legado: self-host, sem request externo
+  em runtime. Os tokens `--sr-font-*` de `theme.css` apontam pras variáveis
+  geradas. Os três nomes foram conferidos no catálogo empacotado
+  (`next/dist/compiled/@next/font/dist/google/font-data.json`) antes de escrever.
+- **O botão "Continuar com McKee" do legado foi removido**: um CTA único no
+  rodapé não escala pra dois métodos disponíveis. O cartão inteiro virou o
+  alvo de clique (`<Link>`).
+- Roteamento e `next/font` conferidos nos docs empacotados do Next 16.2.10
+  antes de codar (exigência do `web/AGENTS.md`) — sem breaking change aqui.
+- **Lint já estava vermelho antes desta fatia**: `CartaoAsset.tsx:32` viola
+  `react-hooks/set-state-in-effect` (o `useEffect(() => setTexto(valor))` do
+  hook de auto-altura portado do legado). Arquivo não tocado aqui; dívida
+  registrada pra uma fatia própria, não escondida dentro desta.
+
+**Smoke test:** `npm run build` limpo (rotas `/` e `/mckee` estáticas); `/`
+serve os 3 cartões com o McKee linkando pra `/mckee`; `/mckee` serve o quadro
+e o chat como antes; `POST /api/copilotkit {"method":"info"}` responde com
+`story_agent` e `a2uiEnabled: true`; turno real no agente via AG-UI fechou
+`RUN_STARTED → TEXT_MESSAGE_* → RUN_FINISHED` com `checkpointer: Postgres`.
+Pendente do usuário: conferir no browser o turno de chat e o aceitar/rejeitar
+de proposta em `/mckee` (curl não dirige o cliente).
