@@ -1,158 +1,147 @@
-"use client";
+import Link from "next/link";
+import type { ReactNode } from "react";
 
-import { basicCatalog } from "@copilotkit/a2ui-renderer";
-import { CopilotKit, useCopilotAction } from "@copilotkit/react-core";
-// Chat v2: é ele quem renderiza as activities A2UI (o CopilotChat clássico
-// do react-ui ignora activity messages — superfícies nunca pintariam).
-import { CopilotChat } from "@copilotkit/react-core/v2";
-import "@copilotkit/react-core/v2/styles.css";
+import "./metodo.css";
 
-import { EspinhaColuna } from "@/components/EspinhaColuna";
-import { CartaoAsset } from "@/components/CartaoAsset";
-import { DiagnosticoCard, type ItemDiagnostico } from "@/components/DiagnosticoCard";
-import { PropostaCard } from "@/components/PropostaCard";
-import { CARTOES, type AssetId } from "@/lib/cartoes";
-import { useRoteiro } from "@/lib/useRoteiro";
+type Metodo = {
+  nome: string;
+  descricao: string;
+  icone: ReactNode;
+  // href presente = método disponível (cartão clicável); ausente = "em breve".
+  href?: string;
+};
 
-function Quadro() {
-  // Estado compartilhado com o grafo LangGraph: chega via STATE_SNAPSHOT
-  // (AG-UI) depois do primeiro turno; antes disso, roteiro é null.
-  const { state, lerAsset, salvarCampo } = useRoteiro();
-
-  // HITL: o agente propõe conteúdo de campo e ESPERA a decisão — o card
-  // renderiza no chat e o respond() devolve o resultado pro agente.
-  useCopilotAction({
-    name: "propor_campo",
-    description:
-      "Propõe um texto para um campo de texto de um cartão do roteiro. " +
-      "O usuário aceita ou rejeita; você recebe a decisão como resultado.",
-    parameters: [
-      {
-        name: "asset",
-        type: "string",
-        description:
-          "Qual cartão: protagonistas, antagonista, ideia_controladora, mundo ou genero",
-        required: true,
-      },
-      {
-        name: "campo",
-        type: "string",
-        description: "A chave do campo dentro do cartão (ex.: want, fonte_oposicao, valor, epoca, promessa)",
-        required: true,
-      },
-      {
-        name: "valor",
-        type: "string",
-        description: "O texto proposto para o campo",
-        required: true,
-      },
-      {
-        name: "justificativa",
-        type: "string",
-        description: "Por que essa proposta funciona dramaticamente (1 frase)",
-        required: false,
-      },
-    ],
-    renderAndWaitForResponse: ({ args, respond, status }) => (
-      <PropostaCard
-        asset={args.asset as AssetId}
-        campo={(args.campo as string) ?? ""}
-        valor={(args.valor as string) ?? ""}
-        justificativa={args.justificativa as string | undefined}
-        respond={respond}
-        status={status}
-      />
+const METODOS: Metodo[] = [
+  {
+    nome: "McKee",
+    descricao:
+      "Espinha de 5 nós movida a decisão sob pressão: incidente, complicações progressivas, crise, clímax, resolução.",
+    href: "/mckee",
+    icone: (
+      <svg viewBox="0 0 210 56" className="sr-metodo__icone">
+        <polyline
+          points="10,44 52,38 94,30 136,16 168,10 198,40"
+          fill="none"
+          stroke="var(--sr-accent)"
+          strokeWidth="1.5"
+          strokeDasharray="2 4"
+        />
+        <circle cx="10" cy="44" r="4" fill="var(--sr-brass)" />
+        <circle cx="52" cy="38" r="4" fill="var(--sr-brass)" />
+        <circle cx="94" cy="30" r="4" fill="var(--sr-brass)" />
+        <circle cx="136" cy="16" r="4" fill="var(--sr-brass)" />
+        <circle cx="168" cy="10" r="4" fill="var(--sr-accent)" />
+        <circle cx="198" cy="40" r="4" fill="var(--sr-brass)" />
+      </svg>
     ),
-  });
+  },
+  {
+    nome: "McKee Inspired",
+    descricao:
+      "O McKee reformulado como uma escada única de 9 degraus, conduzida por um tutor socrático: da semente ao novo equilíbrio, testando cada passo com você.",
+    href: "/mckee-inspired",
+    icone: (
+      // Linha contínua (a escada de degraus) em oposição à espinha pontilhada
+      // do McKee original.
+      <svg viewBox="0 0 210 56" className="sr-metodo__icone">
+        <polyline
+          points="10,46 33,43 57,38 80,33 104,27 128,20 151,11 174,5 198,30"
+          fill="none"
+          stroke="var(--sr-accent)"
+          strokeWidth="1.5"
+        />
+        {[
+          [10, 46],
+          [33, 43],
+          [57, 38],
+          [80, 33],
+          [104, 27],
+          [128, 20],
+          [151, 11],
+          [198, 30],
+        ].map(([cx, cy]) => (
+          <circle key={`${cx}-${cy}`} cx={cx} cy={cy} r="3.5" fill="var(--sr-brass)" />
+        ))}
+        <circle cx="174" cy="5" r="4" fill="var(--sr-accent)" />
+      </svg>
+    ),
+  },
+  {
+    nome: "Jornada do Herói",
+    descricao: "O círculo de partida, provação e retorno transformado, de Campbell a Vogler.",
+    icone: (
+      <svg viewBox="0 0 210 56" className="sr-metodo__icone">
+        <circle
+          cx="105"
+          cy="28"
+          r="22"
+          fill="none"
+          stroke="var(--sr-brass)"
+          strokeWidth="1.5"
+          strokeDasharray="2 4"
+        />
+        <circle cx="105" cy="6" r="4" fill="var(--sr-brass)" />
+        <circle cx="127" cy="28" r="4" fill="var(--sr-brass)" />
+        <circle cx="105" cy="50" r="4" fill="var(--sr-brass)" />
+        <circle cx="83" cy="28" r="4" fill="var(--sr-brass)" />
+      </svg>
+    ),
+  },
+  {
+    nome: "Save the Cat",
+    descricao: "Os 15 beats de Snyder, batidos em sequência com marcos de página.",
+    icone: (
+      <svg viewBox="0 0 210 56" className="sr-metodo__icone">
+        {[30, 80, 130, 180].map((cx) => (
+          <circle key={`topo-${cx}`} cx={cx} cy="14" r="4" fill="var(--sr-brass)" />
+        ))}
+        {[30, 80, 130, 180].map((cx) => (
+          <circle key={`base-${cx}`} cx={cx} cy="42" r="4" fill="var(--sr-brass)" />
+        ))}
+      </svg>
+    ),
+  },
+];
 
-  // Modo Diagnóstico: o agente roda os testes de coerência e entrega o
-  // resultado como UI (lista renderizada no chat), não como prosa.
-  useCopilotAction({
-    name: "mostrar_diagnostico",
-    description:
-      "Exibe o resultado do diagnóstico de coerência como lista visual. " +
-      "Chame com a lista de problemas encontrados (vazia se não houver).",
-    parameters: [
-      {
-        name: "itens",
-        type: "object[]",
-        description: "Problemas encontrados nos testes de coerência",
-        attributes: [
-          { name: "campo", type: "string", description: "Campo/cartão afetado" },
-          { name: "problema", type: "string", description: "Descrição objetiva do problema" },
-          {
-            name: "severidade",
-            type: "string",
-            description: "aviso ou critico",
-          },
-        ],
-      },
-    ],
-    // handler trivial: sem ele (ou renderAndWait/available) o CopilotKit
-    // rejeita a action ("Invalid action configuration") — render puro não basta.
-    handler: async () => "diagnóstico exibido para o usuário",
-    render: ({ args }) => <DiagnosticoCard itens={(args.itens as ItemDiagnostico[]) ?? []} />,
-  });
+function CartaoMetodo({ metodo }: { metodo: Metodo }) {
+  const conteudo = (
+    <>
+      {metodo.icone}
+      <div className="sr-metodo__nome">{metodo.nome}</div>
+      <div className="sr-metodo__descricao">{metodo.descricao}</div>
+      <div
+        className={`sr-metodo__badge${metodo.href ? " sr-metodo__badge--disponivel" : ""}`}
+      >
+        {metodo.href ? "disponível" : "em breve"}
+      </div>
+    </>
+  );
 
+  if (!metodo.href) {
+    return <div className="sr-metodo__card sr-metodo__card--em-breve">{conteudo}</div>;
+  }
   return (
-    <div style={{ flex: 1, padding: 24, overflowY: "auto" }}>
-      <h1 style={{ fontSize: 18, marginBottom: 4 }}>
-        {state.roteiro?.titulo || "Sem título"}
-      </h1>
-      <div style={{ fontSize: 12, color: "#888", marginBottom: 16 }}>
-        {state.roteiro
-          ? `template ${state.roteiro.template} · fase ${state.roteiro.fase_atual}`
-          : "aguardando o primeiro turno do agente…"}
-      </div>
-      <div style={{ display: "flex", gap: 24, alignItems: "flex-start" }}>
-        {state.roteiro && <EspinhaColuna espinha={state.roteiro.espinha} />}
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, flex: 1 }}>
-          {CARTOES.map((def) => {
-            const dados = lerAsset(def.asset);
-            // Revelação progressiva: o cartão só existe no quadro quando tem
-            // conteúdo aprovado (campo preenchido ou status mexido) — o
-            // quadro nasce enxuto e cresce junto com a história.
-            const temConteudo =
-              dados &&
-              (def.campos.some(({ chave }) => Boolean(dados[chave])) ||
-                dados.status !== "vazio");
-            return (
-              temConteudo && (
-                <CartaoAsset
-                  key={def.asset}
-                  def={def}
-                  dados={dados}
-                  onSalvar={(campo, valor) => salvarCampo(def.asset, campo, valor)}
-                />
-              )
-            );
-          })}
-        </div>
-      </div>
-    </div>
+    <Link href={metodo.href} className="sr-metodo__card sr-metodo__card--disponivel">
+      {conteudo}
+    </Link>
   );
 }
 
-export default function Home() {
+export default function EscolhaDeMetodo() {
   return (
-    // a2ui.catalog ativa o nível declarative: o CopilotKit registra o render
-    // da tool-call render_a2ui (superfícies compostas pelo agente) no chat.
-    <CopilotKit runtimeUrl="/api/copilotkit" agent="story_agent" a2ui={{ catalog: basicCatalog }}>
-      <main style={{ height: "100vh", display: "flex" }}>
-        <Quadro />
-        <div style={{ width: 440, borderLeft: "1px solid #ddd", height: "100%" }}>
-          <CopilotChat
-            agentId="story_agent"
-            labels={{
-              welcomeMessageText:
-                "Vamos estruturar sua história? Me conte a premissa — e peça um painel visual sempre que quiser ver o todo.",
-              chatInputPlaceholder: "Escreva sua mensagem…",
-              chatDisclaimerText:
-                "O agente pode errar — o quadro é sempre a fonte de verdade.",
-            }}
-          />
-        </div>
-      </main>
-    </CopilotKit>
+    <div className="sr-metodo">
+      <div className="sr-metodo__titulo">Escolha a lente estrutural</div>
+      <div className="sr-metodo__subtitulo">
+        O método define a espinha e os cartões do seu quadro — não a sua história.
+      </div>
+      <div className="sr-metodo__cards">
+        {METODOS.map((metodo) => (
+          <CartaoMetodo key={metodo.nome} metodo={metodo} />
+        ))}
+      </div>
+      <div className="sr-metodo__rodape">
+        <div className="sr-metodo__nota">TRIÂNGULO DA HISTÓRIA: ARCHPLOT (PADRÃO NO V1)</div>
+      </div>
+    </div>
   );
 }

@@ -657,3 +657,392 @@ efeito. A regra de lint não reclama dele.
 `npm run build` limpo. Sem cobertura automatizada no `web/` — a conferência do
 comportamento (digitar no campo, aceitar proposta do agente e ver o campo
 atualizar) fica pro browser.
+---
+
+# TRILHO NOVO — Método do Fio (agente Tutor)
+
+Depois de rodar o McKee de ponta a ponta, o teste real mostrou o limite do
+desenho original: **completar o método era difícil** — o agente preenchia
+fichas em vez de puxar a história pra cima. O usuário reescreveu a instrução
+como um TUTOR socrático (script doctor) sobre um **fio único de 9 degraus**,
+que simplifica a estrutura e, por consequência, muda a UI.
+
+Decisão de arquitetura: **os dois trilhos convivem**. O McKee fica congelado
+como está (já revisado, já em produção); o Fio nasce do nível 0 da escada de
+GenUI — só texto — e sobe pro canvas e pro open-ended depois de validado.
+
+## Fatia A: tela de escolha de método + McKee migrado pra /mckee
+
+**O que foi construído:** `MetodoScreen` portada de `frontend/src/home/` (legado)
+como nova home `/` — cartões com ícone SVG da espinha, badges disponível/em
+breve, tokens de cor e o trio tipográfico do brief. O quadro McKee inteiro foi
+pro `/mckee` via `git mv`, sem uma linha de conteúdo alterada.
+
+**Por quê:** a bifurcação precisa de uma porta de entrada antes de existir um
+segundo método. Portar a tela do legado em vez de inventar uma nova traz de
+quebra a **primeira peça da gramática visual do brief pro `web/`**, que estava
+todo em estilo neutro desde o pivô.
+
+**Decisões e gotchas:**
+- **Fontes via `next/font/google`** (Alegreya, Source Sans 3, JetBrains Mono),
+  não `@import` do Google Fonts como no legado: self-host, sem request externo
+  em runtime. Os tokens `--sr-font-*` de `theme.css` apontam pras variáveis
+  geradas. Os três nomes foram conferidos no catálogo empacotado
+  (`next/dist/compiled/@next/font/dist/google/font-data.json`) antes de escrever.
+- **O botão "Continuar com McKee" do legado foi removido**: um CTA único no
+  rodapé não escala pra dois métodos disponíveis. O cartão inteiro virou o
+  alvo de clique (`<Link>`).
+- Roteamento e `next/font` conferidos nos docs empacotados do Next 16.2.10
+  antes de codar (exigência do `web/AGENTS.md`) — sem breaking change aqui.
+- **Lint já estava vermelho antes desta fatia**: `CartaoAsset.tsx:32` viola
+  `react-hooks/set-state-in-effect` (o `useEffect(() => setTexto(valor))` do
+  hook de auto-altura portado do legado). Arquivo não tocado aqui; dívida
+  registrada pra uma fatia própria, não escondida dentro desta.
+
+**Smoke test:** `npm run build` limpo (rotas `/` e `/mckee` estáticas); `/`
+serve os 3 cartões com o McKee linkando pra `/mckee`; `/mckee` serve o quadro
+e o chat como antes; `POST /api/copilotkit {"method":"info"}` responde com
+`story_agent` e `a2uiEnabled: true`; turno real no agente via AG-UI fechou
+`RUN_STARTED → TEXT_MESSAGE_* → RUN_FINISHED` com `checkpointer: Postgres`.
+Pendente do usuário: conferir no browser o turno de chat e o aceitar/rejeitar
+de proposta em `/mckee` (curl não dirige o cliente).
+
+## Fatia B: agente Tutor (tutor_agent) + rota /fio, só texto
+
+**O que foi construído:** `agent/tutor.py` — grafo de um nó (`conversar`), sem
+tools e sem canal de estado além de `messages`, servido como segundo agente
+(`tutor_agent`) em `/agent-fio` no mesmo FastAPI; `tutor_agent` registrado no
+`CopilotRuntime`; rota `/fio` com `CopilotChat` v2 em tela cheia, topbar com
+selo "validação em texto" e botão **nova conversa**; quarto cartão na tela de
+seleção (linha contínua — o fio — em oposição à espinha pontilhada do McKee).
+
+**Por quê:** validar a instrução nova antes de desenhar UI pra ela. O prompt do
+Tutor produz mapa, mural de promessas, backlog de pendências e dossiê do
+antagonista — todos candidatos naturais a virar superfície nas fases seguintes,
+mas só depois que a conversa provar que o método funciona.
+
+**Decisões:**
+- **Instrução lida do disco a cada turno** (`carregar_instrucao()`), não
+  constante no código: editar `agent/metodos/fio.md` e mandar a próxima
+  mensagem já testa a versão nova. Sem restart, sem rebuild, sem commit — o
+  ciclo de iteração de prompt é o trabalho desta fase, e ele não pode passar
+  por deploy. Custo: um read de ~12 KB por turno, irrelevante perto do LLM.
+- **Cabeçalho editorial some do system prompt**: se as 10 primeiras linhas
+  tiverem um `---`, só o que vem depois vai pro modelo. O arquivo continua
+  legível como documento (título, proveniência) sem sujar a instrução.
+- **Dois agentes, não um com prompt trocado por parâmetro.** O McKee está
+  fechado, revisado e em produção; nada da iteração do Fio pode regredi-lo.
+  O custo é um `AGENTES = [(agente, grafo), ...]` no lifespan pra recompilar
+  os dois com o checkpointer do Postgres.
+- **Mesma instância de `model` nos dois trilhos**: comparar os métodos sem
+  introduzir diferença de modelo como variável.
+- **`threadId` controlado no cliente** pro botão de nova conversa: começa
+  `undefined` (o chat cria a sua) porque sortear um id no primeiro render
+  quebraria a hidratação — servidor e cliente gerariam ids diferentes. O
+  `key={threadId}` junto força a remontagem, garantindo tela limpa.
+
+**Smoke test:** turno real em `/agent-fio` → o Tutor abre com o texto de
+abertura do prompt ("Me conta tudo o que você já pensou…"), `RUN_STARTED →
+TEXT_MESSAGE_* → RUN_FINISHED` limpo. **Hot-reload provado na marra**: com o
+servidor NO AR, adicionei ao `fio.md` uma regra temporária ("comece com o token
+ZZ-42"), rodei um turno novo — o token apareceu — e restaurei o arquivo
+conferindo o `sha256`. `carregar_instrucao()` devolve 12.038 chars começando em
+"Você é o Tutor…" (cabeçalho fora). Build limpo com as 4 rotas; `/` serve os 4
+cartões (McKee e O Fio disponíveis); `/fio` serve topbar, botão e input;
+`{"method":"info"}` no runtime lista `story_agent` e `tutor_agent`.
+
+**O que ficou pra depois:** validação de conversa longa no browser (é o próximo
+passo do usuário — o valor desta fatia só aparece em uso real); nenhuma
+persistência de artefatos do método (mural, backlog e dossiê vivem só no
+histórico da thread); e as duas fases de UI — canvas com os cartões, e depois
+o open-ended sem design system pré-fixado.
+
+## Fatia: exportar sessão do checkpointer pra Markdown
+
+**O que foi construído:** `agent/exportar_sessao.py` — sem argumento, lista as
+threads gravadas (trilho, turnos, data, início da conversa); com um thread_id,
+grava `agent/sessoes/<data>-<prefixo>.md` com a conversa inteira. O trilho é
+inferido do formato do estado: quem tem canal `roteiro` é McKee, quem só tem
+`messages` é Fio.
+
+**Por quê:** na validação do método do Fio, **as sessões de teste são o dado** —
+é nelas que se vê se o Tutor conduz como previsto. Elas já eram duráveis (o
+checkpointer é Postgres), mas ilegíveis: recuperar exigia SQL e desserialização.
+
+**Decisão de privacidade:** `agent/sessoes/` entrou no `.gitignore`. O
+repositório é **público** e o conteúdo das sessões é criação do autor. Se um
+dia for preciso versionar as sessões, o caminho é repositório privado — não
+este. Contrapartida assumida: as sessões vivem só na VPS, sem backup por git.
+
+**O que a primeira sessão real mostrou (7 turnos, 42 KB):** os turnos do Tutor
+são LONGOS — 1.000 a 1.400 palavras, com títulos, listas e o mapa em três
+seções (● forte / ◐ rascunho / ○ buraco), citando as palavras do autor. A
+contagem crua de interrogações assusta (30 a 46 por turno) mas **não** é
+violação da regra "uma pergunta central por turno": as interrogações são os
+itens do mapa e os candidatos das bifurcações — que o prompt manda oferecer — e
+cada turno fecha numa única pergunta central em negrito. Medida errada leva a
+conclusão errada; foi preciso ler o turno pra saber.
+
+**Consequência pra fase de UI:** esse formato não cabe numa coluna de chat de
+440px, que é o layout do trilho McKee. O **mapa** é o candidato número 1 a
+virar superfície. Ainda NÃO apareceram em sessão real: dossiê do antagonista,
+mural de promessas com status e cena obrigatória — vale provocá-los nas
+próximas conversas antes de desenhar UI pra eles.
+
+## Fatia: o chat do Fio vestido no brief — e o reset global que matava o respiro
+
+**O que foi construído:** `fio.css` reescrito — tokens do chat v2 mapeados pra
+paleta do brief (papel/tinta/vinho/neutro), medida de leitura em 42rem,
+serifada nos títulos do turno, bolha do autor com padding de verdade, campo de
+escrita e botão de enviar em papel/vinho, barra de ações legível. Em
+`globals.css`, o reset `*` foi pra dentro de `@layer base`. Inspetor flutuante
+do CopilotKit desligado em `/fio` (`enableInspector={false}`). Página
+`/fio/previa` como banco de prova de estilo.
+
+**A causa raiz do "texto batendo nas bordas":** não era falta de padding no
+nosso CSS — era o reset `* { margin: 0; padding: 0 }` do `globals.css`, que
+estava **sem camada**. Regra sem camada vence QUALQUER `@layer`, por mais
+específica que a outra seja, e o CSS do chat v2 do CopilotKit vive inteiro em
+`@layer`. Resultado: todo utilitário de margem/padding do chat estava morto.
+Medido no navegador, antes → depois de neutralizar a regra:
+
+| o que | antes | depois |
+|---|---|---|
+| centralização da coluna (`mx-auto`) | `margin-left: 0px` | `286px` |
+| padding interno do campo de escrita | `0px` | `8px 12px` |
+| recuo das listas do agente | `0px` | `26px` |
+| margem entre parágrafos do agente | `0px` | `20px` |
+
+Ou seja: a coluna inteira ficava encostada na esquerda numa tela de 1280, os
+parágrafos saíam colados uns nos outros e a bolha da mensagem do autor não
+tinha respiro nenhum. Com o reset dentro de `base`, ele continua valendo pro
+resto do app e perde pras utilities do chat — que é o certo.
+
+**Decisões:**
+- **Token antes de override.** Onde o componente lê um token shadcn
+  (`--muted`, `--primary`, `--border`), o `fio.css` redeclara o token; só onde
+  a cor está cravada no className (`cpk:bg-black` no enviar,
+  `cpk:text-[rgb(93,93,93)]` nas ações) é que existe regra direta. Menos
+  superfície pra quebrar quando o pacote atualizar.
+- **Os dois remendos de 16px saíram do `globals.css`.** Eles existiam pra
+  compensar o sintoma; com a causa resolvida, o `cpk:px-4` do próprio
+  componente voltou a valer e eles viraram duplicata.
+- **`enableInspector` ≠ `showDevConsole`.** São props separadas na v1: a
+  primeira monta o inspetor flutuante (que anuncia novidades do produto por
+  cima do chat), a segunda controla os toasts de erro. Desligamos só a
+  primeira — erro de runtime tem que continuar aparecendo.
+- **`list-style-position: outside`.** O markdown vem com `list-inside`: em item
+  de uma linha ninguém nota, mas nos itens longos do Tutor a segunda linha
+  passava por baixo do marcador.
+
+**Efeito colateral consciente no trilho McKee:** a correção do reset é global,
+então o chat embutido do `/mckee` também recuperou o espaçamento interno que o
+componente sempre quis ter (mesmos 16px de goteira de antes, mais o padding do
+campo e o ritmo dos parágrafos). É correção de bug compartilhado, não evolução
+do trilho — mas está registrado aqui porque mexe numa tela congelada.
+
+**Smoke test:** medido com Playwright em `/fio/previa` a 1280×900 e 390×844 —
+coluna centralizada (x=304, largura 672) e input alinhado no mesmo eixo;
+parágrafo com `margin 20px` e `line-height 27.52px`; lista com recuo de 26px;
+bolha com `padding 12px 18px` sobre `#e7dfc9`; fundo do chat `#f0e9d8`. Sem
+overflow horizontal no mobile. `npm run build` limpo com as 6 rotas; o único
+erro de `npm run lint` é o pré-existente do `CartaoAsset.tsx`.
+
+**O que ficou pra depois:** o tooltip dos botões de ação renderiza em portal no
+`body`, fora do `.sr-fio`, então continua com o preto padrão do pacote em vez
+do vinho — corrigir exigiria token global, que respingaria no McKee.
+
+## Fatia: copiar e curtir o turno — feedback que vira dado da sessão
+
+**O que foi construído:** `POST/GET /feedback` no agente (`agent/feedback.py`),
+proxy em `/api/fio/feedback`, `ProvedorDeFeedback` + `TurnoDoTutor` no front, e
+o turno marcado saindo no Markdown do `exportar_sessao.py`. O botão de copiar
+já existia no componente — estava só ilegível sobre papel, e a barra da
+mensagem do autor nascia `invisible` até o hover (em toque, nunca aparecia).
+
+**Por quê:** durante a validação, ler a sessão exportada é quando se decide se
+a instrução funciona — e nessa hora já não dá pra lembrar qual turno acertou.
+Marcar no calor da conversa e reencontrar a marca no arquivo fecha o ciclo.
+
+**Decisões:**
+- **A marca é presa ao id da mensagem do agente**, não ao índice do turno. Dá
+  certo porque o id é o MESMO dos dois lados: o adaptador AG-UI emite o
+  `message_id` a partir do id do chunk do LangChain, que é o id gravado no
+  checkpointer (`lc_run--…`). Conferido lendo os dois.
+- **`aria-pressed` como estado, não classe nossa.** É o atributo correto pro
+  botão de alternância, anuncia o estado pro leitor de tela E serve de gancho
+  no CSS — um estado só, impossível de dessincronizar.
+- **Otimista com desfazer.** A marca aparece na hora, mas se o POST falhar ela
+  volta atrás e a topbar avisa "feedback não gravado". Marca que não foi
+  gravada não pode ficar na tela parecendo que foi: é ela que vira dado depois.
+  Já falhar ao LER as marcas antigas é silencioso — não atrapalha a conversa.
+- **A página não passa mais `threadId` pro `CopilotChat`.** Passar liga o
+  `hasExplicitThreadId` do componente, que **suprime a tela de abertura** — o
+  "nova conversa" vinha abrindo uma conversa muda, sem o convite do Tutor
+  (bug real, medido antes/depois). Agora o `key` remonta, o chat resolve a
+  própria thread, e quem precisa do id lê de `useCopilotChatConfiguration()`
+  lá de dentro.
+
+**Smoke test (Playwright, `/fio/previa`):** marca carregada do servidor ao
+abrir (`aria-pressed=true`, fundo `rgb(122,46,46)`); clicar no outro polegar
+troca o valor; **sobrevive a recarregar a página**; clicar de novo desmarca e
+o desmarcado também sobrevive ao reload. Com o POST forçado a 503, a marca
+volta atrás e o aviso aparece. Em `/fio`, a tela de abertura continua de pé
+depois do "nova conversa" (antes: sumia). No agente: 👍 gravado e lido de
+volta, valor fora do vocabulário recusado com 422, export marcando
+`## Tutor — 👍 funcionou` e o cabeçalho contando `1 👍 · 0 👎`.
+
+**A prévia ficou no repositório.** `/fio/previa` monta o chat com um turno fixo
+no formato real do Tutor, sem agente e sem custo de LLM. Foi onde tudo isto foi
+medido, e é onde a fase de canvas vai ser medida também. Se atrapalhar, é uma
+pasta pra apagar.
+
+**O que ficou pra depois:** regenerar o turno (útil pra testar uma edição do
+`fio.md` no mesmo ponto da conversa) NÃO é barato aqui — o histórico vive no
+checkpointer do lado do servidor, e mexer nele pelo cliente exigiria cirurgia
+na thread. Mesma coisa pra editar mensagem do autor com ramificação.
+
+## Fatia: tela de seleção de sessão — a conversa ganha endereço
+
+**Escopo:** dar endereço às conversas do Fio. O checkpointer já gravava tudo no
+Postgres; o que faltava era caminho de volta. Entraram dois endpoints de
+leitura no agente (`GET /sessoes`, `GET /sessoes/{id}`), a tela de seleção em
+`/fio` e a conversa em `/fio/<id>`, com o histórico do banco reidratado no chat
+ao abrir. Ficaram de fora: renomear, apagar, buscar, paginar — e o McKee.
+
+**Por quê:** sair do dispositivo no meio de um teste de roteiro parecia perder
+a sessão. Não perdia dado nenhum — a conversa estava inteira no Postgres —, mas
+sem lista e sem id na URL não havia como voltar pra ela. O trabalho aqui não é
+persistir; é dar endereço ao que já estava persistido.
+
+**Decisões:**
+- **A URL é a persistência visível.** `/fio/<thread_id>`: recarregar, trocar de
+  aparelho ou mandar o link continua a mesma conversa. O id da sessão nova é
+  sorteado NO SERVIDOR, não no clique — em dev o Next é servido por http no IP,
+  contexto inseguro, onde `crypto.randomUUID()` do navegador não existe.
+- **Sessão nova não escreve nada.** Um id sem checkpoint é exatamente isso: a
+  thread nasce no primeiro turno. Por isso `GET /sessoes/{id}` responder 404 é
+  o caminho normal, não erro — a lista só mostra conversa que existe.
+- **Ler o acervo mora em `sessoes.py`, e o exportador passou a beber de lá.**
+  Era a mesma varredura duplicada em dois lugares; agora uma função só decide o
+  que é uma sessão (trilho, turnos, começo da conversa).
+- **Server Components leem direto do agente.** A lista e o histórico saem do
+  servidor do Next pro agente Python sem passar por route handler — proxy em
+  `/api` só existe pra quem chama do navegador (é o caso do 👍/👎).
+
+**A pegadinha que custou o teste (e vale pro resto do trilho):** o
+`<CopilotKit>` **já monta um `CopilotChatConfigurationProvider` com uma thread
+SORTEADA**, e na resolução do threadId a config do pai vence a `threadId`
+passada por prop numa config aninhada (`parentConfig?.threadId` é consultado
+antes do `threadId` próprio). Resultado silencioso: a tela mostrava a sessão
+certa, mas a conversa era gravada numa thread aleatória — e o 👍/👎 ia junto.
+Passar `threadId` pro `<CopilotKit>` conserta o id e quebra outra coisa: liga
+`hasExplicitThreadId`, que suprime a tela de abertura (regressão já registrada
+na fatia anterior) e faz o chat tentar reconectar a thread sozinho — e nesse
+modo SSE o `connect` só sabe repetir o que estiver na MEMÓRIA do processo do
+Next, não o que está no Postgres. O caminho certo é o
+`setActiveThreadId(sessao, { explicit: false })` da configuração do chat: troca
+a thread sem marcá-la como explícita.
+
+**Reidratar sem apagar nem duplicar:**
+- O componente que reidrata precisa ser **pai** do `<CopilotChat>`: o React roda
+  efeito de filho antes de efeito de pai, e o efeito do chat zera as mensagens
+  ao detectar troca de thread. De irmão (ou de dentro), a reidratação seria
+  apagada por essa limpeza.
+- Reidrata **só com o chat vazio** e **só depois** de a thread ativa já ser a da
+  URL. Sem a primeira guarda, uma troca de instância do agente (reconexão do
+  runtime) reescreveria por cima de turnos novos.
+- **Os ids vêm do checkpointer**, e é isso que torna a continuação segura: no
+  próximo turno o cliente reenvia o histórico e o
+  `langgraph_default_merge_state` só acrescenta id que ainda não existe no
+  checkpoint. Ids nossos fariam a conversa duplicar — ou pior, cairiam no
+  caminho de regeneração (time-travel) do adaptador.
+
+**Smoke test (Playwright, tudo contra o Postgres de verdade):**
+- Lista: 7 cartões com turnos/data/id, "Nova sessão" visível.
+- Abrir sessão gravada: 7 turnos do autor + 7 do Tutor reidratados, sem tela de
+  abertura; F5 mantém os 14. Sessão nova: vazia, com a abertura do Tutor.
+- **Retomada com turno novo (2 turnos de LLM, thread `t-retomada-01`):** 2
+  mensagens no checkpoint → F5 → 3º turno → 4 mensagens, **nenhum id repetido**,
+  as duas primeiras com o **mesmo id** de antes (não houve regeneração), e o
+  Tutor respondeu citando a mensagem anterior — contexto preservado.
+- Vizinhos: 👍 gravado fora da tela repinta na sessão retomada e desmarcar
+  grava na thread certa; `/fio/previa`, `/mckee` e a home de métodos de pé.
+- `tsc --noEmit` limpo; `npm run lint` só com o erro pré-existente do
+  `CartaoAsset.tsx`.
+
+**O que ficou pra depois:**
+- **Renomear e apagar sessão.** Hoje o título é a primeira fala do autor e não
+  há como excluir — as threads de teste (`t-fio-smoke`, `t-retomada-01`, …)
+  aparecem na lista junto com as de verdade.
+- **A lista carrega abrindo o checkpoint de cada thread** (teto de 300). Serve
+  pra dezenas de sessões; se um dia forem centenas, o resumo precisa virar
+  coluna no banco em vez de leitura de estado.
+- **Sem dono da sessão:** qualquer um com a URL abre. Igual ao resto do
+  laboratório, revisitar se sair do uso pessoal.
+- **Prod ainda não tem o Fio:** `deploy/docker-compose.yml` passa só `AGENT_URL`
+  pro web; o trilho do Fio precisa de `AGENT_FIO_URL`, `AGENT_FEEDBACK_URL` e
+  `AGENT_SESSOES_URL` apontando pro `http://agent:8000/...` antes de subir.
+
+## Fatia: McKee Inspired — rename do método e v2 da instrução
+
+**Escopo:** o método "O Fio" passa a se chamar McKee Inspired, e a instrução do
+Tutor ganha uma v2 com sete mudanças pedidas pelo autor: nome novo, "apertar"
+vira "provocar", conceito marcado e explicado na primeira aparição, teste com
+formato fixo, "voltas" vira TENTATIVAS, "Chekhov" vira PROMESSA PLANTADA, e
+vícios de LLM proibidos (inclusive travessão).
+
+**Regra de nome, pra não existirem duas coisas chamadas McKee:** o que é
+MÉTODO virou McKee Inspired (rota `/mckee-inspired`, `metodos/mckee_inspired.md`,
+trilho `mckee-inspired`, textos de tela); o que é PERSONA continua Tutor
+(`tutor.py`, agente `tutor_agent`, endpoint `/agent-tutor`, classes
+`sr-tutor__*`, `tutor.css`). O trilho congelado segue sendo `mckee`.
+
+**Decisões:**
+- **A instrução ensina pelo próprio estilo.** A v1 tinha mais de 40 travessões;
+  proibir travessão num texto cheio deles não funciona, porque o modelo imita o
+  documento que o instrui. A v2 não usa nenhum no corpo. O cabeçalho editorial
+  (fora do system prompt) registra o changelog da versão.
+- **Marcação de conceito pela CRASE, não pelo negrito.** O Tutor já usa negrito
+  pra ênfase comum, e CSS não distingue "negrito que é termo" de "negrito que é
+  ênfase". Com a crase o canal fica exclusivo: cor, caixa alta e sublinhado
+  viram decisão de CSS (`tutor.css`), não de prompt. Precisa zerar o
+  `code::before/after` da prosa do Tailwind, senão as crases aparecem na tela.
+- **Vinho, não latão, nos termos.** Sobre papel (#f0e9d8) o latão fica em ~3:1
+  de contraste, abaixo do mínimo pra texto corrido; o vinho passa de 7:1.
+- **Bloco `>` é EXCLUSIVO de teste.** Na primeira versão o Tutor também citava
+  o autor em bloco, e a citação ficava com a mesma caixa do teste, diluindo
+  justamente o sinal que o autor pediu. Agora citação é aspas ou itálico.
+- **Markdown cola linhas dentro de citação.** O template do teste precisa das
+  linhas `>` vazias no meio, senão os três campos saem num parágrafo só. Foi
+  visto na prévia, não numa conversa real.
+- **Glossário no fim da instrução.** Serve a duas regras de uma vez: define
+  quais termos levam marcação (senão o modelo marca tudo) e dá a explicação
+  curta que vai entre parênteses na primeira aparição.
+
+**Rotas antigas redirecionam.** `/fio*` responde 307 pra `/mckee-inspired*`. As
+sessões gravadas são endereçadas por URL, então todo link que já existia
+continua valendo; os ids das threads não mudaram (o trilho é DERIVADO do
+formato do estado na leitura, não um campo gravado, então o rename não pediu
+migração nenhuma no banco).
+
+**Smoke test:** `npm run build` limpo com as rotas novas, `tsc --noEmit` limpo,
+lint só com o erro pré-existente do `CartaoAsset.tsx`. Na prévia de estilo
+(`/mckee-inspired/previa`, sem custo de LLM): 8 termos marcados renderizando em
+`rgb(122,46,46)`, uppercase e underline, sem as crases na tela; bloco de teste
+com os 3 parágrafos separados. Suíte de sessões toda verde nas rotas novas (7+7
+turnos reidratados, F5, sessão nova com tela de abertura); 👍/👎 gravando e
+desmarcando pela rota renomeada `/api/mckee-inspired/feedback`; `/mckee` e a
+home de pé. `/fio` redirecionando com 307.
+
+**O que ficou pra depois:**
+- **Não foi testado em conversa real ainda.** Tudo aqui é forma, e forma se
+  verifica olhando um turno. Se o Tutor VAI obedecer as regras de forma (marcar
+  só o que é termo, não escorregar em travessão) só a próxima sessão diz.
+- **Outros termos importados continuam:** `steadfast`, `diff`, `braindump`,
+  "sondas", "navalha", e as ferramentas do 6b (âncoras de destino, régua
+  cruzada, trançado mínimo, calendário entrelaçado). Ficaram pendentes de
+  decisão do autor.
+- **A sessão exportada ainda não registra a versão do prompt.** Com a v2 no ar,
+  comparar sessões de versões diferentes já é o caso de uso, e sem o carimbo
+  não dá pra saber qual instrução produziu qual turno.

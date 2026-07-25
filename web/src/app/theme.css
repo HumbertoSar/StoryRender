@@ -1,0 +1,16 @@
+/* Gramática visual do brief (docs/STORY_RENDER_BRIEF_PROTOTIPO.md), portada de
+   frontend/src/theme.css — primeira peça do brief a entrar no web/.
+   Diferença deliberada do legado: as famílias vêm do next/font (layout.tsx),
+   self-hospedadas, em vez de @import do Google Fonts em runtime. */
+:root {
+  --sr-board: #4a4038;
+  --sr-paper: #f0e9d8;
+  --sr-ink: #211e1a;
+  --sr-accent: #7a2e2e;
+  --sr-brass: #9c7a3c;
+  --sr-neutral: #c9bfa8;
+
+  --sr-font-serif: var(--font-alegreya), Georgia, serif;
+  --sr-font-sans: var(--font-source-sans), system-ui, sans-serif;
+  --sr-font-mono: var(--font-jetbrains-mono), ui-monospace, Menlo, monospace;
+}

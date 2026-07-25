@@ -1,0 +1,118 @@
+/* Tela de escolha de método — porte de frontend/src/home/metodo.css (legado).
+   Mudança deliberada: o cartão inteiro virou o alvo de clique (Link), em vez do
+   botão único "Continuar com McKee" do legado — que não escala pra dois ou mais
+   métodos disponíveis ao mesmo tempo. */
+.sr-metodo {
+  min-height: 100vh;
+  overflow: auto;
+  background: var(--sr-board);
+  background-image: radial-gradient(ellipse at 50% 18%, rgba(255, 255, 255, 0.04), transparent 60%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 58px 24px 48px;
+}
+
+.sr-metodo__titulo {
+  font-family: var(--sr-font-serif);
+  font-weight: 700;
+  font-size: 26px;
+  color: var(--sr-paper);
+}
+
+.sr-metodo__subtitulo {
+  margin-top: 8px;
+  font-family: var(--sr-font-sans);
+  font-size: 13px;
+  color: rgba(240, 233, 216, 0.55);
+  text-align: center;
+}
+
+.sr-metodo__cards {
+  display: flex;
+  gap: 20px;
+  margin-top: 44px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.sr-metodo__card {
+  width: 250px;
+  background: var(--sr-paper);
+  border: 1px solid var(--sr-neutral);
+  border-radius: 3px;
+  padding: 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sr-metodo__card--disponivel {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  outline: 2px solid var(--sr-accent);
+  outline-offset: 2px;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.sr-metodo__card--disponivel:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+}
+
+.sr-metodo__card--em-breve {
+  opacity: 0.5;
+}
+
+.sr-metodo__icone {
+  width: 100%;
+  height: 56px;
+}
+
+.sr-metodo__nome {
+  font-family: var(--sr-font-serif);
+  font-weight: 700;
+  font-size: 18px;
+  color: var(--sr-ink);
+}
+
+.sr-metodo__descricao {
+  font-family: var(--sr-font-sans);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--sr-ink);
+}
+
+.sr-metodo__badge {
+  align-self: flex-start;
+  margin-top: auto;
+  font-family: var(--sr-font-mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 2px;
+  border: 1px solid var(--sr-brass);
+  color: var(--sr-brass);
+}
+
+.sr-metodo__badge--disponivel {
+  background: var(--sr-accent);
+  border-color: var(--sr-accent);
+  color: var(--sr-paper);
+}
+
+.sr-metodo__rodape {
+  margin-top: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.sr-metodo__nota {
+  font-family: var(--sr-font-mono);
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  color: rgba(240, 233, 216, 0.4);
+}
