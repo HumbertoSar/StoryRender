@@ -1,0 +1,410 @@
+/* Método do Fio, fase de validação: chat em tela cheia. Nenhum quadro, nenhum
+   cartão — o que o Tutor produz sai como texto até a instrução estar validada.
+
+   O chat v2 do CopilotKit é Tailwind com prefixo `cpk:` e tokens no estilo
+   shadcn declarados em `[data-copilotkit]`. Sempre que dá, este arquivo
+   REDECLARA o token (`--muted`, `--primary`, …) em vez de sobrescrever a
+   regra utilitária: é uma linha em vez de uma briga de especificidade, e
+   continua valendo se o componente trocar de utilitário. Onde o componente
+   cravou a cor no className (`cpk:bg-black` no botão de enviar,
+   `cpk:text-[rgb(93,93,93)]` nos botões de ação), aí não tem token — a regra
+   direta abaixo é o único caminho, e é por isso que ela existe. */
+.sr-fio {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--sr-board);
+
+  /* Derivadas da paleta do brief (docs/STORY_RENDER_BRIEF_PROTOTIPO.md).
+     Ficam aqui, não no theme.css: só o trilho do Fio usa por enquanto. */
+  --fio-papel-fundo: #e7dfc9; /* bolha do autor — papel um tom abaixo */
+  --fio-papel-campo: #fbf7ec; /* campo de escrita — papel um tom acima */
+  --fio-tinta-suave: #6a6155; /* labels, ícones, disclaimer */
+  --fio-neutro-forte: #8a8271; /* marcadores de lista, placeholder */
+}
+
+/* Topbar no mesmo desenho do legado (frontend/src/shared.css). */
+.sr-fio__topbar {
+  height: 48px;
+  flex: none;
+  background: rgba(24, 20, 16, 0.35);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+}
+
+.sr-fio__voltar {
+  font-family: var(--sr-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(240, 233, 216, 0.7);
+}
+
+.sr-fio__voltar:hover {
+  color: var(--sr-paper);
+}
+
+.sr-fio__titulo {
+  font-family: var(--sr-font-serif);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--sr-paper);
+}
+
+.sr-fio__selo {
+  font-family: var(--sr-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(240, 233, 216, 0.55);
+  border: 1px solid rgba(240, 233, 216, 0.25);
+  border-radius: 2px;
+  padding: 3px 7px;
+}
+
+/* Aviso de falha ao gravar o feedback: some sozinho quando dá certo de novo.
+   Fica na topbar porque é o único lugar sempre visível na conversa. */
+.sr-fio__aviso-feedback {
+  margin-left: auto;
+  font-family: var(--sr-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #e5a3a3;
+}
+
+.sr-fio__nova {
+  margin-left: auto;
+  font-family: var(--sr-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sr-paper);
+  border: 1px solid var(--sr-accent);
+  background: var(--sr-accent);
+  border-radius: 3px;
+  padding: 6px 12px;
+  cursor: pointer;
+}
+
+/* Quando o aviso aparece, ele toma o `margin-left: auto` e o botão vira vizinho. */
+.sr-fio__aviso-feedback + .sr-fio__nova {
+  margin-left: 12px;
+}
+
+.sr-fio__nova:hover {
+  background: #8f3737;
+}
+
+/* O chat ocupa o resto da altura; fundo claro pra leitura longa de texto —
+   é uma conversa de tutoria, não um painel. */
+.sr-fio__chat {
+  flex: 1;
+  min-height: 0;
+  background: var(--sr-paper);
+}
+
+/* ------------------------------------------------------------------ *
+ * Tokens do chat → paleta do brief
+ * ------------------------------------------------------------------ */
+
+/* O seletor precisa casar TODO descendente com [data-copilotkit], não só a
+   raiz: o componente marca vários elementos aninhados, e a regra do próprio
+   pacote redeclararia os tokens padrão em cada um deles. */
+.sr-fio [data-copilotkit] {
+  --background: var(--sr-paper);
+  --foreground: var(--sr-ink);
+  --card: var(--sr-paper);
+  --card-foreground: var(--sr-ink);
+  --muted: var(--fio-papel-fundo);
+  --muted-foreground: var(--fio-tinta-suave);
+  --accent: var(--fio-papel-fundo);
+  --accent-foreground: var(--sr-ink);
+  --secondary: var(--fio-papel-fundo);
+  --secondary-foreground: var(--sr-ink);
+  --border: var(--sr-neutral);
+  --input: var(--sr-neutral);
+  --ring: var(--sr-accent);
+  --primary: var(--sr-accent);
+  --primary-foreground: var(--sr-paper);
+  --radius: 6px;
+
+  /* `--cpk-default-font-family` é a família base do chat (o reset do pacote a
+     aplica com fallback); as outras duas alimentam os utilitários font-*. */
+  --cpk-default-font-family: var(--sr-font-sans);
+  --cpk-font-sans: var(--sr-font-sans);
+  --cpk-font-mono: var(--sr-font-mono);
+}
+
+/* ------------------------------------------------------------------ *
+ * Medida de leitura e respiro
+ * ------------------------------------------------------------------ */
+
+/* O turno do Tutor tem 1.000 a 1.400 palavras (LEARNINGS.md). Na largura
+   padrão (48rem) a linha passa de 90 caracteres e a leitura cansa; 42rem com
+   24px de goteira dá ~78. O utilitário aparece na coluna das mensagens, no
+   input, no disclaimer e na tela de boas-vindas — mexer nele alinha os quatro
+   de uma vez. */
+.sr-fio .cpk\:max-w-3xl {
+  max-width: 42rem;
+}
+
+/* A goteira lateral quem dá é o próprio componente (`cpk:px-4`, que zera
+   quando o container passa de 48rem e a coluna já fica cercada de espaço) —
+   com o reset do globals.css em camada, ela voltou a funcionar. Aqui só sobra
+   a folga do fim da lista, pro último turno não colar no campo de escrita. */
+.sr-fio .copilotKitMessages {
+  padding-bottom: 8px;
+}
+
+/* ------------------------------------------------------------------ *
+ * O turno do Tutor
+ * ------------------------------------------------------------------ */
+
+.sr-fio .copilotKitAssistantMessage {
+  padding-top: 4px;
+}
+
+/* Primeiro filho do turno = o container `cpk:prose` que embrulha o markdown.
+   As variáveis `--tw-prose-*` são declaradas NO próprio elemento da prosa, e
+   custom property declarada no elemento vence a herdada — por isso a regra
+   precisa casar com ele, não com um ancestral. */
+.sr-fio .copilotKitAssistantMessage > div:first-child {
+  max-width: none;
+  font-size: 16px;
+  line-height: 1.72;
+  --tw-prose-body: var(--sr-ink);
+  --tw-prose-headings: var(--sr-ink);
+  --tw-prose-bold: var(--sr-ink);
+  --tw-prose-lead: var(--fio-tinta-suave);
+  --tw-prose-links: var(--sr-accent);
+  --tw-prose-bullets: var(--fio-neutro-forte);
+  --tw-prose-counters: var(--fio-tinta-suave);
+  --tw-prose-captions: var(--fio-tinta-suave);
+  --tw-prose-hr: var(--sr-neutral);
+  --tw-prose-quotes: var(--sr-ink);
+  --tw-prose-quote-borders: var(--sr-accent);
+  --tw-prose-code: var(--sr-ink);
+  --tw-prose-th-borders: var(--sr-neutral);
+  --tw-prose-td-borders: var(--sr-neutral);
+}
+
+/* Serifada nos títulos: o Tutor secciona o turno com ## e ###, e é isso que
+   dá pra escanear um texto longo sem ler tudo. */
+.sr-fio .copilotKitAssistantMessage :is(h1, h2, h3, h4) {
+  font-family: var(--sr-font-serif);
+  font-weight: 700;
+  letter-spacing: 0.005em;
+}
+
+.sr-fio .copilotKitAssistantMessage h1,
+.sr-fio .copilotKitAssistantMessage h2 {
+  font-size: 1.2em;
+  line-height: 1.3;
+  margin-top: 1.7em;
+  margin-bottom: 0.7em;
+  padding-bottom: 0.24em;
+  border-bottom: 1px solid var(--sr-neutral);
+}
+
+.sr-fio .copilotKitAssistantMessage h3 {
+  font-size: 1.06em;
+  margin-top: 1.4em;
+  margin-bottom: 0.5em;
+}
+
+/* O primeiro título não deve empurrar o turno pra baixo. */
+.sr-fio .copilotKitAssistantMessage > div:first-child > :is(h1, h2, h3, h4):first-child {
+  margin-top: 0.2em;
+}
+
+/* O markdown vem com `list-inside`: o marcador entra na primeira linha e as
+   linhas seguintes voltam pra margem, passando POR BAIXO do bullet. Em item de
+   uma linha ninguém nota; nos itens longos do Tutor (mural de promessas,
+   backlog) fica ilegível. `outside` devolve o recuo pendurado. */
+.sr-fio .copilotKitAssistantMessage :is(ul, ol) {
+  list-style-position: outside;
+  padding-inline-start: 1.3em;
+}
+
+.sr-fio .copilotKitAssistantMessage li {
+  margin-top: 0.3em;
+  margin-bottom: 0.3em;
+  padding-inline-start: 0.2em;
+}
+
+.sr-fio .copilotKitAssistantMessage li > p {
+  margin-top: 0.3em;
+  margin-bottom: 0.3em;
+}
+
+.sr-fio .copilotKitAssistantMessage blockquote {
+  border-left-width: 2px;
+  font-style: normal;
+  padding-inline-start: 1.1em;
+}
+
+/* A prosa injeta aspas tipográficas no blockquote. O Tutor já cita o autor com
+   aspas dele — duas camadas de aspas na mesma frase confunde quem falou. */
+.sr-fio .copilotKitAssistantMessage blockquote p::before,
+.sr-fio .copilotKitAssistantMessage blockquote p::after {
+  content: none;
+}
+
+.sr-fio .copilotKitAssistantMessage hr {
+  margin: 1.9em 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * A fala do autor
+ * ------------------------------------------------------------------ */
+
+/* `sr-fio__bolha` chega via slot (page.tsx) — o className é mesclado no
+   componente do balão. O padrão é `py-1.5`: 6px pra cima e pra baixo dentro de
+   um raio de 18px, o que faz o texto encostar na borda assim que a mensagem
+   passa de uma linha. E em /fio a primeira mensagem é justamente um despejo
+   longo. */
+.sr-fio .sr-fio__bolha {
+  max-width: 82%;
+  padding: 12px 18px;
+  border-radius: 16px;
+  border: 1px solid rgba(201, 191, 168, 0.55);
+  font-size: 15.5px;
+  line-height: 1.65;
+  text-align: left;
+  /* A bolha também é um container `prose`, e a cor de corpo dele é um
+     cinza-azulado — some no papel. Tinta, como o resto. */
+  color: var(--sr-ink);
+  --tw-prose-body: var(--sr-ink);
+  --tw-prose-bold: var(--sr-ink);
+}
+
+.sr-fio .copilotKitUserMessage {
+  padding-top: 34px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Ações da mensagem (copiar, curtir)
+ * ------------------------------------------------------------------ */
+
+.sr-fio [data-testid="copilot-assistant-toolbar"] {
+  padding-top: 10px;
+}
+
+/* A barra do autor nasce `invisible` e só aparece no hover — em toque, nunca.
+   Aqui ela fica sempre presente, apagada, e ganha contraste no hover/foco. */
+.sr-fio [data-testid="copilot-user-toolbar"] {
+  visibility: visible;
+  opacity: 0.4;
+  margin-top: 6px;
+  transition: opacity 0.15s ease;
+}
+
+.sr-fio .copilotKitUserMessage:hover [data-testid="copilot-user-toolbar"],
+.sr-fio [data-testid="copilot-user-toolbar"]:focus-within {
+  opacity: 1;
+}
+
+/* Os botões cravam `text-[rgb(93,93,93)]` e `hover:bg-[#E8E8E8]` no className:
+   cinzas de tema claro genérico, que sobre papel ficam sujos. Sem token pra
+   redeclarar, a regra direta é o caminho. */
+.sr-fio [data-testid="copilot-assistant-toolbar"] button,
+.sr-fio [data-testid="copilot-user-toolbar"] button {
+  color: var(--fio-tinta-suave);
+  border-radius: 6px;
+}
+
+.sr-fio [data-testid="copilot-assistant-toolbar"] button:hover,
+.sr-fio [data-testid="copilot-user-toolbar"] button:hover {
+  color: var(--sr-ink);
+  background: var(--fio-papel-fundo);
+}
+
+/* Turno marcado com 👍/👎. O gancho é o `aria-pressed` do botão de
+   alternância, não uma classe nossa: o mesmo atributo que anuncia o estado
+   pro leitor de tela pinta o botão, e os dois nunca saem de sincronia. */
+.sr-fio [data-testid="copilot-assistant-toolbar"] button[aria-pressed="true"] {
+  color: var(--sr-paper);
+  background: var(--sr-accent);
+}
+
+.sr-fio
+  [data-testid="copilot-assistant-toolbar"]
+  button[aria-pressed="true"]:hover {
+  color: var(--sr-paper);
+  background: #8f3737;
+}
+
+/* ------------------------------------------------------------------ *
+ * Campo de escrita
+ * ------------------------------------------------------------------ */
+
+/* `cpk:bg-white` e a sombra padrão vêm cravados no className do pill. */
+.sr-fio .copilotKitInput {
+  background: var(--fio-papel-campo);
+  border: 1px solid var(--sr-neutral);
+  border-radius: 24px;
+  box-shadow: 0 1px 2px rgba(33, 30, 26, 0.07);
+}
+
+.sr-fio [data-testid="copilot-chat-textarea"] {
+  color: var(--sr-ink);
+  line-height: 1.6;
+}
+
+.sr-fio [data-testid="copilot-chat-textarea"]::placeholder {
+  color: var(--fio-neutro-forte);
+}
+
+/* Botão de enviar: `cpk:bg-black cpk:text-white` cravado no variant. */
+.sr-fio [data-testid="copilot-send-button"] {
+  background: var(--sr-accent);
+  color: var(--sr-paper);
+}
+
+.sr-fio [data-testid="copilot-send-button"]:disabled {
+  background: #ded5be;
+  color: var(--fio-neutro-forte);
+}
+
+/* Aviso sob o campo: mono contida, como os labels de ficha do brief. */
+.sr-fio .sr-fio__aviso {
+  font-family: var(--sr-font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.05em;
+  color: var(--fio-tinta-suave);
+  padding-top: 10px;
+  padding-bottom: 14px;
+}
+
+/* Botão de voltar ao fim — importante justamente porque os turnos são longos.
+   Também nasce `bg-white` com borda cinza. */
+.sr-fio [data-testid="copilot-scroll-to-bottom"] {
+  background: var(--fio-papel-campo);
+  border-color: var(--sr-neutral);
+  color: var(--sr-ink);
+}
+
+.sr-fio [data-testid="copilot-scroll-to-bottom"]:hover {
+  background: var(--fio-papel-fundo);
+}
+
+.sr-fio [data-testid="copilot-scroll-to-bottom"] svg {
+  color: var(--sr-ink);
+}
+
+/* ------------------------------------------------------------------ *
+ * Abertura
+ * ------------------------------------------------------------------ */
+
+.sr-fio [data-testid="copilot-welcome-screen"] h1 {
+  font-family: var(--sr-font-serif);
+  font-weight: 700;
+  font-size: 21px;
+  line-height: 1.45;
+  max-width: 33rem;
+  color: var(--sr-ink);
+}

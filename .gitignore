@@ -3,3 +3,7 @@ dist/
 .env
 .env.local
 *.log
+
+# Sessões exportadas do checkpointer (agent/exportar_sessao.py): material
+# criativo do autor, e este repositório é público.
+agent/sessoes/
