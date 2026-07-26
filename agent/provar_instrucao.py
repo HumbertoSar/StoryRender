@@ -60,7 +60,24 @@ acontece nada, mas quando sai está com um chapéu de palhaço na cabeça que n�
 sai de jeito nenhum."""
 
 
+# 3x o maior turno já medido (2.484 tokens). O padrão do cliente reservava
+# 64.000, 26x o necessário: o OpenRouter cobra a RESERVA na checagem de saldo e
+# devolvia 402 com crédito de sobra pro que a chamada de fato gasta.
+MAX_TOKENS = 8000
+
+
 def texto_da_resposta(resposta) -> str:
+    """O texto do turno, com truncamento tratado como erro.
+
+    Um turno cortado no meio tem menos interrogações que o turno inteiro, que é
+    exatamente o efeito que este banco de prova mede. Deixar isso passar calado
+    daria queda de perguntas por corte de token e leria como prompt melhor.
+    """
+    if resposta.response_metadata.get("finish_reason") == "length":
+        raise RuntimeError(
+            f"resposta truncada no limite de {MAX_TOKENS} tokens: a medição de "
+            "perguntas por turno seria falsa. Suba MAX_TOKENS e rode de novo."
+        )
     conteudo = resposta.content
     if isinstance(conteudo, str):
         return conteudo
@@ -115,6 +132,7 @@ async def main() -> int:
         model=os.environ.get("OPENROUTER_MODEL", "anthropic/claude-sonnet-4.5"),
         base_url="https://openrouter.ai/api/v1",
         api_key=os.environ.get("OPENROUTER_API_KEY", "sem-chave"),
+        max_tokens=MAX_TOKENS,
     )
     DESTINO.parent.mkdir(exist_ok=True)
     arquivos = await asyncio.gather(
