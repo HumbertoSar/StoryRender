@@ -1198,3 +1198,56 @@ falta de regra: a regra existe, tem modelo, e mesmo assim cai.
 **Bug de medição corrigido:** o agregado contava a mesma regra duas vezes
 quando ela caía nos dois turnos da mesma conversa, e chegava a imprimir "5/3".
 O denominador é conversa, não violação.
+
+## Fatia: v4 testada e revertida, a hipótese da imitação por densidade caiu
+
+**Escopo:** testar por que o limite de três perguntas cai em todo turno. A
+hipótese, pré-registrada com condição de falseamento: os degraus estão escritos
+como repertório de perguntas, e o modelo faz todas.
+
+**O desenho, que foi a parte boa.** Baseline medido na mesma rodada, não
+reaproveitado da fatia anterior (a variância entre execuções já era conhecida, e
+se confirmou: os mesmos 3 turnos que deram 13-17 perguntas antes deram 9, 7 e 5
+agora). A seção reescrita ficou 2% MAIOR de propósito, pra que uma queda não
+pudesse ser creditada a "encurtar". De 12 interrogações na seção pra 1.
+
+**O resultado, e ele é negativo:**
+
+| | perguntas/turno | densidade |
+| --- | --- | --- |
+| v3 (baseline) | 9 · 7 · 7 · 2 · 5 · 2 — média 5,3 | 1 a cada 1.127 chars |
+| v4 (degraus sem `?`) | 19 · 15 · 6 · 1 · 30 · 3 — média 12,3 | 1 a cada 438 chars |
+
+Tirar as interrogações dos degraus não derrubou as perguntas do Tutor. O tamanho
+dos turnos foi parecido nas duas pontas (36k contra 32k caracteres no total),
+então não é confundidor de comprimento. **A hipótese da imitação por densidade
+está falseada**, e a v4 foi revertida (commit b4852d5, preservado na história
+pra poder ser retestado com n maior).
+
+**O erro de método que gerou a hipótese, e é o aprendizado que fica.** A
+densidade que motivou tudo ("os degraus têm 1 `?` a cada 149-322 chars, e o
+Tutor produz 1 a cada 280") era meia medida e meia suposição: os 280 saíram de
+dividir as 13-17 perguntas registradas por um comprimento de turno que eu
+ESTIMEI em 4.000 caracteres sem nunca ter medido. Medido de verdade, o turno da
+v3 tem 1 pergunta a cada 1.127 caracteres. **O casamento de números que fazia a
+hipótese parecer óbvia era artefato do número que eu não medi.** Antes de deixar
+uma coincidência numérica virar diagnóstico, medir as duas pontas.
+
+**A variância é o obstáculo real, e agora ela tem tamanho.** Numa mesma rodada
+da v4 saíram um turno com 30 perguntas e outro com 1. Com 3 conversas não dá pra
+afirmar que a v4 PIOROU, só que não há sinal de melhora. Qualquer próxima
+tentativa nessa regra precisa de n maior antes de significar alguma coisa, e
+isso tem custo em crédito de LLM.
+
+**Duas correções que ficam, independentes da hipótese.** O banco de prova
+reservava 64.000 tokens de saída por chamada, 26x o maior turno já medido: o
+OpenRouter cobra a reserva na checagem de saldo, e a rodada morria com 402 tendo
+crédito de sobra pro gasto real. E truncamento virou erro, porque um turno
+cortado tem menos interrogações que o turno inteiro, que é exatamente o que se
+mede aqui: passar calado leria como prompt melhor.
+
+**O próximo alvo, por eliminação.** Sobrou a saída que a v4 tentava evitar: o
+passe determinístico no `forma.py`, contando as interrogações fora de bloco de
+teste e devolvendo pro modelo comprimir. Custa um turno extra de LLM por
+resposta, e é justamente o tipo de regra que o `forma.py` já mostrou que código
+faz melhor que prompt.
