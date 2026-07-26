@@ -1046,3 +1046,155 @@ home de pé. `/fio` redirecionando com 307.
 - **A sessão exportada ainda não registra a versão do prompt.** Com a v2 no ar,
   comparar sessões de versões diferentes já é o caso de uso, e sem o carimbo
   não dá pra saber qual instrução produziu qual turno.
+
+## Ciclo: merge da pilha, deploy e auditoria da primeira sessão v2
+
+**Auditoria da sessão do Cadu (6 turnos, 25 mil caracteres do Tutor).** Primeira
+conversa real com a instrução v2, medida por script e não por impressão:
+
+| Regra de forma | Resultado |
+| --- | --- |
+| Sem travessão | 0 ocorrências |
+| Teste em bloco fixo | 11 blocos, 11 com veredito em negrito |
+| Marcar só termo do glossário | 59 marcações, 1 fora (plural de `CENA OBRIGATÓRIA`) |
+| Explicação entre parênteses na 1ª aparição | 15 de 16 termos SEM |
+| Marcar toda ocorrência | ~45 sem marca (`TENTATIVA` 15x, `DESEJO` 13x) |
+| Título nível 2 ou 3 | 28 títulos em nível 1 |
+| Vícios proibidos | 2 escapes ("isso muda tudo", "isso é ouro dramático") |
+| Uma pergunta central por turno | 35, 25 e 17 perguntas em três turnos |
+
+**A causa é uma só: regra com TEMPLATE literal é obedecida; regra em PROSA
+não.** O bloco de teste, que veio com modelo pronto, saiu 11 vezes em 11. As
+outras, escritas como princípio, foram ignoradas na mesma proporção em que o
+modelo tinha um formato concorrente na cabeça. E o travessão sumiu não por ter
+sido proibido, mas porque a v2 inteira foi reescrita sem nenhum: o modelo imita
+a forma do documento, não a descrição da forma.
+
+**O conflito de desenho que eu mesmo criei:** a regra da explicação entre
+parênteses não previu o MAPA, onde todos os termos aparecem de uma vez como
+rótulo de degrau (`**1 · SEMENTE + GÊNERO** ● forte`). Ali o parêntese fica
+esquisito, e o modelo escolheu o formato. Repetir a regra não resolve; dar o
+formato certo do mapa resolve.
+
+**Deploy: o compose em uso é uma CÓPIA MANUAL.** `deploy/docker-compose.yml` no
+repositório é modelo; quem roda é `/opt/storyrender/docker-compose.yml`, copiado
+à mão. Adicionar as env vars no versionado e dar `git pull` na produção NÃO as
+leva pro container: o primeiro `up -d` subiu o web ainda sem elas (conferido com
+`docker exec storyrender-web env`). O passo que falta é copiar o arquivo por
+cima antes do `up -d`. Vale um `deploy.sh` que faça isso sozinho.
+
+**PR empilhado: apagar a branch base FECHA o PR dependente.** Ao mergear o #1
+com `--delete-branch`, o GitHub fechou o #3 (que nascia dele) em vez de
+reapontar, e depois não deixou reabrir ("cannot change the base branch of a
+closed pull request"). Nada se perdeu (a branch e os commits continuaram
+intactos), mas o PR teve que ser recriado como #5. A ordem certa em pilha é:
+**reapontar os dependentes para a nova base ANTES de mergear e apagar.**
+
+**Estado ao fim do ciclo:** `main` com tudo (PRs #1, #5, #4, #2, #6), zero PR
+aberto, `npm run lint` sem nenhum erro pela primeira vez, produção em
+storyrender.mvpsardenberg.cloud servindo o McKee Inspired com as sessões vindas
+do Postgres (3 sessões listadas, 6 turnos reidratados, 59 termos marcados).
+
+## Fatia: instrução v3 (regras de forma viram modelo) + banco de prova do prompt
+
+**Escopo:** aplicar na instrução as cinco correções que a auditoria da sessão
+do Cadu apontou, versionar o auditor, e criar um banco de prova que roda turnos
+do Tutor sem sessão e sem UI, pra medir o efeito de uma edição de prompt em
+minutos em vez de esperar uma conversa real.
+
+**O que entrou na v3:** modelo literal de um turno; formato próprio da linha do
+mapa (era onde a explicação entre parênteses sumia); marcação em toda
+ocorrência, com exemplo errado/certo; limite contável de três perguntas, com
+modelo de como oferecer candidatos em lista em vez de enfileirar interrogações;
+tabela de vícios com substituto ao lado; forma fixa pro elogio; veredito solto
+em prosa vira bloco, com exemplo.
+
+**`auditar_sessao.py`** mede o que dá pra contar (vício, travessão, marcação,
+explicação na estreia, formato de teste, nível de título, perguntas por turno)
+e sai com código diferente de zero quando alguma regra caiu.
+**`provar_instrucao.py`** roda N turnos com a instrução do disco, grava no
+formato do exportador e agrega o auditor por cima. Nenhum dos dois toca no
+checkpointer.
+
+**O resultado medido, e ele é misto.** Comparando a sessão real da v2 (6 turnos)
+com 3 turnos de banco de prova da v3:
+
+| Regra | v2 | v3 (3 turnos) |
+| --- | --- | --- |
+| Título em nível 1 | 28 | 0 · 0 · 0 |
+| Perguntas por turno (limite 3) | 35 · 25 · 17 | 13 · 5 · 5 |
+| Vício de linguagem | 2 | caiu em 2 de 3 turnos |
+| Termos sem marcação | 14 | 3 · 1 · 4 |
+| Travessão | 0 | 5 · 2 · 1 |
+
+**A descoberta que muda o método de trabalho: uma rodada não é evidência.** O
+mesmo prompt, medido três vezes, deu 0, 0 e 4 travessões. A obediência a regra
+de forma varia entre execuções, então medir uma vez não distingue "o prompt
+melhorou" de "essa rodada deu sorte". Por isso o banco de prova agrega por
+regra ("caiu em 2 de 3 turnos") em vez de dar veredito de amostra única.
+
+**A descoberta que dói: acrescentar regra tem custo.** O travessão estava
+resolvido na v2 (0 em 25 mil caracteres de conversa real) e voltou na v3, que
+é 27% maior (18,2 KB → 23,1 KB). A hipótese mais simples é diluição: quanto
+mais instrução, menos peso cada regra carrega. O caminho da v4 provavelmente
+não é escrever mais regra, e sim **encurtar**: transformar prosa remanescente
+em modelo e cortar o que o modelo já faz sem ser mandado.
+
+**O que continua valendo:** regra com template literal é obedecida (título em
+nível 1 zerou nos três turnos, e a lista de candidatos derrubou as perguntas de
+35 pra 5). Regra em prosa continua escorregando.
+
+**O que ficou pra depois:** a marcação de `RACHADURA` e `GÊNERO` continua
+falhando; a explicação na estreia falha nos termos que estreiam fora da linha
+do mapa (`MURAL`, `CENA OBRIGATÓRIA`, `PROMESSA PLANTADA`); e o limite de três
+perguntas ainda é estourado em todo turno, mesmo com o modelo de lista. Nenhum
+desses foi testado em conversa real ainda: o banco de prova mede o PRIMEIRO
+turno, e o mapa é só um dos formatos que o Tutor produz.
+
+## Fatia: regra determinística fora do prompt e montagem por turno
+
+**Escopo:** os itens 1 e 2 da conversa sobre arquitetura. Tirar do prompt as
+duas regras que um regex faz melhor, e parar de mandar a instrução inteira a
+cada turno.
+
+**Item 1, `forma.py`.** Travessão e título de nível 1 são substituição de
+caractere e de linha, e estavam oscilando (0, 0 e 4 travessões no mesmo
+prompt). Saíram da instrução e viraram código com autoteste (`uv run python
+forma.py`). O que fica no prompt é o que exige julgamento: qual termo marcar,
+como formular o teste, quando elogiar.
+
+Dois cuidados que o código carrega e a instrução não conseguia garantir:
+travessão no INÍCIO da linha não se toca (ali é fala de personagem ou marcador
+de lista, e o Tutor cita o autor), e nada é tocado dentro de bloco de código.
+O caso que escapou na primeira versão veio do banco de prova, não da minha
+cabeça: o modelo escreve `interná-lo —, ou`, travessão colado numa vírgula, e
+o regex pedia espaço depois. Virou caso de teste.
+
+**Item 2, `instrucao.py`.** O prompt passa a ser montado por turno. Núcleo,
+forma, regras de ouro, comportamentos, tom e glossário vão sempre; o bloco de
+fluxo é escolhido (abertura e mapa no primeiro turno, lapidação nos demais); e
+os degraus vão por inteiro só quando são o foco, com os outros virando índice
+de uma linha. O foco sai dos TERMOS MARCADOS no último turno do Tutor, não de
+estado novo: se ele passou o turno falando de `TENTATIVA`, o degrau 6 é o
+assunto. Os vizinhos (n-1 e n+1) entram junto porque o Tutor anda um degrau por
+vez, e sem termo reconhecível manda tudo, porque errar pra menos aqui é pior
+que gastar contexto.
+
+Resultado: 20.667 caracteres no primeiro turno, 15.5k a 17k nos seguintes,
+**18% a 25% menor** conforme o foco.
+
+**A medição, agora pelo caminho real.** O `provar_instrucao.py` passou a rodar
+CONVERSAS de dois turnos (mapa e lapidação), com a instrução montada e a
+resposta normalizada, que é o que a produção faz. Medir o prompt cru daria um
+número que ninguém vive. Sobre 3 conversas: travessão caiu de 3/3 pra 1/3 (e o
+caso restante virou teste no `forma.py`), vício de 2/3 pra 1/3.
+
+**O que NÃO melhorou, e é o próximo alvo:** o limite de três perguntas continua
+estourado em todo turno (17 e 14 numa das conversas). O modelo de lista
+funcionou quando medi turno único logo depois de escrevê-lo, e não se sustentou
+na conversa de dois turnos. É a evidência mais forte de que o problema não é
+falta de regra: a regra existe, tem modelo, e mesmo assim cai.
+
+**Bug de medição corrigido:** o agregado contava a mesma regra duas vezes
+quando ela caía nos dois turnos da mesma conversa, e chegava a imprimir "5/3".
+O denominador é conversa, não violação.
