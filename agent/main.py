@@ -30,6 +30,8 @@ from roteiro import (
 from mini import construir_grafo as construir_grafo_mini
 from sessoes import router as router_sessoes
 from sessoes import usar_pool as usar_pool_sessoes
+from telemetria import criar_tabela as criar_tabela_telemetria
+from telemetria import usar_pool as usar_pool_telemetria
 from tutor import construir_grafo as construir_grafo_tutor
 
 load_dotenv()
@@ -245,6 +247,12 @@ async def lifespan(app: FastAPI):
             # Leitura do acervo (tela de seleção de sessão) — mesmo pool, mesmo
             # checkpointer que o grafo escreve.
             usar_pool_sessoes(_pool)
+            # Telemetria por chamada ao modelo. Hoje só o Mini grava; os dois
+            # trilhos congelados seguem sem instrumento de propósito, porque
+            # instrumentá-los seria evoluí-los. Sem esta linha o módulo é
+            # no-op silencioso, que é o comportamento certo em dev sem banco.
+            await criar_tabela_telemetria(_pool)
+            usar_pool_telemetria(_pool)
             _checkpointer = "postgres"
             print("checkpointer: Postgres")
         except Exception as e:  # túnel/banco fora não pode impedir o dev local

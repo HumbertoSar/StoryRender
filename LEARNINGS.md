@@ -1589,3 +1589,72 @@ com `<link>` no `<head>`, mas a tool recebe um FRAGMENTO — não existe `<head>
 pro modelo escrever. Ele adaptou pra `@import` no CSS, que é exatamente o que a
 Fatia 4 provou funcionar. A instrução estava errada e o modelo consertou calado
 — o tipo de desobediência que só aparece lendo o payload da tool call.
+
+## Fatia 5 do McKee Mini: telemetria por chamada ao modelo
+
+**Escopo:** `agent/telemetria.py` — uma tabela e uma função `registrar`
+fire-and-forget, gravando uma linha por ida ao modelo no trilho Mini (thread,
+turno, chamada, ms, tokens, tamanho da instrução e do histórico, tools, erro).
+Instrumentação só no `conversar` do `mini.py` + fiação no lifespan. **Fora:**
+dashboard, endpoint de leitura, agregação (Fatia 10) e instrumentar `/mckee` e
+`/mckee-inspired`, que estão congelados — instrumentá-los seria evoluí-los.
+
+**Vem antes das fatias que prometem número, e isso não é zelo.** O plano diz
+"medir e escrever o número" umas oito vezes, e até aqui não havia com o quê. O
+legado tinha uma tabela `eventos` pra isso e ela se perdeu no pivô. Sem
+instrumento, "reduziu o prompt em 40%" vira cronômetro na mão e estimativa —
+que é a raiz documentada do erro da v4.
+
+**Uma linha por CHAMADA, não por turno.** Com tools, um turno vira duas idas ao
+modelo: a que chama a tool e a que responde ao autor. Somar as duas numa linha
+só esconderia justamente o custo que as tools adicionam. `turno` + `chamada`
+deixam reagrupar quando a pergunta for por turno — o inverso não teria volta.
+Uma sessão de 5 turnos gerou **9 linhas** (4 turnos × 2 chamadas, mais o turno
+do desenho com 1, porque `generateSandboxedUi` encerra o run).
+
+**Guardar fato, derivar forma**, a mesma doutrina do `mini_mapa.py`: a coluna é
+`tools TEXT[]`, não um booleano `desenhou`. Quando a pergunta mudar ("quantos
+turnos escreveram E desenharam?"), a resposta sai de uma consulta e não de uma
+migração.
+
+**O histórico é medido incluindo os ARGUMENTOS das tool calls**, e é o ponto
+todo. O HTML de um desenho vive em `tool_calls`, não em `content`: medir só
+`content` mediria tudo menos o que interessa. O instrumento pegou o risco nº 2
+do plano na primeira sessão — um desenho de 625 chars de HTML e 994 de CSS fez
+o histórico saltar de **2284 para 4193 chars** e a entrada de **3152 para 3918
+tokens**. São **+766 tokens de entrada por turno, pagos de novo em todo turno
+seguinte**, e nada disso aparece como bug: aparece como conta. A poda da Fatia
+13 agora tem de onde partir.
+
+**Segundo número que só existe porque foi medido:** o turno que desenha custou
+**10,2s e 823 tokens de saída**, contra ~2,4s e ~60–210 tokens de um turno de
+texto. Quatro vezes a latência. Isso muda a conversa da Fatia 7 de "o modelo
+desenha bem?" para "quantas vezes por sessão vale desenhar?".
+
+**A prova de que não derruba nada.** Com o pool incapaz de servir conexão, o
+turno respondeu normalmente e a falha saiu como `AVISO: telemetria não gravou`
+— sem exceção no caminho do turno. Sem pool, `registrar` é no-op silencioso, o
+que deixa os scripts de prova rodarem o grafo sem Postgres nenhum. E pelo
+caminho de produção: um turno no endpoint `/agent-mini` gravou as 2 linhas
+esperadas.
+
+**Pegadinha de asyncio que morde calado:** o event loop guarda só uma
+referência FRACA às tasks. Uma task de gravação solta pode ser coletada no meio
+do voo e a linha some sem erro nenhum — num módulo de telemetria o sintoma
+seria "às vezes falta linha", que é péssimo de diagnosticar. Por isso o
+conjunto `_tarefas` segura a referência até o `done_callback`.
+
+**O `config` é o único lugar onde o `thread_id` existe dentro de um nó**, e o
+LangGraph só o passa porque a assinatura de `conversar` o declara. Sem esse
+parâmetro a telemetria não teria como saber de qual sessão é a linha — e
+`registrar` ignora silenciosamente linha sem thread, então o sintoma seria uma
+tabela vazia sem nenhum erro.
+
+**Regressão do trilho congelado, como manda o CLAUDE.md** (a fatia toca
+`main.py`): um turno real no `/agent-tutor` respondeu com `RUN_FINISHED` e
+`STATE_SNAPSHOT`, e a tabela continua com **zero linha de trilho que não seja
+`mckee-mini`** — a instrumentação não vazou pros trilhos baseline.
+
+**Autoteste sem banco e sem LLM:** `uv run python telemetria.py` → 9 casos, nas
+duas derivações puras (`tamanho`, que conta os args da tool, e `posicao`, que
+separa turno de chamada) mais o no-op sem pool.

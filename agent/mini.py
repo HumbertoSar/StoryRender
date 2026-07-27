@@ -20,9 +20,11 @@ que separa os dois casos.
 
 from inspect import cleandoc
 from pathlib import Path
+from time import perf_counter
 from typing import Annotated, Optional
 
 from langchain_core.messages import SystemMessage, ToolMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import InjectedToolCallId, tool
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import InjectedState, ToolNode
@@ -30,6 +32,7 @@ from langgraph.types import Command
 from pydantic import BaseModel, Field
 
 import mini_mapa
+import telemetria
 from forma import normalizar
 
 ARQUIVO_INSTRUCAO = Path(__file__).parent / "metodos" / "mckee_mini.md"
@@ -169,7 +172,30 @@ def construir_grafo(model):
     trilhos, pra não introduzir diferença de modelo como variável na hora de
     comparar open-ended com declarative."""
 
-    async def conversar(state: MapaState) -> dict:
+    def _medir(config, turno, chamada, marca, historico, instrucao,
+               *, tools, uso=None, erro=None) -> None:
+        """Uma linha por ida ao modelo. Não levanta e não espera (ver
+        `telemetria.registrar`), então pode ficar no caminho quente do turno."""
+        telemetria.registrar(
+            thread_id=(config or {}).get("configurable", {}).get("thread_id"),
+            trilho="mckee-mini",
+            turno=turno,
+            chamada=chamada,
+            ms=round((perf_counter() - marca) * 1000),
+            modelo=getattr(model, "model_name", "?"),
+            # `usage_metadata` pode não vir (provedor que não reporta uso): a
+            # coluna aceita NULL de propósito, porque "não sei" é um dado
+            # diferente de zero.
+            tokens_entrada=(uso or {}).get("input_tokens"),
+            tokens_saida=(uso or {}).get("output_tokens"),
+            instrucao_chars=len(instrucao),
+            historico_chars=telemetria.tamanho(historico),
+            mensagens=len(historico),
+            tools=tools,
+            erro=erro,
+        )
+
+    async def conversar(state: MapaState, config: RunnableConfig = None) -> dict:
         tools_do_front = state.get("tools") or []
         # parallel_tool_calls=False pelo mesmo motivo do trilho McKee: um lote
         # misto (uma tool nossa e uma do front na mesma resposta) não teria como
@@ -178,9 +204,28 @@ def construir_grafo(model):
         # são sempre turnos diferentes, o que deixa o desenho visível como
         # evento em vez de efeito colateral de uma resposta de texto.
         modelo = model.bind_tools([*TOOLS, *tools_do_front], parallel_tool_calls=False)
-        resposta = await modelo.ainvoke(
-            [SystemMessage(content=carregar_instrucao()), *state["messages"]]
-        )
+        instrucao = carregar_instrucao()
+        historico = state["messages"]
+
+        # Telemetria: o `config` é o único lugar onde o thread_id existe dentro
+        # de um nó — o LangGraph só o passa porque a assinatura o declara.
+        turno, chamada = telemetria.posicao(historico)
+        marca = perf_counter()
+        try:
+            resposta = await modelo.ainvoke(
+                [SystemMessage(content=instrucao), *historico]
+            )
+        except Exception as erro:
+            # A linha de um turno que FALHOU vale tanto quanto a de um que deu
+            # certo: sem ela, uma sessão que quebrou na metade some da medição
+            # e a latência média fica otimista.
+            _medir(config, turno, chamada, marca, historico, instrucao,
+                   tools=[], erro=repr(erro))
+            raise
+        _medir(config, turno, chamada, marca, historico, instrucao,
+               tools=[c["name"] for c in getattr(resposta, "tool_calls", None) or []],
+               uso=getattr(resposta, "usage_metadata", None))
+
         update: dict = {"messages": [_normalizar_conteudo(resposta)]}
         if not state.get("mapa"):
             # Só grava quando o mapa nasce: nos turnos seguintes quem escreve é
