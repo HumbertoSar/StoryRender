@@ -1261,3 +1261,98 @@ e `metodos: {}`.
 **O que ficou de fora:** `healthcheck` no docker-compose. O `/health` agora tem
 o que responder, mas ligar o healthcheck muda comportamento de restart do
 container e é decisão de deploy, não desta fatia.
+
+## Fatia 1 do McKee Mini: o trilho open-ended de ponta a ponta
+
+**Escopo:** o caminho inteiro do nível 3 com um desenho FIXO e nenhum McKee —
+agente novo, endpoint próprio, runtime próprio, rota web e o desenho pintando
+no quadro. Sem contrato de mapa, sem tools de escrita, sem método. O objetivo é
+medir latência e custo antes de construir qualquer coisa em cima.
+
+**Os números, que eram a razão da fatia.** Pedido de desenho, turno completo:
+
+| | direto no agente | pelo runtime do Next |
+|---|---|---|
+| até o HTML começar a sair | 7,6s | 8,1s |
+| turno completo | 8,9s | 9,3s |
+| argumentos da tool | 1.666 caracteres | 1.869 |
+
+O CSS saiu com 1.125 caracteres e o HTML com 326. **A A2UI da Fase 2.1 levava
+20 a 40 segundos**; o open-ended fez em 9. A diferença tem explicação de
+arquitetura: a A2UI delega a composição a um SUBAGENTE (segunda chamada de
+modelo, com ida e volta), e no open-ended o HTML sai da mesma chamada que
+conduz a conversa. **O nível mais alto da taxonomia é o mais rápido dos dois,
+não o mais lento.** Era o contrário do que eu esperava.
+
+**A ordem dos parâmetros saiu certa de primeira** (`initialHeight` →
+`placeholderMessages` → `css` → `html`), o que importa porque a pintura
+progressiva depende dela: o middleware transcodifica os argumentos ENQUANTO
+streamam, e fora de ordem o autor veria um retângulo vazio até o fim.
+
+**O middleware, provado:** o mesmo turno pelo runtime do Next emitiu
+`ACTIVITY_SNAPSHOT: 1` e `ACTIVITY_DELTA: 29` junto dos eventos de tool call.
+É a transcodificação acontecendo. O que ficou sem prova automatizada é o pixel
+final — não há navegador nesta VPS, e o iframe precisa de olho humano.
+
+**Três afirmações do plano, medidas em vez de supostas:**
+
+1. `generateSandboxedUi` chega em `state["tools"]` como tool de FRONTEND, e o
+   canal precisa estar declarado no schema do grafo (senão o LangGraph
+   descarta em silêncio). Confirmado: o checkpoint sai com
+   `['mapa', 'messages', 'tools']`.
+2. **`ag-ui` NÃO existe no estado** — ou seja, o `designSkill` do provider não
+   alcança o modelo. Ele entra como agent context, e o adaptador escreve
+   context em `state["ag-ui"]`, chave que o grafo não declara (nem seria
+   identificador Python válido). Consequência boa: a gramática visual TEM que
+   morar em `metodos/mckee_mini.md`, lida do disco a cada turno, que é o ciclo
+   de validação que se quer. E o default shadcn do pacote (fundo branco,
+   zinc, system-ui) fica inofensivo de graça, em vez de brigar com papel/vinho.
+3. **`openGenerativeUIEnabled` é um flag GLOBAL do runtime**, sem quebra por
+   agente (o A2UI, no mesmo objeto de info, exporta `agents`). Por isso o
+   trilho novo ganhou route handler próprio. Medido nos dois:
+
+       /api/copilotkit-mini  → agentes ['mckee_mini'],              openGenUI=True,  a2ui=False
+       /api/copilotkit       → agentes ['story_agent','tutor_agent'], openGenUI=False, a2ui=True
+
+   Sem o arquivo separado, o `story_agent` congelado teria ganhado a tool de
+   desenhar, porque o nó dele binda cegamente o que chega em `state["tools"]`.
+
+**O quadro saiu barato, e isso derruba um limite da Fase 2.1.** A A2UI deixou
+registrado que "a superfície só vive no chat". Não vale para o open-ended: o
+`OpenGenerativeUIActivityRenderer` é exportado, recebe uma única prop de
+conteúdo em runtime e sua dependência de contexto tem default vazio — pinta
+fora do chat sem adaptação. O desvio usa ponto de extensão suportado:
+`findRenderer` resolve `agentId igual ao ativo` antes de `agentId ausente`, e a
+lista final é `[...os nossos, ...os embutidos]`, então um renderer nosso com
+`agentId` casado vence o embutido **sem encostar no /mckee**. No chat fica só
+uma pílula, senão o turno em que o agente desenha apareceria vazio.
+
+Detalhe de tipagem: a interface pede quatro props (`activityType`, `content`,
+`message`, `agent`) embora a implementação só leia `content`. Passamos as
+quatro em vez de castar — custa nada e não mente se o componente mudar.
+
+**A surpresa sobre as fontes.** A instrução manda carregar as famílias por CDN
+no `<head>`, porque o iframe não tem same-origin e as variáveis do `next/font`
+não atravessam. O modelo resolveu por `@import` no topo do CSS, não por
+`<link>` — e funciona, porque o renderer injeta o `<style>` antes do
+`</head>` e a regra `@import` fica sendo a primeira da folha. **Minha checagem
+automática é que estava errada, não o modelo.** Fica o aprendizado: checagem de
+contrato de desenho tem que testar o EFEITO (a família chegou), não a forma
+(existe `<link>`).
+
+**Decisão de escopo mudada no meio:** o plano previa o desenho pintando no chat
+nesta fatia, com o quadro só na fatia 11. Fiz o quadro agora porque a
+verificação acima mostrou que ele custa ~60 linhas de API pública, e porque o
+quadro fixo foi a escolha explícita de destino. A fatia 11 fica só com o que
+sobrou dela: reidratar o desenho ao reabrir a sessão.
+
+**O que ficou de fora, de propósito:** contrato do mapa, tools de escrita,
+seleção de sessão (a thread é sorteada pelo `<CopilotKit>` e recarregar começa
+outra), prévia, e todo o método. A instrução é um esboço de 2 KB que desenha
+uma coisa só.
+
+**Pegadinha registrada:** `forma.normalizar` roda SÓ sobre o texto do turno,
+nunca sobre os argumentos de tool. O normalizador troca travessão do meio da
+linha por vírgula, e passá-lo por cima do HTML corromperia a marcação — com
+sintoma de quadro em branco e nenhum erro. Está comentado no `mini.py` porque
+é o tipo de coisa que alguém "melhora" depois sem perceber.

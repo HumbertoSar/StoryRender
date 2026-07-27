@@ -1,0 +1,183 @@
+/* Método McKee Mini, nível open-ended: quadro à esquerda, conversa à direita.
+   O que o quadro mostra NÃO é componente nosso — é HTML/CSS composto pelo
+   agente e pintado dentro de um iframe sandboxed. Por isso este arquivo veste
+   só a MOLDURA: topbar, colunas, estado vazio e o chat. O que está dentro do
+   iframe é problema da instrução (agent/metodos/mckee_mini.md), não daqui.
+
+   Como no tutor.css, os tokens do chat v2 são REDECLARADOS em vez de a regra
+   utilitária ser sobrescrita. E, como lá, nenhuma regra aqui usa seletor amplo
+   (`*`, seletor de elemento nu): regra sem camada vence qualquer `@layer`, e o
+   CSS do chat vive inteiro em camadas — um seletor amplo solto aqui repetiria
+   o bug que matou o espaçamento do chat por meses. */
+.sr-mini {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--sr-board);
+
+  --mini-papel-fundo: #e7dfc9;
+  --mini-tinta-suave: #6a6155;
+}
+
+/* ------------------------------------------------------------------ *
+ * Topbar
+ * ------------------------------------------------------------------ */
+
+.sr-mini__topbar {
+  height: 48px;
+  flex: none;
+  background: rgba(24, 20, 16, 0.35);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+}
+
+.sr-mini__voltar {
+  font-family: var(--sr-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(240, 233, 216, 0.7);
+}
+
+.sr-mini__voltar:hover {
+  color: var(--sr-paper);
+}
+
+.sr-mini__titulo {
+  font-family: var(--sr-font-serif);
+  font-size: 16px;
+  color: var(--sr-paper);
+}
+
+.sr-mini__selo {
+  margin-left: auto;
+  font-family: var(--sr-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--sr-brass);
+}
+
+/* ------------------------------------------------------------------ *
+ * As duas colunas
+ * ------------------------------------------------------------------ */
+
+.sr-mini__corpo {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+/* O quadro fica com o espaço que sobra: o desenho é o produto, o chat é a
+   ferramenta. 440px no chat é a mesma medida do quadro do /mckee. */
+.sr-mini__quadro {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 24px;
+  background-image: radial-gradient(
+    ellipse at 50% 18%,
+    rgba(255, 255, 255, 0.04),
+    transparent 60%
+  );
+}
+
+.sr-mini__quadro--vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+}
+
+.sr-mini__vazio-titulo {
+  font-family: var(--sr-font-serif);
+  font-size: 18px;
+  color: rgba(240, 233, 216, 0.75);
+}
+
+.sr-mini__vazio-texto {
+  font-family: var(--sr-font-sans);
+  font-size: 13px;
+  max-width: 34ch;
+  line-height: 1.5;
+  color: rgba(240, 233, 216, 0.45);
+}
+
+/* O iframe que o renderer do CopilotKit monta. Sem largura declarada ele
+   nasce com a do conteúdo; aqui ele ocupa a coluna e a altura vem do
+   `initialHeight` que o agente manda, crescendo sozinha depois. */
+.sr-mini__quadro iframe {
+  width: 100%;
+  border: 0;
+  border-radius: 3px;
+}
+
+.sr-mini__chat {
+  width: 440px;
+  flex: none;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid rgba(0, 0, 0, 0.3);
+  background: var(--sr-paper);
+}
+
+/* ------------------------------------------------------------------ *
+ * A pílula que substitui o desenho no chat
+ * ------------------------------------------------------------------ */
+
+/* O desenho foi desviado pro quadro (ver quadro.tsx). Sobra no chat este
+   rastro: sem ele, o turno em que o agente desenha aparece vazio e a
+   conversa fica com um buraco sem explicação. */
+.sr-mini__pilula {
+  display: inline-block;
+  font-family: var(--sr-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--sr-accent);
+  background: rgba(122, 46, 46, 0.06);
+  border: 1px solid rgba(122, 46, 46, 0.2);
+  border-radius: 3px;
+  padding: 4px 10px;
+}
+
+/* ------------------------------------------------------------------ *
+ * Tokens do chat → paleta do brief
+ * ------------------------------------------------------------------ */
+
+/* Descendente, não só a raiz: o componente marca vários elementos aninhados
+   com [data-copilotkit], e a regra do pacote redeclararia os padrões em cada
+   um deles. */
+.sr-mini [data-copilotkit] {
+  --background: var(--sr-paper);
+  --foreground: var(--sr-ink);
+  --card: var(--sr-paper);
+  --card-foreground: var(--sr-ink);
+  --muted: var(--mini-papel-fundo);
+  --muted-foreground: var(--mini-tinta-suave);
+  --accent: var(--mini-papel-fundo);
+  --accent-foreground: var(--sr-ink);
+  --secondary: var(--mini-papel-fundo);
+  --secondary-foreground: var(--sr-ink);
+  --border: var(--sr-neutral);
+  --input: var(--sr-neutral);
+  --ring: var(--sr-accent);
+  --primary: var(--sr-accent);
+  --primary-foreground: var(--sr-paper);
+  --radius: 6px;
+
+  --cpk-default-font-family: var(--sr-font-sans);
+  --cpk-font-sans: var(--sr-font-sans);
+  --cpk-font-mono: var(--sr-font-mono);
+}
+
+/* A coluna do chat tem 440px; a medida de leitura padrão do componente
+   (48rem) é maior que isso e só geraria espaço morto. */
+.sr-mini .cpk\:max-w-3xl {
+  max-width: 100%;
+}

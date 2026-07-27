@@ -40,6 +40,7 @@ services:
       # então trocar uma delas não exige rebuild da imagem.
       AGENT_URL: http://agent:8000/agent
       AGENT_TUTOR_URL: http://agent:8000/agent-tutor
+      AGENT_MINI_URL: http://agent:8000/agent-mini
       AGENT_FEEDBACK_URL: http://agent:8000/feedback
       AGENT_SESSOES_URL: http://agent:8000/sessoes
     ports:

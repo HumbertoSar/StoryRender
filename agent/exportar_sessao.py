@@ -97,10 +97,15 @@ async def exportar(thread_id: str) -> None:
     if not mensagens:
         sys.exit(f"thread {thread_id} existe mas não tem mensagens.")
 
+    # `.get` com padrão, não indexação: trilho novo em `trilho_dos_canais` sem
+    # linha nova aqui derrubaria a exportação de TODA sessão dele com KeyError,
+    # e o exportador é justamente como se lê a sessão pra auditar.
+    chave = trilho_dos_canais(canais)
     trilho = {
         "mckee": "McKee original (story_agent)",
         "mckee-inspired": "McKee Inspired (tutor_agent)",
-    }[trilho_dos_canais(canais)]
+        "mckee-mini": "McKee Mini (mckee_mini)",
+    }.get(chave, chave)
     quando = str(tupla.checkpoint.get("ts", ""))
     turnos = sum(1 for m in mensagens if getattr(m, "type", None) == "human")
 
