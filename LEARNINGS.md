@@ -1422,3 +1422,60 @@ uma chamada de modelo por palavra digitada.
 **Pendências do método que este arquivo carrega:** o nome do card 6 ("O Mundo
 como Ficou", §18.8) é uma string só, reversível; os cards satélites entram
 aqui como alvo de ligação, sem conteúdo, porque o §19 ainda é decisão do autor.
+
+## Fatia 3 do McKee Mini: a primeira tool de escrita
+
+**Escopo:** `escrever_no_mapa` — a única primitiva de escrita de conteúdo —, a
+mutação pura `mini_mapa.escrever`, o mapa nascendo completo (os 6 cards, todos
+os buracos à mostra) no primeiro turno, e `ToolNode` + roteador separando tool
+de backend (executa aqui) de tool de frontend (encerra o run). Fora: as outras
+quatro tools do plano, o gatilho de render por assinatura e o método.
+
+**A prova, em conversa real com modelo real.** Turno 1 (braindump do Fernando):
+**8,1s**, e o modelo chamou a tool uma vez só preenchendo **cinco slots de dois
+cards** — protagonista, rotina, passado, evento e desejo. Turno 2: **5,6s**,
+dois slots do primeiro elo. É exatamente o caso que fez a assinatura receber
+uma LISTA: com `parallel_tool_calls=False`, um slot por chamada teria custado
+cinco idas e voltas ao modelo só pra guardar um parágrafo.
+
+**Pelo caminho de produção inteiro**, e não só pelo grafo em memória: um turno
+no endpoint `/agent-mini` com Postgres emitiu `TOOL_CALL_START/ARGS/END/RESULT`
+e **3 `STATE_SNAPSHOT`**, o checkpoint saiu com `['mapa', 'messages', 'tools']`,
+`GET /sessoes?trilho=mckee-mini` lista a sessão nova (3 no total) enquanto
+`mckee-inspired` (4) e `mckee` (23) não a listam, e o `exportar_sessao.py`
+gravou o Markdown com "Trilho: McKee Mini (mckee_mini)".
+
+**A conversa real pegou um bug que o autoteste não pegou.** `frase_da_espinha`
+substituía slot por `str.replace`, então `ROTINA` preenchida comia o miolo de
+`NOVA_ROTINA` e a espinha saía lida como *"E desde então, todo dia ele
+NOVA_passa o dia no computador"*. O autoteste tinha 4 asserções sobre a frase e
+nenhuma olhava o card 6. Corrigido com fronteira de palavra (`\b`, e `_` sendo
+caractere de palavra resolve os dois casos de uma vez) mais um caso novo.
+**Aprendizado que se repete:** derivação com dados de brinquedo passa; o que
+acha o buraco é o dado que veio da conversa.
+
+**Chave inventada é recusada, nunca escrita.** `card_id` ou `slot` que não
+existe volta como `RECUSADO` na `ToolMessage`, com a lista do que existe
+naquele card, e a instrução manda o agente corrigir sozinho sem envolver o
+autor. Escrever a chave errada seria corrupção silenciosa: o dado entraria no
+checkpoint, nenhuma derivação o enxergaria, e o mapa mostraria um buraco que o
+autor jura ter preenchido. Uma recusa no meio do lote não impede as outras
+escritas.
+
+**O vocabulário mora na tool, não no prompt.** A lista de cards e slots é
+gerada do `mini_mapa.ESQUELETO` e concatenada na `description` da tool. Card
+novo no método aparece pro modelo sem ninguém lembrar de atualizar dois
+lugares, e a instrução (Fatia 6) fica livre pra tratar de quando e por que
+escrever, que é o que exige julgamento.
+
+**Pegadinha: `@tool` NÃO tira a indentação do docstring.** As linhas de
+continuação chegavam ao modelo com quatro espaços na frente, que em markdown é
+bloco de código. `inspect.cleandoc` resolve; vale pro `main.py` também, onde o
+mesmo padrão está desde a Fase 1.
+
+**O que ficou pra depois, sabendo:** o `exportar_sessao.py` rotula todo turno
+de agente como `## Tutor`, inclusive nas sessões do Mini, e o
+`auditar_sessao.py` casa exatamente esse literal pra achar os turnos. Trocar o
+rótulo sem tocar no auditor faria a auditoria ler zero turno. Os dois se
+resolvem juntos na Fatia 10, que é quando o `provar_mini.py` passa a usar o
+auditor.

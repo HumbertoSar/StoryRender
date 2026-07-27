@@ -1,9 +1,9 @@
 """Contrato de dados do mapa do McKee Mini: schema, derivações e assinatura.
 
-**Fatia 2.** Python puro, zero LLM e zero rede, e é isso que dá o valor: tudo
-aqui é testável sem gastar um turno de modelo. As tools que escrevem no mapa
-entram na Fatia 3; este módulo só diz qual é a forma do estado e o que se
-deriva dela.
+Python puro, zero LLM e zero rede, e é isso que dá o valor: tudo aqui é
+testável sem gastar um turno de modelo. O módulo diz qual é a forma do estado,
+o que se deriva dela (Fatia 2) e como se escreve nela (`escrever`, Fatia 3);
+quem expõe isso ao modelo como tool é o `mini.py`.
 
 **Princípio: guardar fato, derivar forma.** O canal `mapa` guarda só o que o
 autor e o agente produzem (texto de slot, veredito de teste, leitura aprovada).
@@ -13,9 +13,11 @@ não se guarda: vira função pura. É a mesma disciplina de `forma.py` e de
 mentir que um card está firme**, porque "firme" não é um campo que ele escreve,
 é o que sai da tabela de testes dele.
 
-O que ficou de fora de propósito: as mutações (Fatia 3), `para_render` (Fatia
-7, cuja forma depende do que a instrução de desenho pedir), e as derivações
-cujo dado ainda não existe: storyboard (§15), sabor (§10) e `arco.stale` (§12).
+O que ficou de fora de propósito: as outras quatro tools do plano
+(`registrar_teste`, `nascer_card`, `aprovar_leitura`, `registrar_pendencia`),
+`para_render` (Fatia 7, cuja forma depende do que a instrução de desenho
+pedir), e as derivações cujo dado ainda não existe: storyboard (§15), sabor
+(§10) e `arco.stale` (§12).
 Os cards satélites (Protagonista, Força Antagônica) aparecem aqui só como alvo
 de ligação: o conteúdo deles é pendência aberta no §19 do método.
 
@@ -25,6 +27,7 @@ Referências de seção (§) apontam para o documento do método (`Mini.md`).
 import copy
 import hashlib
 import json
+import re
 
 VERSAO_SCHEMA = 1
 
@@ -385,7 +388,13 @@ def frase_da_espinha(mapa: dict) -> str:
     for card in cards:
         frase = card.get("formula", "")
         for slot, texto in preenchidos.items():
-            frase = frase.replace(slot.upper(), texto)
+            # `\b` e não `str.replace`: sem a fronteira de palavra, o slot
+            # `rotina` come o miolo de `NOVA_ROTINA` na fórmula do card 6 e a
+            # espinha sai lida como "E desde então, todo dia ele NOVA_passa o
+            # dia no computador". Como `_` é caractere de palavra, a fronteira
+            # sozinha resolve os dois casos. A troca vai por função pra que
+            # contrabarra no texto do autor não vire grupo de captura.
+            frase = re.sub(rf"\b{re.escape(slot.upper())}\b", lambda _: texto, frase)
         trechos.append(frase)
     return " ".join(trechos)
 
@@ -419,22 +428,83 @@ def assinatura(mapa: dict) -> str:
     return hashlib.sha1(bruto.encode("utf-8")).hexdigest()[:12]
 
 
+# ---------------------------------------------------------------------------
+# Mutação: a única primitiva de escrita de conteúdo.
+# ---------------------------------------------------------------------------
+
+
+def escrever(mapa: dict, preenchimentos: list[dict]) -> tuple[dict, dict]:
+    """Escreve texto nos slots dos cards. Devolve `(mapa novo, relatório)`.
+
+    **Chave inventada é recusada, não escrita.** Um `card_id` ou `slot` que não
+    existe volta como recusa no relatório, com a lista do que existe naquele
+    card, e o modelo tem a chance de corrigir no turno seguinte. Escrever a
+    chave errada seria corrupção silenciosa: o dado entraria no checkpoint,
+    nenhuma derivação o enxergaria e o mapa mostraria um buraco que o autor
+    jura ter preenchido.
+
+    **Lista, e não um preenchimento por chamada**, porque a primeira
+    renderização (§4.3) distribui o braindump por vários slots de uma vez, e
+    com `parallel_tool_calls=False` uma tool por slot custaria uma ida e volta
+    ao modelo para cada um. A disciplina de "um slot por turno" fora dessa
+    distribuição inicial é assunto da instrução, não da assinatura.
+
+    **Cópia antes de escrever:** o dict que chega vem do checkpoint e suas
+    partes são referências compartilhadas; mutar no lugar corromperia o
+    histórico do LangGraph em vez de criar uma versão nova.
+    """
+    novo = copy.deepcopy(mapa)
+    cards = {card["id"]: card for card in novo.get("cards") or []}
+    aplicados: list[str] = []
+    recusados: list[str] = []
+
+    for pedido in preenchimentos or []:
+        card_id = str(pedido.get("card_id") or "").strip()
+        slot = str(pedido.get("slot") or "").strip()
+        card = cards.get(card_id)
+        if card is None:
+            recusados.append(
+                f"{card_id or '(sem card_id)'}: não existe esse card. "
+                f"Existem: {', '.join(sorted(cards)) or 'nenhum'}"
+            )
+            continue
+        if slot not in (card.get("slots") or {}):
+            recusados.append(
+                f"{card_id}.{slot or '(sem slot)'}: esse slot não existe. "
+                f"O card {card_id} tem: {', '.join(card.get('slots') or {}) or 'nenhum'}"
+            )
+            continue
+        card["slots"][slot]["texto"] = str(pedido.get("texto") or "").strip()
+        # `versao` sobe a cada escrita: é o que torna a edição retroativa (§3) e
+        # a re-medição do Arco (§12) determinísticas, sem precisar comparar
+        # texto com texto.
+        card["versao"] = card.get("versao", 0) + 1
+        if pedido.get("hipotese") is not None:
+            # Hipótese plantada pelo agente deixa o card fantasma (§2), e o
+            # autor confirmando (hipotese=False) o traz de volta pra rascunho.
+            card["hipotese"] = bool(pedido["hipotese"])
+        aplicados.append(f"{card_id}.{slot}")
+
+    # Nada aplicado significa nada a gravar: devolver o mapa original evita um
+    # STATE_SNAPSHOT idêntico ao anterior viajando pro front à toa.
+    return (novo if aplicados else mapa), {"aplicados": aplicados, "recusados": recusados}
+
+
 if __name__ == "__main__":
     # Autoteste de tabela, no formato de `forma.py`: roda em milissegundos, sem
-    # rede e sem chave de API. Os três blocos são os três eixos do contrato: os
-    # 4 estados, as 8 ligações e o gatilho de render.
+    # rede e sem chave de API. Os quatro blocos são os eixos do contrato: os
+    # 4 estados, as 8 ligações, o gatilho de render e a escrita.
 
     def _card(mapa: dict, card_id: str) -> dict:
         return next(card for card in mapa["cards"] if card["id"] == card_id)
 
-    # As mutações moram no teste, e não no módulo, porque a forma delas é
-    # decidida com as tools da Fatia 3 (assinatura, validação, mensagem de
-    # volta pro modelo). Aqui elas existem só para produzir estados de mapa.
+    # Escrever é a única mutação que já existe no módulo. As outras três moram
+    # aqui porque a forma delas se decide com as tools que ainda não existem
+    # (`registrar_teste`, `nascer_card`, `aprovar_leitura`); por ora só
+    # precisam produzir estados de mapa para as derivações olharem.
     def _escrever(mapa: dict, card_id: str, slot: str, texto: str) -> dict:
-        novo = copy.deepcopy(mapa)
-        card = _card(novo, card_id)
-        card["slots"][slot]["texto"] = texto
-        card["versao"] += 1
+        novo, relato = escrever(mapa, [{"card_id": card_id, "slot": slot, "texto": texto}])
+        assert not relato["recusados"], relato
         return novo
 
     def _registrar(mapa: dict, card_id: str, teste_id: str, veredito: str) -> dict:
@@ -651,6 +721,61 @@ if __name__ == "__main__":
     assert "E então ele ACAO" in frase, frase
     # E o slot que mora na lacuna 1 chega na fórmula da lacuna 2 sem cópia.
     assert "e por isso Fernando passou a querer DESEJO" in frase, frase
-    casos += 4
+    # `ROTINA` preenchida não pode comer o miolo de `NOVA_ROTINA` no card 6.
+    # Achado numa conversa real, não aqui: o autoteste original só olhava as
+    # duas primeiras lacunas.
+    assert "todo dia ele NOVA_ROTINA" in frase, frase
+    casos += 5
+
+    # ---- 5. A escrita: o que entra, o que é recusado -----------------------
+    base = mapa_vazio()
+
+    # O caso que a lista existe para atender: o braindump caindo em vários
+    # slots de cards diferentes numa chamada só (§4.3).
+    lote, relato = escrever(base, [
+        {"card_id": "lacuna-1", "slot": "protagonista", "texto": "Fernando"},
+        {"card_id": "lacuna-1", "slot": "rotina", "texto": "passa o dia no computador"},
+        {"card_id": "lacuna-2", "slot": "evento", "texto": "a mãe adoece"},
+    ])
+    assert relato == {"aplicados": ["lacuna-1.protagonista", "lacuna-1.rotina",
+                                    "lacuna-2.evento"], "recusados": []}, relato
+    assert _card(lote, "lacuna-1")["versao"] == 2, _card(lote, "lacuna-1")["versao"]
+    assert estado_do_card(_card(lote, "lacuna-2")) == "rascunho"
+
+    # Chave inventada não entra, e a recusa diz o que existe. Uma recusa no
+    # meio do lote não impede as outras escritas: o modelo corrige só a que
+    # errou, em vez de repetir o lote inteiro.
+    parcial, relato = escrever(base, [
+        {"card_id": "lacuna-9", "slot": "seja-o-que-for", "texto": "x"},
+        {"card_id": "lacuna-1", "slot": "protagonista", "texto": "Fernando"},
+        {"card_id": "lacuna-1", "slot": "want", "texto": "inventado do McKee antigo"},
+    ])
+    assert relato["aplicados"] == ["lacuna-1.protagonista"], relato
+    assert len(relato["recusados"]) == 2, relato
+    assert "lacuna-1" in relato["recusados"][0], relato["recusados"][0]
+    assert "protagonista, rotina, passado" in relato["recusados"][1], relato["recusados"][1]
+
+    # Lote 100% recusado devolve o mapa original, e a identidade importa: é o
+    # que o `mini.py` usa pra decidir não gravar canal nenhum.
+    igual, relato = escrever(base, [{"card_id": "nao-existe", "slot": "x", "texto": "y"}])
+    assert igual is base and relato["aplicados"] == []
+
+    # Hipótese do agente deixa o card fantasma; o autor confirmando o traz de
+    # volta pra rascunho.
+    plantado, _ = escrever(base, [
+        {"card_id": "lacuna-5", "slot": "acao", "texto": "ele abre o armário sozinho",
+         "hipotese": True},
+    ])
+    assert estado_do_card(_card(plantado, "lacuna-5")) == "fantasma"
+    confirmado, _ = escrever(plantado, [
+        {"card_id": "lacuna-5", "slot": "acao", "texto": "ele abre o armário sozinho",
+         "hipotese": False},
+    ])
+    assert estado_do_card(_card(confirmado, "lacuna-5")) == "rascunho"
+
+    # O mapa que entrou não foi tocado (referências vindas do checkpoint).
+    assert estado_do_card(_card(base, "lacuna-1")) == "vazio"
+    assert _card(base, "lacuna-1")["versao"] == 0
+    casos += 6
 
     print(f"{casos} casos ok")
