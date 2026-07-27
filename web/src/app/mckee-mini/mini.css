@@ -147,6 +147,92 @@
 }
 
 /* ------------------------------------------------------------------ *
+ * A prévia do desenho (/mckee-mini/previa)
+ * ------------------------------------------------------------------ */
+
+/* Ocupa o lugar do chat: mesma largura, pra que a coluna do quadro tenha
+   exatamente a medida que terá na tela de verdade. Se o mapa couber aqui,
+   cabe lá. */
+.sr-mini__estado {
+  width: 440px;
+  flex: none;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid rgba(0, 0, 0, 0.3);
+  background: rgba(24, 20, 16, 0.25);
+  padding: 14px 16px 0;
+}
+
+.sr-mini__estado-cabeca {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.sr-mini__estado-titulo {
+  font-family: var(--sr-font-serif);
+  font-size: 14px;
+  color: var(--sr-paper);
+}
+
+.sr-mini__estado-nota,
+.sr-mini__amostra {
+  font-family: var(--sr-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: rgba(240, 233, 216, 0.5);
+}
+
+.sr-mini__legenda {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+/* As mesmas quatro bordas do desenho, do lado de fora do iframe: é o que
+   permite conferir de relance se o estado do JSON bate com o que está
+   pintado. Cores literais, e não os tokens: aqui elas precisam ser as MESMAS
+   que a instrução manda o agente usar lá dentro. */
+.sr-mini__amostra {
+  padding: 3px 8px;
+  border-radius: 3px;
+  border: 1px solid #c9bfa8;
+  color: rgba(240, 233, 216, 0.75);
+}
+
+.sr-mini__amostra--firme {
+  border-color: #7a2e2e;
+  color: #9c7a3c;
+}
+
+.sr-mini__amostra--vazio {
+  border-style: dashed;
+  border-color: rgba(201, 191, 168, 0.85);
+}
+
+.sr-mini__amostra--fantasma {
+  border-style: dashed;
+  border-color: #7a2e2e;
+  opacity: 0.55;
+}
+
+.sr-mini__json {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  margin: 0;
+  padding: 0 0 16px;
+  font-family: var(--sr-font-mono);
+  font-size: 10.5px;
+  line-height: 1.55;
+  color: rgba(240, 233, 216, 0.62);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ------------------------------------------------------------------ *
  * Tokens do chat → paleta do brief
  * ------------------------------------------------------------------ */
 

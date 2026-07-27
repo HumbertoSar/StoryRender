@@ -1,0 +1,495 @@
+{
+  "versao_schema": 1,
+  "assinatura_renderizada": "",
+  "cards": [
+    {
+      "id": "lacuna-1",
+      "tipo": "lacuna",
+      "nome": "O Mundo como Era",
+      "ordem": 1.0,
+      "hipotese": false,
+      "versao": 3,
+      "base_em": [],
+      "formula": "Todo dia o(a) PROTAGONISTA segue ROTINA, isso porque no PASSADO ___",
+      "slots": {
+        "protagonista": {
+          "texto": "Fernando, 34 anos",
+          "sonda": "Quem é? Me dá o nome e me mostra ele numa cena."
+        },
+        "rotina": {
+          "texto": "passa o dia no computador, no quarto da mãe",
+          "sonda": "O que a gente VÊ ele fazendo?"
+        },
+        "passado": {
+          "texto": "o pai foi embora quando ele tinha 12 e a mãe ficou permissiva",
+          "sonda": "Como exatamente esse acontecimento fabrica essa rotina?"
+        }
+      },
+      "testes": [
+        {
+          "id": "imagem-nao-categoria",
+          "peca": "protagonista",
+          "nome": "Imagem, não categoria",
+          "sonda": "Quem é? Me dá o nome e me mostra ele numa cena.",
+          "veredito": "passa",
+          "nota": "aprovado na sessão",
+          "imagem": null
+        },
+        {
+          "id": "da-pra-desenhar",
+          "peca": "rotina",
+          "nome": "Dá pra desenhar",
+          "sonda": "O que a gente VÊ ele fazendo?",
+          "veredito": "passa",
+          "nota": "aprovado na sessão",
+          "imagem": null
+        },
+        {
+          "id": "aguenta-mais-um-ano",
+          "peca": "rotina",
+          "nome": "Aguenta mais um ano",
+          "sonda": "Se nada acontecer, essa vida continua igual por mais um ano?",
+          "veredito": "passa",
+          "nota": "aprovado na sessão",
+          "imagem": null
+        },
+        {
+          "id": "teste-do-apagador",
+          "peca": "passado",
+          "nome": "Teste do apagador",
+          "sonda": "Como exatamente esse acontecimento fabrica essa rotina?",
+          "veredito": "passa",
+          "nota": "aprovado na sessão",
+          "imagem": null
+        },
+        {
+          "id": "cena-de-abertura",
+          "peca": "frase",
+          "nome": "Cena de Abertura",
+          "sonda": "Qual é a imagem que abre essa história?",
+          "veredito": "passa",
+          "nota": "aprovado na sessão",
+          "imagem": "a mãe batendo na porta do quarto com o prato de almoço"
+        }
+      ]
+    },
+    {
+      "id": "lacuna-2",
+      "tipo": "lacuna",
+      "nome": "Até Que Um Dia",
+      "ordem": 2.0,
+      "hipotese": false,
+      "versao": 2,
+      "base_em": [],
+      "formula": "Até que um dia EVENTO, e por isso PROTAGONISTA passou a querer DESEJO",
+      "slots": {
+        "evento": {
+          "texto": "a mãe tem um AVC no meio da tarde",
+          "sonda": "O que aconteceu NAQUELE dia?"
+        },
+        "desejo": {
+          "texto": "doze mil reais pro tratamento dela, em duas semanas",
+          "sonda": "Se ele conseguir, qual é a foto? O que a gente vê?"
+        }
+      },
+      "testes": [
+        {
+          "id": "datado-nao-estado",
+          "peca": "evento",
+          "nome": "Datado, não estado",
+          "sonda": "O que aconteceu NAQUELE dia?",
+          "veredito": "passa",
+          "nota": "aprovado na sessão",
+          "imagem": null
+        },
+        {
+          "id": "rompe-sem-volta",
+          "peca": "evento",
+          "nome": "Rompe sem volta",
+          "sonda": "No dia seguinte, dava pra fingir que nada aconteceu?",
+          "veredito": "passa",
+          "nota": "aprovado na sessão",
+          "imagem": null
+        },
+        {
+          "id": "foto-da-vitoria",
+          "peca": "desejo",
+          "nome": "A Foto da Vitória",
+          "sonda": "Se ele conseguir, qual é a foto? O que a gente vê?",
+          "veredito": "passa",
+          "nota": "aprovado na sessão",
+          "imagem": null
+        },
+        {
+          "id": "causalidade-nua",
+          "peca": "frase",
+          "nome": "Causalidade nua",
+          "sonda": "Antes desse dia, ele já queria exatamente isso?",
+          "veredito": "passa",
+          "nota": "aprovado na sessão",
+          "imagem": null
+        },
+        {
+          "id": "cena-prometida",
+          "peca": "frase",
+          "nome": "A Cena Prometida",
+          "sonda": "Que cena o leitor já sabe que vai ter que acontecer?",
+          "veredito": "passa",
+          "nota": "aprovado na sessão",
+          "imagem": "Fernando de uniforme, atendendo alguém que ele conhece"
+        }
+      ]
+    },
+    {
+      "id": "lacuna-3.1",
+      "tipo": "lacuna",
+      "nome": "Tenta, Mas",
+      "ordem": 3.1,
+      "hipotese": false,
+      "versao": 2,
+      "base_em": [],
+      "formula": "Ele tenta TENTATIVA, mas PANCADA",
+      "slots": {
+        "tentativa": {
+          "texto": "vender o computador",
+          "sonda": "Por que ele tenta ISSO agora? O que a última pancada empurrou pra cá?"
+        },
+        "pancada": {
+          "texto": "a loja diz que não vale nada",
+          "sonda": "Depois dessa pancada, essa tentativa ainda existe como opção?"
+        },
+        "rosto": {
+          "texto": "",
+          "sonda": "Quem ou o que bateu? Me mostra em cena."
+        }
+      },
+      "testes": [
+        {
+          "id": "por-causa-disso",
+          "peca": "tentativa",
+          "nome": "Por causa disso",
+          "sonda": "Por que ele tenta ISSO agora? O que a última pancada empurrou pra cá?",
+          "veredito": "passa",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "tem-rosto",
+          "peca": "rosto",
+          "nome": "Tem rosto",
+          "sonda": "Quem ou o que bateu? Me mostra em cena.",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "fecha-uma-porta",
+          "peca": "pancada",
+          "nome": "Fecha uma porta",
+          "sonda": "Depois dessa pancada, essa tentativa ainda existe como opção?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "teste-da-troca",
+          "peca": "frase",
+          "nome": "Teste da Troca",
+          "sonda": "Se eu trocar esse Mas com o anterior, a história quebra?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "teste-do-esgotamento",
+          "peca": "frase",
+          "nome": "Teste do Esgotamento",
+          "sonda": "Sobrou tentativa barata?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        }
+      ]
+    },
+    {
+      "id": "lacuna-3.2",
+      "tipo": "lacuna",
+      "nome": "Tenta, Mas",
+      "ordem": 3.2,
+      "hipotese": false,
+      "versao": 3,
+      "base_em": [],
+      "formula": "Ele tenta TENTATIVA, mas PANCADA",
+      "slots": {
+        "tentativa": {
+          "texto": "pedir o dinheiro ao tio",
+          "sonda": "Por que ele tenta ISSO agora? O que a última pancada empurrou pra cá?"
+        },
+        "pancada": {
+          "texto": "o tio oferece emprego na loja, não o dinheiro",
+          "sonda": "Depois dessa pancada, essa tentativa ainda existe como opção?"
+        },
+        "rosto": {
+          "texto": "o tio, de braços cruzados no balcão",
+          "sonda": "Quem ou o que bateu? Me mostra em cena."
+        }
+      },
+      "testes": [
+        {
+          "id": "por-causa-disso",
+          "peca": "tentativa",
+          "nome": "Por causa disso",
+          "sonda": "Por que ele tenta ISSO agora? O que a última pancada empurrou pra cá?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "tem-rosto",
+          "peca": "rosto",
+          "nome": "Tem rosto",
+          "sonda": "Quem ou o que bateu? Me mostra em cena.",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "fecha-uma-porta",
+          "peca": "pancada",
+          "nome": "Fecha uma porta",
+          "sonda": "Depois dessa pancada, essa tentativa ainda existe como opção?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "teste-da-troca",
+          "peca": "frase",
+          "nome": "Teste da Troca",
+          "sonda": "Se eu trocar esse Mas com o anterior, a história quebra?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "teste-do-esgotamento",
+          "peca": "frase",
+          "nome": "Teste do Esgotamento",
+          "sonda": "Sobrou tentativa barata?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        }
+      ]
+    },
+    {
+      "id": "lacuna-4",
+      "tipo": "lacuna",
+      "nome": "A Escolha",
+      "ordem": 4.0,
+      "hipotese": false,
+      "versao": 0,
+      "base_em": [],
+      "formula": "Até que só restou a escolha: ou ESCOLHA_A, pagando PRECO_A; ou ESCOLHA_B, pagando PRECO_B",
+      "slots": {
+        "escolha_a": {
+          "texto": "",
+          "sonda": "Qual é a primeira mão? O que ele escolhe se escolher esta?"
+        },
+        "preco_a": {
+          "texto": "",
+          "sonda": "O que ele perde se escolher esta?"
+        },
+        "escolha_b": {
+          "texto": "",
+          "sonda": "E a outra mão, qual é?"
+        },
+        "preco_b": {
+          "texto": "",
+          "sonda": "E o que ele perde se escolher essa?"
+        }
+      },
+      "testes": [
+        {
+          "id": "qual-e-a-certa",
+          "peca": "frase",
+          "nome": "Qual é a certa?",
+          "sonda": "Das duas, qual é a certa?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "da-pra-desenhar-a-perda",
+          "peca": "frase",
+          "nome": "Dá pra desenhar a perda",
+          "sonda": "Me mostra cada preço em cena, o que a gente VÊ ele perdendo?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "porta-c-trancada",
+          "peca": "frase",
+          "nome": "A porta C está trancada?",
+          "sonda": "Que saída esperta alguém no sofá sugeriria? Por que não funciona?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "desejo-na-mesa",
+          "peca": "frase",
+          "nome": "O desejo está na mesa",
+          "sonda": "Em qual das duas mãos está o que ele passou a querer?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "cena-da-escolha",
+          "peca": "frase",
+          "nome": "A Cena da Escolha",
+          "sonda": "Onde ele está quando escolhe? O que tem na frente dele?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        }
+      ]
+    },
+    {
+      "id": "lacuna-5",
+      "tipo": "lacuna",
+      "nome": "E Então Ele",
+      "ordem": 5.0,
+      "hipotese": true,
+      "versao": 1,
+      "base_em": [],
+      "formula": "E então ele ACAO",
+      "slots": {
+        "acao": {
+          "texto": "veste o uniforme da loja na frente da mãe acordada",
+          "sonda": "Essa ação é qual das duas mãos? Me mostra a opção escolhida acontecendo."
+        }
+      },
+      "testes": [
+        {
+          "id": "e-a-escolha-em-acao",
+          "peca": "acao",
+          "nome": "É a escolha em ação",
+          "sonda": "Essa ação é qual das duas mãos? Me mostra a opção escolhida acontecendo.",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "irreversivel",
+          "peca": "acao",
+          "nome": "Irreversível",
+          "sonda": "O que existe depois que não existia? Dá pra desfazer?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "acontece-na-tela",
+          "peca": "acao",
+          "nome": "Acontece na tela",
+          "sonda": "A gente VÊ o desejo ganhar ou perder? Em que cena, com quem presente?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "paga-a-cena-prometida",
+          "peca": "frase",
+          "nome": "Paga a Cena Prometida",
+          "sonda": "A história prometeu aquela cena. Essa ação paga?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "o-sabor",
+          "peca": "frase",
+          "nome": "O sabor",
+          "sonda": "Seu final tem esse gosto. É essa a história que você quer contar?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        }
+      ]
+    },
+    {
+      "id": "lacuna-6",
+      "tipo": "lacuna",
+      "nome": "O Mundo como Ficou",
+      "ordem": 6.0,
+      "hipotese": false,
+      "versao": 0,
+      "base_em": [],
+      "formula": "E desde então, todo dia ele NOVA_ROTINA",
+      "slots": {
+        "nova_rotina": {
+          "texto": "",
+          "sonda": "O que a gente VÊ ele fazendo agora, num dia comum?"
+        }
+      },
+      "testes": [
+        {
+          "id": "da-pra-desenhar",
+          "peca": "nova_rotina",
+          "nome": "Dá pra desenhar",
+          "sonda": "O que a gente VÊ ele fazendo agora, num dia comum?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "aguenta-mais-um-ano",
+          "peca": "nova_rotina",
+          "nome": "Aguenta mais um ano",
+          "sonda": "Se nada acontecer, essa vida nova continua?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "o-diff",
+          "peca": "frase",
+          "nome": "O Diff",
+          "sonda": "Começou assim e terminou assado. Esse é o arco?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "nada-vazando",
+          "peca": "frase",
+          "nome": "Nada vazando",
+          "sonda": "Essa frase abre pergunta nova? De propósito (gancho) ou escapou?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        },
+        {
+          "id": "cena-espelho",
+          "peca": "frase",
+          "nome": "A Cena-Espelho",
+          "sonda": "Me mostra ele na MESMA situação da abertura. O que acontece diferente?",
+          "veredito": "pendente",
+          "nota": "",
+          "imagem": null
+        }
+      ]
+    }
+  ],
+  "pendencias": [
+    {
+      "id": "p1",
+      "texto": "não sei ainda o que o Fernando perde se aceitar o emprego",
+      "card_id": "lacuna-4"
+    }
+  ],
+  "leituras": []
+}

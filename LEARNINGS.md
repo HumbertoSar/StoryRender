@@ -1479,3 +1479,113 @@ de agente como `## Tutor`, inclusive nas sessões do Mini, e o
 rótulo sem tocar no auditor faria a auditoria ler zero turno. Os dois se
 resolvem juntos na Fatia 10, que é quando o `provar_mini.py` passa a usar o
 auditor.
+
+## Fatia 4 do McKee Mini: a prévia do desenho, sem gastar um turno de LLM
+
+**Escopo:** uma rota `/mckee-mini/previa` que passa um mapa FIXO, escrito à
+mão, pelo mesmo `OpenGenerativeUIActivityRenderer` que vai pintar o que o
+agente compõe — pra decidir cor, medida e tipografia com F5, e não com prompt.
+Fora: o agente desenhar (Fatia 7), o gatilho por assinatura, e qualquer regra
+de render dentro do `metodos/mckee_mini.md`.
+
+**O desenho vem antes da instrução de render, de propósito.** Enquanto o
+desenho não existe como referência, todo problema no quadro é ambíguo: "o mapa
+está feio" e "o modelo desobedeceu" chegam misturados. Com a prévia congelada,
+a Fatia 7 tem um alvo — a instrução passa a ser "componha isto", e o erro fica
+atribuível a um lado só.
+
+**O mapa da prévia NÃO foi escrito à mão.** Saiu do contrato em Python, com o
+exemplo do Fernando (§5 do método), passando por `escrever` e `estado_do_card`
+como uma sessão de verdade passaria: 7 cards (1 e 2 firmes, dois elos em
+rascunho, 4 vazio, 5 fantasma, 6 vazio), 7 ligações derivadas, assinatura
+`b648ff298578`. Isso é o que garante que a prévia mostre um estado POSSÍVEL, e
+não um estado bonito — mapa desenhado a gosto esconde justamente os arranjos
+que o contrato produz e o desenho não aguenta.
+
+**Fidelidade conferida por script, não por vista de olhos:** 7 de 7 cards do
+JSON estão desenhados, nenhum card inventado; 7 de 7 ligações derivadas
+aparecem, nenhuma inventada; e os 7 estados pintados batem um a um com
+`estado_do_card`. É a única parte da aparência que dá pra provar sem navegador,
+e é a que mais importa: um desenho fiel e feio se conserta; um desenho bonito
+que mente sobre o estado ensina o autor errado.
+
+**E o fixture achou um segundo bug na `frase_da_espinha`.** Os dois elos da
+corrente compartilham os slots `tentativa` e `pancada`, e o preenchimento do
+mapa inteiro era usado como fonte única: o elo 3.2 saía lido com o texto do
+3.1 — a mesma tentativa duas vezes, e a escalada do §8 sumindo da leitura em
+voz alta. Corrigido dando precedência ao slot do próprio card
+(`{**do_mapa, **proprios}`), mais dois casos no autoteste (39 agora). **Segunda
+vez seguida** que o buraco aparece quando o dado deixa de ser de brinquedo: na
+Fatia 3 foi a conversa real, aqui foi o mapa com dois elos.
+
+**As fontes carregam de CDN dentro do iframe sandboxed.** O CSP do renderer
+libera `style-src *` e `font-src *`, então o `@import` do Google Fonts no topo
+do CSS funciona (HTTP 200, três famílias, 17 KB) — o desenho do agente não fica
+preso às fontes do sistema. O `@import` precisa ser a PRIMEIRA regra do bloco,
+e o `injectCssIntoHtml` insere o `<style>` inteiro logo antes de `</head>`, o
+que preserva essa posição.
+
+**Nada do `mini.css` vaza pro iframe, e nem podia:** o conteúdo do iframe é
+outro documento. O que foi conferido é o inverso — que o bloco novo
+(`.sr-mini__estado*`, as quatro amostras de estado, o `<pre>` do JSON) usa só
+seletor de classe, sem seletor de elemento nu nem `*`, que é a regra desta casa
+desde o bug que matou o espaçamento do chat.
+
+**O que ficou sem prova automatizada é o pixel**, e por isso foi ao olho
+humano: não há navegador nesta VPS, então o HTML montado exatamente como o
+renderer monta (9934 bytes, 8 `data-card-id`, 7 `data-ligacao-id`) foi entregue
+junto da página de pé em `/mckee-mini/previa`. **Veredito do Humberto em
+2026-07-27, as duas perguntas que travavam a Fatia 7:** os estados se
+distinguem em dois segundos sem consultar a legenda, e os 7 cards cabem na
+coluna que sobra do chat sem rolagem. O desenho vira a referência da instrução
+de render.
+
+Perguntar duas coisas objetivas ("dá pra ver o estado de relance?", "cabe?") em
+vez de "o que achou?" foi o que destravou — a pergunta aberta sobre uma tela
+custa ao autor decidir *o que* avaliar antes de avaliar, e o veredito não vem.
+
+## A primeira sessão real do Mini de ponta a ponta (Cecília, 10 turnos)
+
+Não é uma fatia — é o que uma conversa de verdade mostrou depois da Fatia 4, e
+que precisa sobreviver até a Fatia 6. Sessão `d6aa99c0`, thread do Postgres.
+
+**O que aguentou:** 8 chamadas de `escrever_no_mapa`, **18 escritas, zero
+`RECUSADO`**, numa conversa contada fora de ordem (o autor abriu pela AÇÃO do
+card 5 e o agente reorganizou pra trás sozinho). E o desenho obedeceu o
+contrato **literal**: os cinco hexes da paleta saíram exatos e as três fontes
+carregaram por CDN dentro do iframe. É a aposta inteira da Fatia 7 confirmada
+em uso real — **CSS literal na instrução é obedecido**.
+
+**Três buracos que o plano já previa, e o uso real confirmou como necessários:**
+nenhum card pode virar `firme` hoje (faltam `registrar_teste` e os vereditos),
+não dá pra criar o 2º elo da corrente (falta `nascer_card`), e
+`assinatura_renderizada` segue vazia depois de desenhar (gatilho é a Fatia 7).
+O primeiro tem um efeito que não estava óbvio no papel: **o agente aplicou a
+régua três vezes na FALA** ("agora dá pra desenhar") **e o julgamento evaporou
+no chat**, porque não havia onde gravá-lo. O segundo falhou por OMISSÃO, não
+por erro: o modelo nunca tentou o elo que não existe, então nada apareceu como
+`RECUSADO`.
+
+**Três achados novos, todos o mesmo sintoma — o mapa aceita qualquer texto em
+qualquer slot e ninguém reclama:**
+
+1. **A frase da espinha não lê em voz alta**, e a leitura em voz alta É o
+   método. "Cecília segue **dirige** ONG", "Ele tenta **recorre** à justiça",
+   "isso porque **no** esbarrou com a facção". Sempre a mesma causa: a forma
+   gramatical que a sonda produz não encaixa na que a fórmula espera (gerúndio,
+   infinitivo, nome de tempo). Ou a sonda dita a forma, ou a fórmula tolera. O
+   `___` da fórmula do card 1 também vaza literal pro meio da frase.
+2. **Sobrescrita silenciosa, com perda.** 4 das 18 escritas foram por cima. A
+   pior apagou "filha única, pai tinha 3 ex-mulheres e 3 irmãos" — que é a
+   razão de existir o testamento adulterado. Sobrevive só no log do chat; o
+   `versao` conta quantas vezes, não guarda o quê.
+3. **O card 6 virou bloco de notas.** O agente emendou o beat da cena (a
+   resposta da tia Carmem) dentro de `nova_rotina`, e a espinha passou a ler um
+   evento único dentro do quadro "todo dia". Não é indisciplina: com um elo só
+   na corrente, tudo que é cena escorre pro card mais próximo.
+
+**E uma correção de instrução achada de graça:** o método manda carregar fonte
+com `<link>` no `<head>`, mas a tool recebe um FRAGMENTO — não existe `<head>`
+pro modelo escrever. Ele adaptou pra `@import` no CSS, que é exatamente o que a
+Fatia 4 provou funcionar. A instrução estava errada e o modelo consertou calado
+— o tipo de desobediência que só aparece lendo o payload da tool call.

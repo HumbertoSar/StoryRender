@@ -377,17 +377,26 @@ def frase_da_espinha(mapa: dict) -> str:
     cards = [card for card in mapa.get("cards") or [] if card.get("tipo") == "lacuna"]
     cards.sort(key=lambda card: card.get("ordem", 0))
 
-    preenchidos: dict[str, str] = {}
+    do_mapa: dict[str, str] = {}
     for card in cards:
         for slot, dado in (card.get("slots") or {}).items():
             texto = (dado.get("texto") or "").strip()
-            if texto and slot not in preenchidos:
-                preenchidos[slot] = texto
+            if texto and slot not in do_mapa:
+                do_mapa[slot] = texto
 
     trechos = []
     for card in cards:
+        proprios = {
+            slot: (dado.get("texto") or "").strip()
+            for slot, dado in (card.get("slots") or {}).items()
+            if (dado.get("texto") or "").strip()
+        }
+        # O slot do próprio card vence o do mapa. Os elos da corrente (§8)
+        # repetem `tentativa` e `pancada`, e sem esta linha o segundo elo sai
+        # lido com o texto do primeiro: a mesma tentativa duas vezes, e a
+        # escalada some da leitura em voz alta.
         frase = card.get("formula", "")
-        for slot, texto in preenchidos.items():
+        for slot, texto in {**do_mapa, **proprios}.items():
             # `\b` e não `str.replace`: sem a fronteira de palavra, o slot
             # `rotina` come o miolo de `NOVA_ROTINA` na fórmula do card 6 e a
             # espinha sai lida como "E desde então, todo dia ele NOVA_passa o
@@ -725,7 +734,17 @@ if __name__ == "__main__":
     # Achado numa conversa real, não aqui: o autoteste original só olhava as
     # duas primeiras lacunas.
     assert "todo dia ele NOVA_ROTINA" in frase, frase
-    casos += 5
+
+    # Cada elo da corrente lê a PRÓPRIA tentativa. Achado ao gerar o mapa da
+    # prévia: com dois elos, o segundo saía com o texto do primeiro, e a
+    # escalada do §8 sumia da leitura em voz alta.
+    corrente = _nascer(p6, instanciar("lacuna-3", "lacuna-3.2", 3.2))
+    corrente = _escrever(corrente, "lacuna-3.1", "tentativa", "vender o computador")
+    corrente = _escrever(corrente, "lacuna-3.2", "tentativa", "pedir o dinheiro ao tio")
+    frase_da_corrente = frase_da_espinha(corrente)
+    assert "Ele tenta vender o computador" in frase_da_corrente, frase_da_corrente
+    assert "Ele tenta pedir o dinheiro ao tio" in frase_da_corrente, frase_da_corrente
+    casos += 6
 
     # ---- 5. A escrita: o que entra, o que é recusado -----------------------
     base = mapa_vazio()
