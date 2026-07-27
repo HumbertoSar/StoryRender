@@ -27,6 +27,7 @@ from roteiro import (
     resumo_espinha,
     roteiro_mckee_vazio,
 )
+from mini import construir_grafo as construir_grafo_mini
 from sessoes import router as router_sessoes
 from sessoes import usar_pool as usar_pool_sessoes
 from tutor import construir_grafo as construir_grafo_tutor
@@ -197,8 +198,18 @@ agente_tutor = LangGraphAgent(
     name="tutor_agent", graph=grafo_tutor.compile(checkpointer=MemorySaver())
 )
 
+# Terceiro trilho: método McKee Mini, nível open-ended. Endpoint próprio no
+# mesmo servidor, e runtime próprio do lado do web (/api/copilotkit-mini): o
+# flag openGenerativeUI é GLOBAL por runtime, então ligá-lo no runtime
+# compartilhado daria a tool generateSandboxedUi também ao story_agent, que
+# está congelado.
+grafo_mini = construir_grafo_mini(model)
+agente_mini = LangGraphAgent(
+    name="mckee_mini", graph=grafo_mini.compile(checkpointer=MemorySaver())
+)
+
 # (agente, grafo) — o lifespan recompila cada um com o checkpointer do Postgres.
-AGENTES = [(agente, grafo), (agente_tutor, grafo_tutor)]
+AGENTES = [(agente, grafo), (agente_tutor, grafo_tutor), (agente_mini, grafo_mini)]
 _pool = None
 
 # Qual checkpointer está de fato em uso. O fallback pra memória é silencioso de
@@ -249,6 +260,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Story Render Agent", lifespan=lifespan)
 add_langgraph_fastapi_endpoint(app, agente, "/agent")
 add_langgraph_fastapi_endpoint(app, agente_tutor, "/agent-tutor")
+add_langgraph_fastapi_endpoint(app, agente_mini, "/agent-mini")
 app.include_router(router_feedback)
 app.include_router(router_sessoes)
 

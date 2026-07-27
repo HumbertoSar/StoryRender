@@ -88,6 +88,33 @@ const METODOS: Metodo[] = [
     ),
   },
   {
+    nome: "McKee Mini",
+    descricao:
+      "A versão curta: seis lacunas que, lidas em voz alta, são a história inteira. O agente desenha o mapa enquanto você conta.",
+    href: "/mckee-mini",
+    icone: (
+      // Órbita: o card-coração ao centro e os satélites em volta, em oposição
+      // à espinha pontilhada do McKee e à escada contínua do Inspired.
+      <svg viewBox="0 0 210 56" className="sr-metodo__icone">
+        <ellipse
+          cx="105"
+          cy="28"
+          rx="72"
+          ry="20"
+          fill="none"
+          stroke="var(--sr-accent)"
+          strokeWidth="1.5"
+        />
+        <circle cx="105" cy="28" r="7" fill="var(--sr-accent)" />
+        {[33, 105, 177].map((cx) => (
+          <circle key={`h-${cx}`} cx={cx} cy="28" r="4" fill="var(--sr-brass)" />
+        ))}
+        <circle cx="69" cy="10" r="4" fill="var(--sr-brass)" />
+        <circle cx="141" cy="46" r="4" fill="var(--sr-brass)" />
+      </svg>
+    ),
+  },
+  {
     nome: "Save the Cat",
     descricao: "Os 15 beats de Snyder, batidos em sequência com marcos de página.",
     icone: (

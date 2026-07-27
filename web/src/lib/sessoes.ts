@@ -8,7 +8,7 @@ const AGENTE = process.env.AGENT_SESSOES_URL ?? "http://127.0.0.1:8000/sessoes";
 
 export type Sessao = {
   thread_id: string;
-  trilho: "mckee-inspired" | "mckee";
+  trilho: "mckee-inspired" | "mckee" | "mckee-mini";
   turnos: number;
   /** ISO do último checkpoint. */
   atualizado_em: string;
