@@ -1479,3 +1479,61 @@ de agente como `## Tutor`, inclusive nas sessões do Mini, e o
 rótulo sem tocar no auditor faria a auditoria ler zero turno. Os dois se
 resolvem juntos na Fatia 10, que é quando o `provar_mini.py` passa a usar o
 auditor.
+
+## Fatia 4 do McKee Mini: a prévia do desenho, sem gastar um turno de LLM
+
+**Escopo:** uma rota `/mckee-mini/previa` que passa um mapa FIXO, escrito à
+mão, pelo mesmo `OpenGenerativeUIActivityRenderer` que vai pintar o que o
+agente compõe — pra decidir cor, medida e tipografia com F5, e não com prompt.
+Fora: o agente desenhar (Fatia 7), o gatilho por assinatura, e qualquer regra
+de render dentro do `metodos/mckee_mini.md`.
+
+**O desenho vem antes da instrução de render, de propósito.** Enquanto o
+desenho não existe como referência, todo problema no quadro é ambíguo: "o mapa
+está feio" e "o modelo desobedeceu" chegam misturados. Com a prévia congelada,
+a Fatia 7 tem um alvo — a instrução passa a ser "componha isto", e o erro fica
+atribuível a um lado só.
+
+**O mapa da prévia NÃO foi escrito à mão.** Saiu do contrato em Python, com o
+exemplo do Fernando (§5 do método), passando por `escrever` e `estado_do_card`
+como uma sessão de verdade passaria: 7 cards (1 e 2 firmes, dois elos em
+rascunho, 4 vazio, 5 fantasma, 6 vazio), 7 ligações derivadas, assinatura
+`b648ff298578`. Isso é o que garante que a prévia mostre um estado POSSÍVEL, e
+não um estado bonito — mapa desenhado a gosto esconde justamente os arranjos
+que o contrato produz e o desenho não aguenta.
+
+**Fidelidade conferida por script, não por vista de olhos:** 7 de 7 cards do
+JSON estão desenhados, nenhum card inventado; 7 de 7 ligações derivadas
+aparecem, nenhuma inventada; e os 7 estados pintados batem um a um com
+`estado_do_card`. É a única parte da aparência que dá pra provar sem navegador,
+e é a que mais importa: um desenho fiel e feio se conserta; um desenho bonito
+que mente sobre o estado ensina o autor errado.
+
+**E o fixture achou um segundo bug na `frase_da_espinha`.** Os dois elos da
+corrente compartilham os slots `tentativa` e `pancada`, e o preenchimento do
+mapa inteiro era usado como fonte única: o elo 3.2 saía lido com o texto do
+3.1 — a mesma tentativa duas vezes, e a escalada do §8 sumindo da leitura em
+voz alta. Corrigido dando precedência ao slot do próprio card
+(`{**do_mapa, **proprios}`), mais dois casos no autoteste (39 agora). **Segunda
+vez seguida** que o buraco aparece quando o dado deixa de ser de brinquedo: na
+Fatia 3 foi a conversa real, aqui foi o mapa com dois elos.
+
+**As fontes carregam de CDN dentro do iframe sandboxed.** O CSP do renderer
+libera `style-src *` e `font-src *`, então o `@import` do Google Fonts no topo
+do CSS funciona (HTTP 200, três famílias, 17 KB) — o desenho do agente não fica
+preso às fontes do sistema. O `@import` precisa ser a PRIMEIRA regra do bloco,
+e o `injectCssIntoHtml` insere o `<style>` inteiro logo antes de `</head>`, o
+que preserva essa posição.
+
+**Nada do `mini.css` vaza pro iframe, e nem podia:** o conteúdo do iframe é
+outro documento. O que foi conferido é o inverso — que o bloco novo
+(`.sr-mini__estado*`, as quatro amostras de estado, o `<pre>` do JSON) usa só
+seletor de classe, sem seletor de elemento nu nem `*`, que é a regra desta casa
+desde o bug que matou o espaçamento do chat.
+
+**O que ficou sem prova automatizada é o pixel.** Não há navegador nesta VPS: o
+HTML montado exatamente como o renderer monta (9934 bytes, 8 `data-card-id`, 7
+`data-ligacao-id`) foi entregue pro olho humano, e a página real está de pé em
+`/mckee-mini/previa`. O veredito visual — os estados se distinguem de relance?
+o radial cabe na coluna que sobra do chat? — é do Humberto, e a Fatia 7 não
+começa antes dele.
