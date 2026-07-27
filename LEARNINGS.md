@@ -1356,3 +1356,69 @@ nunca sobre os argumentos de tool. O normalizador troca travessão do meio da
 linha por vírgula, e passá-lo por cima do HTML corromperia a marcação — com
 sintoma de quadro em branco e nenhum erro. Está comentado no `mini.py` porque
 é o tipo de coisa que alguém "melhora" depois sem perceber.
+
+## Fatia 2 do McKee Mini: o contrato do mapa, e o que ele custa em bytes
+
+**Escopo:** `agent/mini_mapa.py` — o esqueleto dos 6 cards da espinha (fórmula,
+slots com sonda, tabela de testes do §6–§11 do método) e as derivações puras:
+`estado_do_card`, `ligacoes`, `assinatura` e `frase_da_espinha`. Python puro,
+zero LLM e zero rede. Fora: as mutações (Fatia 3), `para_render` (Fatia 7),
+storyboard, sabor e `arco.stale` (o dado deles ainda não existe), e o conteúdo
+dos cards satélites (pendência §19 do método).
+
+**A prova:** `uv run python mini_mapa.py` → **31 casos ok**, em três blocos que
+são os três eixos do contrato: os 4 estados, as 8 ligações (conjunto EXATO
+depois de cada passo de um mapa que cresce, porque aresta a mais é seta
+desenhada à toa) e o gatilho de render (mutação → redesenha ou não).
+
+**"Firme" ficou impossível de falsificar.** A regra derivada é "todo teste
+passou", e num card sem tabela de testes isso seria verdade vazia: o mapa
+mostraria como sólido o que ninguém checou. Card sem nenhum teste fica em
+rascunho, por construção. É a doutrina do projeto (o determinístico sai do
+prompt e vira código) chegando no lugar onde ela mais vale: **o agente não
+consegue mentir que um card está firme.**
+
+**O §14 não dizia duas coisas que alguém teria que decidir.** (a) `motor` e
+`corrente` cobrem pares que a `sequencia` também cobriria — sem dedup o mapa
+desenha duas setas em cima da outra; quem chega antes fica. (b) Ligação para
+card que não existe não desenha: o `batismo` nasce quando o slot do nome é
+preenchido, mas o card Protagonista é criado por uma tool, e entre uma coisa e
+outra a aresta ficaria solta. Ambas com teste próprio.
+
+**O preço de "a sonda mora no slot", medido:**
+
+| | bytes |
+|---|---|
+| mapa vazio, como vai pro checkpoint | **8.278** |
+| sem as tabelas de teste | 2.594 |
+| sem testes e sem sondas | 1.764 |
+| só o card 1, inteiro | 1.428 |
+
+Ou seja: **~6,5 KB dos 8,3 KB do mapa vazio são sonda e tabela de teste** —
+método, não história. Vale a pena no estado (é o que deixa o HTML gerado
+desenhar sem saber McKee), mas decide uma coisa da Fatia 6: **`montar(mapa)`
+mandar o card em foco e um índice dos outros não é otimização opcional, é
+requisito.** O mapa inteiro no prompt custaria ~2k tokens de esqueleto vazio
+por turno, antes de a história existir.
+
+**O identificador vence a tipografia.** O truque do plano é que o nome em CAIXA
+ALTA na fórmula É o id do slot que a tool recebe, sem camada de tradução. Isso
+custou o acento de `PREÇO_A` e `AÇÃO`: as fórmulas guardadas escrevem
+`PRECO_A` e `ACAO`. Diferença de um acento com o §5 do método, e some assim que
+o slot é preenchido (a CAIXA ALTA só aparece como buraco).
+
+**Pegadinha registrada: `hashlib`, nunca o `hash()` embutido.** O built-in é
+aleatorizado por processo (PYTHONHASHSEED), então a assinatura gravada num
+turno não bateria com a calculada depois de um restart do agente — e toda
+sessão reaberta redesenharia o mapa de graça, com a conta chegando sem bug
+visível. O autoteste crava o valor do mapa vazio (`c015ee550db5`), gerado
+noutro processo, exatamente para prender isso.
+
+**A assinatura ignora conteúdo, de propósito.** Reescrever o texto de um slot
+que já tinha texto não redesenha; o que dispara é card que nasce, card que muda
+de estado e ligação que aparece. É o que separa 8 a 12 renders numa sessão de
+uma chamada de modelo por palavra digitada.
+
+**Pendências do método que este arquivo carrega:** o nome do card 6 ("O Mundo
+como Ficou", §18.8) é uma string só, reversível; os cards satélites entram
+aqui como alvo de ligação, sem conteúdo, porque o §19 ainda é decisão do autor.
