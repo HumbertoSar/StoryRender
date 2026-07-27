@@ -4,10 +4,12 @@ Terceiro trilho, separado dos dois anteriores pelo mesmo motivo que o Tutor foi
 separado do McKee: `/mckee` e `/mckee-inspired` estão congelados e em produção,
 e nada da validação daqui pode regredi-los.
 
-**Fatia 3.** Grafo de dois nós: `conversar` e `tools`. A primeira primitiva de
-escrita (`escrever_no_mapa`) já grava no canal `mapa`, que nasce completo, com
-os seis cards da espinha e todos os buracos à mostra. As outras quatro tools do
-plano e as fórmulas do método entram nas fatias seguintes.
+Grafo de dois nós: `conversar` e `tools`. A primitiva de escrita
+(`escrever_no_mapa`, Fatia 3) grava no canal `mapa`, que nasce completo, com os
+seis cards da espinha e todos os buracos à mostra. Desde a Fatia 6 a instrução
+do turno é MONTADA a partir desse mapa (`instrucao_mini.montar`): o card em
+foco vai inteiro, os outros viram uma linha de índice. As outras quatro tools
+do plano entram nas fatias seguintes.
 
 O desenho não é um nó do grafo: `generateSandboxedUi` é uma tool de FRONTEND,
 registrada pelo `<CopilotKit>` quando `openGenerativeUI` está ligado no runtime.
@@ -19,7 +21,6 @@ que separa os dois casos.
 """
 
 from inspect import cleandoc
-from pathlib import Path
 from time import perf_counter
 from typing import Annotated, Optional
 
@@ -31,11 +32,10 @@ from langgraph.prebuilt import InjectedState, ToolNode
 from langgraph.types import Command
 from pydantic import BaseModel, Field
 
+import instrucao_mini
 import mini_mapa
 import telemetria
 from forma import normalizar
-
-ARQUIVO_INSTRUCAO = Path(__file__).parent / "metodos" / "mckee_mini.md"
 
 
 class MapaState(MessagesState):
@@ -51,22 +51,18 @@ class MapaState(MessagesState):
     tools: list
 
 
-def carregar_instrucao() -> str:
-    """A instrução deste turno, lida do disco A CADA TURNO.
+def carregar_instrucao(mapa: dict | None = None) -> str:
+    """A instrução deste turno, montada A CADA TURNO a partir do mapa.
 
     Mesmo ciclo de validação do Tutor: editar o .md e mandar a próxima mensagem
-    já testa a versão nova, sem restart, sem rebuild, sem commit. O cabeçalho
-    editorial (tudo antes da primeira linha `---` nas dez primeiras) é
-    documentação pra humano e não vai pro modelo.
+    já testa a versão nova, sem restart, sem rebuild, sem commit.
 
-    Sem montagem por turno de propósito: ela foi otimização pra um prompt de
-    23 KB, e este ainda não tem tamanho que justifique. Medir antes.
+    A montagem entrou na Fatia 6 (ver `instrucao_mini`): o card em foco vai
+    inteiro, os outros viram uma linha de índice. Não é economia especulativa,
+    é o que permite o prompt ficar do tamanho do FOCO e não do método inteiro
+    conforme os cards 2 a 6 ganharem suas tabelas.
     """
-    linhas = ARQUIVO_INSTRUCAO.read_text(encoding="utf-8").splitlines()
-    for i, linha in enumerate(linhas[:10]):
-        if linha.strip() == "---":
-            return "\n".join(linhas[i + 1:]).strip()
-    return "\n".join(linhas).strip()
+    return instrucao_mini.montar(mapa)
 
 
 def mapa_do_estado(state: dict) -> dict:
@@ -138,10 +134,41 @@ BACKEND_TOOL_NAMES = {t.name for t in TOOLS}
 # linhas de continuação chegam ao modelo com quatro espaços na frente, que em
 # markdown é bloco de código.
 escrever_no_mapa.description = cleandoc(escrever_no_mapa.description)
-escrever_no_mapa.description += "\n\nCards e slots que existem:\n" + "\n".join(
-    f"- {'lacuna-3.1 (e 3.2, 3.3, 3.4 conforme a corrente cresce)' if mid == 'lacuna-3' else mid}"
-    f" · {modelo['nome']}: {', '.join(modelo['slots'])}"
-    for mid, modelo in mini_mapa.ESQUELETO.items()
+
+
+def _indice_de_escrita() -> str:
+    """Cards, slots e a FORMA de cada texto, gerados do ESQUELETO.
+
+    A forma mora aqui, e não na instrução montada, por uma razão que uma
+    conversa real ensinou: o primeiro turno distribui o braindump por seis
+    cards de uma vez, e a instrução só abre o card em FOCO. A forma que só
+    aparecia no foco chegava tarde demais justamente no turno que mais escreve,
+    e `rotina` entrava no infinitivo ("segue cuidar da banca") enquanto
+    `tentativa`, que era do card em foco, entrava certa.
+
+    Restrição de escrita pertence à descrição da tool, ao lado do nome do slot.
+    A instrução cuida de quando e por que escrever, que é o que exige
+    julgamento.
+    """
+    linhas = []
+    for mid, modelo in mini_mapa.ESQUELETO.items():
+        nome_id = ("lacuna-3.1 (e 3.2, 3.3, 3.4 conforme a corrente cresce)"
+                   if mid == "lacuna-3" else mid)
+        linhas.append(f"\n{nome_id} · {modelo['nome']}")
+        linhas.append(f'  frase: "{modelo["formula"]}"')
+        for slot in modelo["slots"]:
+            forma = (modelo.get("forma") or {}).get(slot)
+            # Slot que não aparece na fórmula (o `rosto` do elo) não tem forma:
+            # não há frase em que ele precise caber.
+            linhas.append(f"  {slot}: {forma}" if forma
+                          else f"  {slot}: texto livre, curto e concreto")
+    return "\n".join(linhas)
+
+
+escrever_no_mapa.description += (
+    "\n\nCards e slots que existem. Escreva o texto JÁ na forma indicada: o "
+    "autor fala em linguagem de história, e cabe a você encaixar na frase.\n"
+    + _indice_de_escrita()
 )
 
 
@@ -204,8 +231,15 @@ def construir_grafo(model):
         # são sempre turnos diferentes, o que deixa o desenho visível como
         # evento em vez de efeito colateral de uma resposta de texto.
         modelo = model.bind_tools([*TOOLS, *tools_do_front], parallel_tool_calls=False)
-        instrucao = carregar_instrucao()
         historico = state["messages"]
+        # A instrução é função do MAPA: o card em foco vai inteiro, o resto
+        # vira uma linha de índice. Por isso ela é montada aqui, depois do
+        # estado chegar, e não uma vez no import.
+        # `mapa_do_estado` e não `state.get("mapa")`: no PRIMEIRO turno o canal
+        # ainda não existe (quem o cria é o update lá embaixo), e montar a
+        # instrução com None deixaria justamente o turno do braindump sem a
+        # seção de estado, sem foco e sem sonda nenhuma.
+        instrucao = carregar_instrucao(mapa_do_estado(state))
 
         # Telemetria: o `config` é o único lugar onde o thread_id existe dentro
         # de um nó — o LangGraph só o passa porque a assinatura o declara.

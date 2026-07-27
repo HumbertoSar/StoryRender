@@ -1658,3 +1658,88 @@ tabela vazia sem nenhum erro.
 **Autoteste sem banco e sem LLM:** `uv run python telemetria.py` → 9 casos, nas
 duas derivações puras (`tamanho`, que conta os args da tool, e `posicao`, que
 separa turno de chamada) mais o no-op sem pool.
+
+## Fatia 6 do McKee Mini: a instrução montada do mapa, e a forma que a sonda dita
+
+**Escopo:** `metodos/mckee_mini.md` reescrito (abertura com o §1, "Como você
+escreve", "Regras de ouro", "O fluxo da sessão"), `agent/instrucao_mini.py` com
+`montar(mapa)`, e a decisão do Humberto de 2026-07-27 sobre a leitura em voz
+alta: **a sonda dita a forma**. **Fora:** a tabela de testes de cada card, que
+desce pra Fatia 9 junto de `registrar_teste`.
+
+**Por que a tabela de testes não entrou, mesmo o plano pedindo "a tabela do
+card 1".** Sem `registrar_teste` não existe onde gravar veredito. Mandar as
+navalhas agora seria documentar regra sem implementação, e a sessão da Cecília
+já mostrou o resultado disso: o agente aplicou a régua três vezes NA FALA e o
+julgamento evaporou no chat. Regra e lugar de gravar chegam juntos.
+
+**`sonda` e `forma` são coisas diferentes, e confundi-las quebrou o método.**
+Todas as sondas de slot eram cópia literal das sondas de TESTE: o slot
+`passado` perguntava "como exatamente esse acontecimento fabrica essa rotina?",
+que é navalha, não pergunta de preenchimento. O texto que voltava não cabia na
+frase. Agora a **sonda** é a pergunta curta que o AUTOR lê no card vazio, e a
+**forma** é como o texto precisa entrar na fórmula, com exemplo literal, e só o
+agente lê. A forma é derivada do `ESQUELETO` e NÃO guardada no card, ao
+contrário da sonda: ajustar uma forma precisa alcançar sessão já aberta.
+
+**A fórmula do card 1 estava impossível de satisfazer, e não era o modelo.** O
+`ESQUELETO` transcreveu o §5 como `"isso porque no PASSADO ___"`. O `no` exige
+substantivo masculino, mas a peça que o §6 pede é um ACONTECIMENTO. Nenhum
+texto satisfaz isso, e toda leitura saía "isso porque no esbarrou com a
+facção", com o `___` ainda vazando literal pro meio da frase. O exemplo do
+próprio §5 mostra a leitura pretendida ("Isso porque no passado o pai abandonou
+a família"): `passado` é palavra da fórmula, o slot é a oração. **Aprendizado:
+antes de acusar o modelo de desobedecer um template, verifique se o template é
+satisfazível.**
+
+**A forma mora na DESCRIÇÃO DA TOOL, e isso custou uma sessão pra descobrir.**
+Na primeira tentativa a forma ia na instrução montada, junto do card em foco.
+Resultado medido: `tentativa` (card em foco) entrou certa, e `rotina` entrou
+"cuidar de uma banca" no infinitivo. A causa apareceu na telemetria, não na
+leitura: **turno 1, chamada 1, instrução 7630 chars** contra 8718 nas
+seguintes. No primeiro turno o canal `mapa` ainda não existe, então a instrução
+subia sem estado, sem foco e sem forma nenhuma, justamente no turno em que o
+braindump preenche seis cards de uma vez. Dois consertos: `mapa_do_estado` em
+vez de `state.get("mapa")`, e a forma migrada pra descrição da tool, onde vale
+pros seis cards. **Restrição de escrita pertence à tool; a instrução cuida de
+quando e por que escrever.** É a mesma regra que a Fatia 3 já tinha achado pro
+vocabulário de slots.
+
+**Os exemplos das formas contaminavam a prova.** A primeira versão usava Marta,
+banca de jornal, carta, avental, que era exatamente a história do teste: não
+dava pra saber se o modelo traduzia a fala do autor ou copiava o exemplo. Os
+exemplos agora são de outra história (Otávio e o cachorro), e o verificador
+checa que nenhuma palavra dela vaza pro mapa. **Exemplo dentro de prompt é
+dado de teste: se ele parecer com o caso de teste, o teste não mede nada.**
+
+**A prova, com o autor falando torto de propósito.** 6 turnos, cada fala com um
+vício que a forma tinha que corrigir. **14 checagens, zero falhas:** o autor
+disse "ela recorre ao correio" e entrou `rastrear o carimbo no correio`; disse
+"cuida de uma banca" e entrou `cuidando de uma banca`; disse "perde entregar a
+única renda" e entrou `a única renda que tem`. A espinha saiu sem nenhum buraco
+em CAIXA ALTA, sem `___`, e sem nenhum dos tropeços conhecidos.
+
+**A regra de forma que mais mudou o tom não foi gramatical.** "Nunca abra o
+turno avaliando o autor": a sessão da Cecília abria TODOS os turnos com
+"Perfeito", "Ótimo" ou "Guardei". Nesta, nenhum. Elogio automático é barato de
+proibir e some por completo quando a proibição é explícita e exemplificada.
+
+**Duas armadilhas no meu próprio verificador**, que valem tanto quanto os
+achados: `"tenta recorre" not in frase` reprovava `Ele tenta recorrer`, que é a
+forma CERTA (faltava fronteira de palavra); e a contagem de frases reprovava
+por "turno longo" exatamente o turno que OBEDECEU a instrução de ler a espinha
+em voz alta. **Verificador sem fronteira e sem exceção reprova o acerto**, e um
+teste que reprova o comportamento desejado é pior que teste nenhum.
+
+**Números do prompt, que o plano manda registrar:** instrução de **8218 chars
+no 1º turno e 9068 no 6º**. Ela CRESCE, porque a seção de estado cresce com o
+mapa. A economia prometida (card em foco inteiro, resto em uma linha de índice)
+está montada mas ainda não paga: ela só aparece quando os cards 2 a 6 ganharem
+suas tabelas na Fatia 9. Registrado agora pra que o ganho seja medido contra
+este número, e não contra uma lembrança.
+
+**O que continua torto e é decisão de método, não de código:** a fórmula usa
+`o(a) PROTAGONISTA` e depois `ele` nas lacunas 3, 5 e 6, então uma protagonista
+mulher é lida como "Ele tenta", "E então ele". E `protagonista` com traço
+visível ("Marta, 58 anos, banca de jornal vazia") lê bem na lacuna 1 e mal na
+2, que reusa o slot inteiro. Os dois são texto do §5.

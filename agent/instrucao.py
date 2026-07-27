@@ -43,10 +43,14 @@ TERMOS_DO_DEGRAU = {
 }
 
 
-def _corpo() -> str:
+def _corpo(arquivo: Path = ARQUIVO) -> str:
     """O arquivo sem o cabeçalho editorial (tudo antes da primeira linha `---`
-    é documentação pra humano e não vai pro modelo)."""
-    linhas = ARQUIVO.read_text(encoding="utf-8").splitlines()
+    é documentação pra humano e não vai pro modelo).
+
+    O parâmetro existe pro `instrucao_mini` reusar isto em vez de manter uma
+    terceira cópia do mesmo corte — o default preserva o uso do Tutor.
+    """
+    linhas = arquivo.read_text(encoding="utf-8").splitlines()
     for i, linha in enumerate(linhas[:10]):
         if linha.strip() == "---":
             return "\n".join(linhas[i + 1:]).strip()

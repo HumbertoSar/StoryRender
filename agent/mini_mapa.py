@@ -49,6 +49,18 @@ VEREDITOS = ("pendente", "passa", "nao_passa")
 #    placeholder). Assim o HTML gerado nunca precisa saber McKee: ele desenha o
 #    que recebe. Custa bytes no checkpoint e compra um contrato autodescritivo,
 #    que é exatamente o que um gerador de HTML livre precisa.
+#
+#    **`sonda` e `forma` são coisas diferentes, e confundi-las quebrou o método
+#    numa sessão real.** A sonda é a pergunta curta que o AUTOR lê no card
+#    vazio; a forma é como a resposta precisa entrar na fórmula, com exemplo
+#    literal, e só o AGENTE lê (via `instrucao_mini`). Antes disso as sondas de
+#    slot eram cópia das sondas de TESTE — pergunta de navalha ("como isso
+#    fabrica a rotina?") no lugar de pergunta de preenchimento —, e o texto que
+#    voltava não cabia na frase: "Ele tenta **recorre** à justiça", "pagando
+#    **entregar** a credibilidade", "isso porque no **esbarrou** com a facção".
+#    A espinha lida em voz alta É a régua do método, então texto que não cabe
+#    na frase não é detalhe de redação: é o método falhando calado.
+#    Só slot que aparece na fórmula tem forma.
 # 2. **O nome em CAIXA ALTA na fórmula é o id do slot.** Nenhuma camada de
 #    tradução, nada para o modelo inventar quando chamar a tool. Por isso as
 #    fórmulas aqui perdem o acento de PREÇO_A e AÇÃO em relação ao §5: entre a
@@ -65,11 +77,26 @@ ESQUELETO: dict[str, dict] = {
     "lacuna-1": {
         "nome": "O Mundo como Era",
         "ordem": 1.0,
-        "formula": "Todo dia o(a) PROTAGONISTA segue ROTINA, isso porque no PASSADO ___",
+        # A fórmula do §5 é "isso porque no PASSADO ___", e transcrita assim ela
+        # é impossível de satisfazer: o `no` exige substantivo masculino, mas a
+        # peça que o §6 pede é um ACONTECIMENTO ("teste do apagador: causa, não
+        # decoração"). Toda leitura em voz alta saía "isso porque no esbarrou
+        # com a facção", e o `___` ainda vazava literal pro meio da frase. O
+        # exemplo do próprio §5 mostra a leitura pretendida — "Isso porque no
+        # passado o pai abandonou a família" —, em que `passado` é palavra da
+        # fórmula e o slot é a oração. É essa que está aqui.
+        "formula": "Todo dia o(a) PROTAGONISTA segue ROTINA, isso porque no passado PASSADO",
         "slots": {
-            "protagonista": "Quem é? Me dá o nome e me mostra ele numa cena.",
+            "protagonista": "Quem é? Nome e uma coisa que a gente vê nele.",
             "rotina": "O que a gente VÊ ele fazendo?",
-            "passado": "Como exatamente esse acontecimento fabrica essa rotina?",
+            "passado": "O que aconteceu antes que fabricou essa rotina?",
+        },
+        "forma": {
+            "protagonista": "nome e um traço visível: `Otávio, 12 anos, tênis sempre furado`",
+            "rotina": "terminando em -ndo, porque a frase é `todo dia ele segue ___`: "
+                      "`varrendo a oficina do pai antes da escola`",
+            "passado": "uma frase inteira, porque ela entra depois de `isso porque no "
+                       "passado`: `a mãe foi embora e ninguém em casa fala nela`",
         },
         "testes": [
             ("imagem-nao-categoria", "protagonista", "Imagem, não categoria",
@@ -91,6 +118,12 @@ ESQUELETO: dict[str, dict] = {
         "slots": {
             "evento": "O que aconteceu NAQUELE dia?",
             "desejo": "Se ele conseguir, qual é a foto? O que a gente vê?",
+        },
+        "forma": {
+            "evento": "um acontecimento no passado, porque a frase é `até que um dia "
+                      "___`: `apareceu um cachorro preso no muro do vizinho`",
+            "desejo": "verbo no infinitivo, porque a frase é `passou a querer ___`: "
+                      "`esconder o cachorro até o pai voltar de viagem`",
         },
         "testes": [
             ("datado-nao-estado", "evento", "Datado, não estado",
@@ -114,9 +147,17 @@ ESQUELETO: dict[str, dict] = {
         "ordem": 3.0,
         "formula": "Ele tenta TENTATIVA, mas PANCADA",
         "slots": {
-            "tentativa": "Por que ele tenta ISSO agora? O que a última pancada empurrou pra cá?",
-            "pancada": "Depois dessa pancada, essa tentativa ainda existe como opção?",
+            "tentativa": "O que ele tenta pra sair dessa?",
+            "pancada": "O que dá errado?",
             "rosto": "Quem ou o que bateu? Me mostra em cena.",
+        },
+        # `rosto` não aparece na fórmula (é a colheita da Força Antagônica), e
+        # por isso não tem forma: só slot que entra na frase precisa caber nela.
+        "forma": {
+            "tentativa": "verbo no infinitivo, porque a frase é `ele tenta ___`: "
+                         "`esconder o cachorro no barracão`",
+            "pancada": "uma frase inteira, porque ela entra depois de `mas`: "
+                       "`o vizinho reconheceu o cachorro e foi cobrar em casa`",
         },
         "testes": [
             ("por-causa-disso", "tentativa", "Por causa disso",
@@ -139,10 +180,20 @@ ESQUELETO: dict[str, dict] = {
             "ou ESCOLHA_B, pagando PRECO_B"
         ),
         "slots": {
-            "escolha_a": "Qual é a primeira mão? O que ele escolhe se escolher esta?",
+            "escolha_a": "Qual é a primeira mão?",
             "preco_a": "O que ele perde se escolher esta?",
             "escolha_b": "E a outra mão, qual é?",
             "preco_b": "E o que ele perde se escolher essa?",
+        },
+        # Os preços são COISAS e não verbos: "pagando entregar a credibilidade"
+        # foi exatamente como uma sessão real quebrou a leitura em voz alta.
+        "forma": {
+            "escolha_a": "verbo no infinitivo, porque a frase é `ou ___`: "
+                         "`entregar o cachorro e ficar quieto`",
+            "preco_a": "uma coisa que se perde, não um verbo, porque a frase é "
+                       "`pagando ___`: `a única coisa que era só dele`",
+            "escolha_b": "também no infinitivo: `fugir de casa com o cachorro`",
+            "preco_b": "também uma coisa: `a oficina e o pai`",
         },
         "testes": [
             ("qual-e-a-certa", "frase", "Qual é a certa?",
@@ -162,7 +213,11 @@ ESQUELETO: dict[str, dict] = {
         "ordem": 5.0,
         "formula": "E então ele ACAO",
         "slots": {
-            "acao": "Essa ação é qual das duas mãos? Me mostra a opção escolhida acontecendo.",
+            "acao": "Qual das duas mãos ele escolhe? Me mostra acontecendo.",
+        },
+        "forma": {
+            "acao": "verbo conjugado em `ele`, porque a frase é `e então ele ___`: "
+                    "`abre o portão e sai com o cachorro no colo`",
         },
         "testes": [
             ("e-a-escolha-em-acao", "acao", "É a escolha em ação",
@@ -186,6 +241,15 @@ ESQUELETO: dict[str, dict] = {
         "formula": "E desde então, todo dia ele NOVA_ROTINA",
         "slots": {
             "nova_rotina": "O que a gente VÊ ele fazendo agora, num dia comum?",
+        },
+        # "num dia comum" é literal de propósito: numa sessão real este slot foi
+        # usado pra guardar o lance de uma cena única, e a frase passou a ler um
+        # acontecimento dentro do quadro "todo dia".
+        "forma": {
+            "nova_rotina": "verbo conjugado em `ele` e um dia COMUM, não um "
+                           "acontecimento único, porque a frase é `e desde então, "
+                           "todo dia ele ___`: `varre a oficina de um homem que "
+                           "não é o pai dele`",
         },
         "testes": [
             ("da-pra-desenhar", "nova_rotina", "Dá pra desenhar",
@@ -224,6 +288,11 @@ def instanciar(modelo_id: str, card_id: str, ordem: float, hipotese: bool = Fals
     modelo = ESQUELETO[modelo_id]
     return {
         "id": card_id,
+        # De qual modelo do ESQUELETO este card saiu. Guardado em vez de
+        # deduzido do id (`lacuna-3.1` → `lacuna-3`): a convenção de id já é
+        # carregada demais, e é isto que deixa `forma_do_slot` buscar a forma
+        # ATUAL do método num card nascido semanas atrás.
+        "modelo": modelo_id,
         "tipo": "lacuna",
         "nome": modelo["nome"],
         "ordem": ordem,
@@ -241,6 +310,19 @@ def instanciar(modelo_id: str, card_id: str, ordem: float, hipotese: bool = Fals
             for tid, peca, nome, sonda in modelo["testes"]
         ],
     }
+
+
+def forma_do_slot(card: dict, slot: str) -> str:
+    """Como o texto deste slot precisa entrar na fórmula, ou "" se ele não
+    aparece nela.
+
+    Derivado do ESQUELETO e NÃO guardado no card, ao contrário da sonda: a
+    forma é o que o agente lê, e ajustar uma forma no método precisa alcançar
+    as sessões já abertas. A sonda é o que o AUTOR vê no card vazio, e essa
+    congela no nascimento junto do resto do card.
+    """
+    modelo = ESQUELETO.get(card.get("modelo") or "", {})
+    return (modelo.get("forma") or {}).get(slot, "")
 
 
 def mapa_vazio() -> dict:
@@ -404,8 +486,12 @@ def frase_da_espinha(mapa: dict) -> str:
             # sozinha resolve os dois casos. A troca vai por função pra que
             # contrabarra no texto do autor não vire grupo de captura.
             frase = re.sub(rf"\b{re.escape(slot.upper())}\b", lambda _: texto, frase)
-        trechos.append(frase)
-    return " ".join(trechos)
+        trechos.append(frase.strip())
+    # Ponto entre as lacunas, e não espaço: a espinha existe pra ser LIDA EM VOZ
+    # ALTA (§4.6, o momento em que o autor escuta que tem uma história), e sem
+    # pontuação as seis fórmulas saem como um parágrafo sem fôlego. Só entre
+    # trechos — dentro da fórmula a pontuação é do método.
+    return ". ".join(t for t in trechos if t)
 
 
 def assinatura(mapa: dict) -> str:
@@ -745,6 +831,53 @@ if __name__ == "__main__":
     assert "Ele tenta vender o computador" in frase_da_corrente, frase_da_corrente
     assert "Ele tenta pedir o dinheiro ao tio" in frase_da_corrente, frase_da_corrente
     casos += 6
+
+    # ---- 4b. A forma: todo slot da fórmula sabe como caber nela ------------
+    # Trava estrutural: slot novo numa fórmula sem forma correspondente passa a
+    # ser erro AQUI, e não seis semanas depois numa leitura em voz alta torta.
+    for mid, modelo in ESQUELETO.items():
+        na_formula = {s for s in modelo["slots"] if s.upper() in modelo["formula"]}
+        formas = set(modelo.get("forma") or {})
+        assert na_formula == formas, f"{mid}: fórmula pede {na_formula}, forma tem {formas}"
+        # Forma sem slot correspondente seria forma órfã, que nunca chega ao
+        # modelo e envelhece sem ninguém notar.
+        assert formas <= set(modelo["slots"]), mid
+        # Toda forma carrega um exemplo literal: é o que o modelo copia. Regra
+        # em prosa escorrega; exemplo entre crases é obedecido.
+        for slot, texto in (modelo.get("forma") or {}).items():
+            assert "`" in texto, f"{mid}.{slot}: forma sem exemplo literal"
+
+    # A forma é derivada, não guardada: um card nascido ANTES da mudança no
+    # método já lê a forma nova. É o oposto da sonda, que congela no nascimento.
+    card_velho = instanciar("lacuna-3", "lacuna-3.9", 3.9)
+    assert "sonda" in card_velho["slots"]["tentativa"]
+    assert "forma" not in card_velho["slots"]["tentativa"]
+    assert "infinitivo" in forma_do_slot(card_velho, "tentativa")
+    assert forma_do_slot(card_velho, "rosto") == "", "rosto não entra na fórmula"
+    assert forma_do_slot({"modelo": "inexistente"}, "x") == ""
+    casos += 4
+
+    # A leitura em voz alta com texto na forma pedida: é o caso que a sessão
+    # real reprovou ("Ele tenta recorre à justiça", "pagando entregar a
+    # credibilidade") e que agora tem que sair inteiro.
+    voz = mapa_vazio()
+    for card_id, slot, texto in [
+        ("lacuna-1", "protagonista", "Marta"),
+        ("lacuna-1", "rotina", "abrindo uma banca que ninguém procura"),
+        ("lacuna-1", "passado", "o filho sumiu e ela nunca mudou de endereço"),
+        ("lacuna-3.1", "tentativa", "rastrear o carimbo do correio"),
+        ("lacuna-4", "escolha_a", "fechar a banca e ir atrás"),
+        ("lacuna-4", "preco_a", "a única renda que ela tem"),
+        ("lacuna-6", "nova_rotina", "carrega a carta fechada no bolso do avental"),
+    ]:
+        voz = _escrever(voz, card_id, slot, texto)
+    lida = frase_da_espinha(voz)
+    assert "Marta segue abrindo uma banca" in lida, lida
+    assert "no passado o filho sumiu" in lida, lida
+    assert "Ele tenta rastrear o carimbo" in lida, lida
+    assert "pagando a única renda que ela tem" in lida, lida
+    assert "todo dia ele carrega a carta fechada" in lida, lida
+    casos += 5
 
     # ---- 5. A escrita: o que entra, o que é recusado -----------------------
     base = mapa_vazio()
