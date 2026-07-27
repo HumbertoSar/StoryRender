@@ -1198,3 +1198,66 @@ falta de regra: a regra existe, tem modelo, e mesmo assim cai.
 **Bug de medição corrigido:** o agregado contava a mesma regra duas vezes
 quando ela caía nos dois turnos da mesma conversa, e chegava a imprimir "5/3".
 O denominador é conversa, não violação.
+
+## Fatia 0 do McKee Mini: `metodos/` fora da imagem, e um /health que diagnostica
+
+**Escopo:** consertar um bug vivo em produção antes de encostar no trilho novo,
+e dar ao `/health` o mínimo pra que uma falha desse tipo não fique invisível de
+novo. Nada do McKee Mini entra aqui.
+
+**O bug.** `agent/Dockerfile` fazia `COPY *.py ./` e nada mais. O Dockerfile é
+de 19/07; `agent/metodos/` nasceu em 25/07, quando a instrução do Tutor passou a
+ser lida do disco a cada turno. Não há `.dockerignore` nem volume no compose,
+então o diretório simplesmente não existia na imagem. Provado no container que
+estava rodando:
+
+    $ docker exec storyrender-agent ls /app/metodos
+    ls: cannot access '/app/metodos': No such file or directory
+
+    $ docker exec storyrender-agent uv run python -c "import tutor; tutor.carregar_instrucao()"
+    FileNotFoundError: [Errno 2] No such file or directory: '/app/metodos/mckee_inspired.md'
+
+Ou seja: **todo turno do `/agent-tutor` em produção levantava exceção**, desde o
+deploy de 25/07. O container subia normalmente, o `/health` respondia
+`{"ok": true}`, e nada nos logs (14 linhas no total) denunciava. Só não virou
+incidente porque ninguém abriu o trilho em produção nesse intervalo.
+
+**Por que passou tanto tempo despercebido.** O smoke test do deploy exercitou
+leitura e reidratação de sessões do Postgres, que não tocam o arquivo. O caminho
+que quebrou é o único que lê disco, e é o que só acontece quando alguém manda
+uma mensagem de verdade. **Smoke test de deploy precisa incluir um turno real
+do agente, não só as rotas de leitura.**
+
+**A lição de embalagem.** `COPY *.py ./` é uma lista de arquivos disfarçada de
+padrão. Ela não quebrou quando o projeto era só `.py`, e quebrou calada no dia
+em que o agente passou a depender de um dado externo ao código. Qualquer agente
+novo que leia prompt do disco herda o mesmo problema, e o McKee Mini seria o
+segundo.
+
+**O /health.** Passou a devolver o que teria pego isso no primeiro deploy:
+
+    {"ok": false, "checkpointer": "memoria", "metodos": {},
+     "modelo": "anthropic/claude-sonnet-4.5", "chave_do_modelo": "ausente"}
+
+Cada campo é uma falha que já aconteceu ou que falharia em silêncio: o fallback
+do Postgres pra memória é silencioso de propósito (banco fora não pode derrubar
+o dev) e por isso precisa aparecer em algum lugar consultável; a chave do modelo
+ausente só se descobre no 401 do primeiro turno; e `metodos` vazio é exatamente
+este bug. `ok` é falso quando algum método não pôde ser lido, porque aí o
+servidor sobe mas o trilho que depende dele responde erro em todo turno. A chave
+do modelo entra como presença, nunca como valor.
+
+O diretório vem de `instrucao.DIRETORIO`, importado de quem o lê, e não de uma
+segunda cópia do caminho no `main.py`: o `/health` tem que conferir exatamente a
+pasta que o Tutor abre, ou volta a mentir por outro motivo.
+
+**Prova.** Autotestes de `instrucao.py` (20.667 caracteres no 1º turno, mesmas
+checagens) e `forma.py` (9 casos) verdes depois do refactor do caminho. Imagem
+reconstruída: `/app/metodos/mckee_inspired.md` presente, `carregar_instrucao()`
+devolvendo os mesmos 20.667 caracteres dentro do container, e o `/health`
+respondendo `ok: true`. Com `--tmpfs /app/metodos` pra simular o bug, `ok: false`
+e `metodos: {}`.
+
+**O que ficou de fora:** `healthcheck` no docker-compose. O `/health` agora tem
+o que responder, mas ligar o healthcheck muda comportamento de restart do
+container e é decisão de deploy, não desta fatia.
