@@ -25,7 +25,8 @@ errar pra menos aqui é pior que gastar contexto.
 import re
 from pathlib import Path
 
-ARQUIVO = Path(__file__).parent / "metodos" / "mckee_inspired.md"
+DIRETORIO = Path(__file__).parent / "metodos"
+ARQUIVO = DIRETORIO / "mckee_inspired.md"
 
 # Cada degrau da seção "Os 9 degraus" e os termos que denunciam foco nele. O
 # 6b (linhas paralelas) anda junto com o 6, que é de quem ele é variação.

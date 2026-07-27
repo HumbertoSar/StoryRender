@@ -18,6 +18,9 @@ from langgraph.types import Command
 from feedback import criar_tabela as criar_tabela_feedback
 from feedback import router as router_feedback
 from feedback import usar_pool as usar_pool_feedback
+# O diretório vem de quem o LÊ, não de uma segunda cópia do caminho aqui: é o
+# que garante que o /health confira exatamente a pasta que o Tutor abre.
+from instrucao import DIRETORIO as DIRETORIO_METODOS
 from roteiro import (
     adicionar_complicacao,
     resumo_assets,
@@ -198,10 +201,15 @@ agente_tutor = LangGraphAgent(
 AGENTES = [(agente, grafo), (agente_tutor, grafo_tutor)]
 _pool = None
 
+# Qual checkpointer está de fato em uso. O fallback pra memória é silencioso de
+# propósito (banco fora não pode derrubar o dev), e é justamente por isso que
+# precisa aparecer em algum lugar consultável: este campo no /health.
+_checkpointer = "memoria"
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _pool
+    global _pool, _checkpointer
     if DATABASE_URL:
         from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
         from psycopg.rows import dict_row
@@ -226,6 +234,7 @@ async def lifespan(app: FastAPI):
             # Leitura do acervo (tela de seleção de sessão) — mesmo pool, mesmo
             # checkpointer que o grafo escreve.
             usar_pool_sessoes(_pool)
+            _checkpointer = "postgres"
             print("checkpointer: Postgres")
         except Exception as e:  # túnel/banco fora não pode impedir o dev local
             print(f"AVISO: Postgres indisponível ({e!r}) — usando checkpointer em MEMÓRIA; estado NÃO sobrevive a restart")
@@ -246,4 +255,29 @@ app.include_router(router_sessoes)
 
 @app.get("/health")
 def health() -> dict:
-    return {"ok": True}
+    """Diagnóstico, não só sinal de vida.
+
+    Um /health que devolve `{"ok": True}` e nada mais responde ok com o
+    Postgres em fallback silencioso, com a chave do modelo ausente e com os
+    arquivos de método fora da imagem. O último aconteceu: `metodos/` ficou de
+    fora do Dockerfile e o Tutor levantou FileNotFoundError em todo turno sem
+    que nada aqui mudasse. Cada campo abaixo é uma falha já vivida.
+    """
+    metodos: dict[str, int | str] = {}
+    # glob em diretório inexistente devolve vazio sem erro — e é exatamente
+    # esse o sintoma do bug do Dockerfile: dicionário vazio, `ok` falso.
+    for arquivo in sorted(DIRETORIO_METODOS.glob("*.md")):
+        try:
+            metodos[arquivo.name] = len(arquivo.read_text(encoding="utf-8"))
+        except OSError as erro:
+            metodos[arquivo.name] = f"ilegível: {erro}"
+    return {
+        # Falso quando um método não pôde ser lido: o servidor sobe, mas o
+        # trilho que depende dele responderia erro em todo turno.
+        "ok": bool(metodos) and all(isinstance(v, int) for v in metodos.values()),
+        "checkpointer": _checkpointer,
+        "metodos": metodos,
+        "modelo": model.model_name,
+        # Só a presença, nunca o valor.
+        "chave_do_modelo": "presente" if os.environ.get("OPENROUTER_API_KEY") else "ausente",
+    }
